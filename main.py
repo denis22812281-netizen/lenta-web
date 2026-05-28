@@ -382,16 +382,13 @@ def _sync_stages(ws, project_id: int, db: Session):
 
 
 def import_construction_excel(content: bytes, db: Session) -> dict:
-    """
-    Import Лента Констракшн Excel.
-    Reads sheet named '2026'. Searches headers dynamically.
-    """
+    """Import Лента Констракшн Excel — лист 2026."""
     wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
     managers = db.query(models.Manager).all()
     today = date.today()
     created = updated = 0
 
-    # Find 2026 sheet
+    # Найти лист 2026
     ws = None
     for sheet in wb.worksheets:
         if '2026' in sheet.title:
@@ -400,56 +397,72 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
     if not ws:
         ws = wb.worksheets[0]
 
-    # Find header row (search rows 1-8 for "Номер ТК" or "Адрес")
+    # Найти строку заголовков (ищем "Номер" или "Адрес" в первых 10 строках)
     header_row = 4
-    for r in range(1, 9):
-        row_text = ' '.join(str(ws.cell(r, c).value or '') for c in range(1, 20))
-        if 'Номер' in row_text or 'Адрес' in row_text:
-            header_row = r
-            break
+    for r in range(1, 11):
+        for c in range(1, 15):
+            v = str(ws.cell(r, c).value or '')
+            if 'Номер' in v or 'Адрес' in v:
+                header_row = r
+                break
 
-    # Map column names → indices
+    # Сопоставить заголовки с колонками (поиск по всем строкам шапки 1..header_row+1)
     col = {}
-    for c in range(1, 60):
-        v = str(ws.cell(header_row, c).value or '').strip()
-        vl = v.lower()
-        if 'номер тк' in vl or (c == 2 and 'тк' in vl):
-            col['tk'] = c
-        elif 'адрес' in vl and 'tk' not in col.get('addr', ''):
-            col['addr'] = c
-        elif ('регион' in vl or 'город' in vl) and 'city' not in col:
-            col['city'] = c
-        elif 'площадь' in vl and 'area' not in col:
-            col['area'] = c
-        elif ('приёмка' in vl or 'приемка' in vl) and 'reception' not in col:
-            col['reception'] = c
-        elif 'смр' in vl and 'cmp' not in col:
-            col['cmp'] = c
-        elif 'впк' in vl and 'vpk' not in col:
-            col['vpk'] = c
-        elif ('первоначальная' in vl or 'план' in vl) and 'open_plan' not in col:
-            col['open_plan'] = c
-        elif ('фактическая' in vl or 'факт' in vl) and 'open_fact' not in col:
-            col['open_fact'] = c
-        elif 'менеджер' in vl and 'ос' in vl:
-            col['mgr_os'] = c
-        elif 'менеджер' in vl and 'развит' in vl:
-            col['mgr_dev'] = c
-        elif 'менеджер' in vl and 'строит' in vl:
-            col['mgr_build'] = c
+    for r in range(1, header_row + 2):
+        for c in range(1, 60):
+            v = str(ws.cell(r, c).value or '').strip()
+            vl = v.lower()
+            if not v:
+                continue
+            if ('номер тк' in vl or vl == 'тк') and 'tk' not in col:
+                col['tk'] = c
+            elif 'адрес' in vl and 'addr' not in col and len(v) < 30:
+                col['addr'] = c
+            elif ('регион' in vl or 'город' in vl) and 'city' not in col:
+                col['city'] = c
+            elif 'площадь' in vl and 'тз' in vl and 'area' not in col:
+                col['area'] = c
+            elif ('приёмка' in vl or 'приемка' in vl) and 'reception' not in col:
+                col['reception'] = c
+            elif 'выход на смр' in vl and 'cmp' not in col:
+                col['cmp'] = c
+            elif vl.startswith('впк') and 'vpk' not in col:
+                col['vpk'] = c
+            elif 'первоначальная' in vl and 'open_plan' not in col:
+                col['open_plan'] = c
+            elif 'фактическая' in vl and 'open_fact' not in col:
+                col['open_fact'] = c
+            elif 'менеджер' in vl and 'ос' in vl and 'mgr_os' not in col:
+                col['mgr_os'] = c
+            elif 'менеджер' in vl and 'развит' in vl and 'mgr_dev' not in col:
+                col['mgr_dev'] = c
+            elif 'менеджер' in vl and 'строит' in vl and 'mgr_build' not in col:
+                col['mgr_build'] = c
 
-    # Fallbacks
-    col.setdefault('tk', 2)
-    col.setdefault('addr', 3)
-    col.setdefault('city', 9)
-    col.setdefault('area', 7)
+    # Жёсткие fallback на основе структуры файла из скриншота
+    col.setdefault('tk', 2)       # B: Номер ТК
+    col.setdefault('addr', 3)     # C: Адрес
+    col.setdefault('city', 9)     # I: Регион/Город
+    col.setdefault('area', 7)     # G: Площадь ТЗ
+    col.setdefault('reception', 14)  # N: Приёмка помещений
+    col.setdefault('cmp', 16)     # P: Выход на СМР
+    col.setdefault('vpk', 19)     # S: ВПК 1
+    col.setdefault('open_plan', 20)  # T: Плановая дата открытия
+    col.setdefault('open_fact', 21)  # U: Фактическая дата открытия
+    col.setdefault('mgr_os', 38)     # AL: Менеджер ОС
+    col.setdefault('mgr_dev', 36)    # AJ: Менеджер отдел развития
 
-    for row_idx in range(header_row + 1, ws.max_row + 1):
+    data_start = header_row + 1
+
+    for row_idx in range(data_start, ws.max_row + 1):
         tk_val = ws.cell(row_idx, col['tk']).value
         if not tk_val:
             continue
         tk_num = str(tk_val).strip()
-        if not tk_num or tk_num == 'None':
+        if not tk_num or tk_num in ('None', 'Номер ТК', 'ТК'):
+            continue
+        # Пропускаем строки где ТК не выглядит как номер/L-номер
+        if len(tk_num) > 20:
             continue
 
         address = str(ws.cell(row_idx, col['addr']).value or '').strip()
@@ -457,13 +470,13 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
         area_val = ws.cell(row_idx, col['area']).value
         area = float(area_val) if isinstance(area_val, (int, float)) else None
 
-        reception = _safe_date(ws.cell(row_idx, col.get('reception', 0)).value) if col.get('reception') else None
-        cmp_date  = _safe_date(ws.cell(row_idx, col.get('cmp', 0)).value)        if col.get('cmp')       else None
-        vpk_date  = _safe_date(ws.cell(row_idx, col.get('vpk', 0)).value)        if col.get('vpk')       else None
-        open_plan = _safe_date(ws.cell(row_idx, col.get('open_plan', 0)).value)  if col.get('open_plan') else None
-        open_fact = _safe_date(ws.cell(row_idx, col.get('open_fact', 0)).value)  if col.get('open_fact') else None
+        reception = _safe_date(ws.cell(row_idx, col['reception']).value)
+        cmp_date  = _safe_date(ws.cell(row_idx, col['cmp']).value)
+        vpk_date  = _safe_date(ws.cell(row_idx, col['vpk']).value)
+        open_plan = _safe_date(ws.cell(row_idx, col['open_plan']).value)
+        open_fact = _safe_date(ws.cell(row_idx, col['open_fact']).value)
 
-        # Try managers: ОС → development → build
+        # Менеджер
         manager_id = None
         for key in ('mgr_os', 'mgr_dev', 'mgr_build'):
             if col.get(key):
@@ -474,10 +487,9 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
 
         opening = open_fact or open_plan
 
-        # Пропускаем объекты не 2026 года
-        if open_plan and open_plan.year != 2026:
-            continue
-        if not open_plan and opening and opening.year != 2026:
+        # Только 2026 год (лист уже 2026, но фильтруем на всякий случай)
+        ref_date = open_plan or open_fact or reception or cmp_date
+        if ref_date and ref_date.year != 2026:
             continue
 
         status = "Завершён" if (opening and opening < today) else "Активный"
