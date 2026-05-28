@@ -23,6 +23,17 @@
     </a>
 </div>
 
+<!-- ВРЕМЕННАЯ КНОПКА ОЧИСТКИ -->
+<div class="mb-4">
+    <form method="post" action="/projects/clear-all"
+          onsubmit="return confirm('Удалить ВСЕ проекты Реконструкций и Констракшн? Это необратимо!')">
+        <button type="submit" class="btn btn-danger">
+            <i class="bi bi-trash-fill me-2"></i>Удалить ВСЕ проекты (Реконструкции + Констракшн)
+        </button>
+    </form>
+</div>
+<!-- /ВРЕМЕННАЯ КНОПКА -->
+
 <!-- Stats row -->
 <div class="row g-3 mb-4">
     <div class="col-6 col-xl-3">
