@@ -487,7 +487,11 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
 
         opening = open_fact or open_plan
 
-        # Только 2026 год (лист уже 2026, но фильтруем на всякий случай)
+        # Только проекты с нашими менеджерами
+        if not manager_id:
+            continue
+
+        # Только 2026 год
         ref_date = open_plan or open_fact or reception or cmp_date
         if ref_date and ref_date.year != 2026:
             continue
@@ -1558,6 +1562,38 @@ async def import_construction_page(request: Request):
         "msg": request.query_params.get("msg"),
         "error": request.query_params.get("error"),
     })
+
+
+@app.post("/projects/clear-all")
+async def clear_all_projects(request: Request, db: Session = Depends(get_db)):
+    """Удаляет ВСЕ проекты Реконструкций и Констракшн."""
+    user = get_current_user(request)
+    if not user or not user.get("is_admin"):
+        return RedirectResponse("/", status_code=302)
+    projects = db.query(models.Project).filter(
+        models.Project.project_type.in_(["Реконструкция", "Констракшн"])
+    ).all()
+    for p in projects:
+        db.delete(p)
+    db.commit()
+    return RedirectResponse("/?msg=Все проекты удалены", status_code=303)
+
+
+@app.post("/reconstruct/delete-tk-prefix")
+async def delete_tk_prefix(request: Request, db: Session = Depends(get_db)):
+    """Удаляет из Реконструкций проекты где номер ТК начинается с 'ТК' или 'L'."""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    projects = db.query(models.Project).filter(
+        models.Project.project_type == "Реконструкция",
+        models.Project.tk_number.op("~")("^(ТК|TK|L)")
+    ).all()
+    count = len(projects)
+    for p in projects:
+        db.delete(p)
+    db.commit()
+    return RedirectResponse(f"/reconstruct?msg=Удалено: {count} проектов", status_code=303)
 
 
 @app.post("/reconstruct/fix-types")
