@@ -545,6 +545,22 @@ async def auto_sync_loop():
 @app.on_event("startup")
 async def startup():
     models.Base.metadata.create_all(bind=database.engine)
+
+    # Расширяем VARCHAR колонки до TEXT в PostgreSQL
+    if "postgresql" in str(database.DATABASE_URL):
+        try:
+            with database.engine.begin() as conn:
+                for sql in [
+                    "ALTER TABLE projects ALTER COLUMN city TYPE TEXT",
+                    "ALTER TABLE projects ALTER COLUMN stage TYPE TEXT",
+                    "ALTER TABLE project_stages ALTER COLUMN name TYPE TEXT",
+                ]:
+                    try:
+                        conn.exec_driver_sql(sql)
+                    except Exception:
+                        pass
+        except Exception:
+            pass
     db = database.SessionLocal()
     try:
         if db.query(models.Manager).count() == 0:

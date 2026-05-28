@@ -40,11 +40,11 @@ class Project(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(200), nullable=False)
     tk_number = Column(String(50), default="")
-    city = Column(String(100), default="")
+    city = Column(Text, default="")
     project_type = Column(String(50), default="")
     manager_id = Column(Integer, ForeignKey("managers.id"), nullable=True)
     status = Column(String(50), default="Активный")
-    stage = Column(String(100), default="")
+    stage = Column(Text, default="")
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
     address = Column(String(300), default="")   # Полный адрес объекта
@@ -73,7 +73,7 @@ class ProjectStage(Base):
     __tablename__ = "project_stages"
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey("projects.id"))
-    name = Column(String(100))
+    name = Column(Text)
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
     status = Column(String(50), default="Запланировано")
