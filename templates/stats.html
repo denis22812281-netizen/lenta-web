@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block page_title %}Статистика — Лента{% endblock %}
+{% block title %}<i class="bi bi-bar-chart-fill me-2"></i>Статистика открытий{% endblock %}
+
+{% block content %}
+<!-- Summary cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3">
+        <div class="stat-card stat-blue">
+            <div class="stat-icon"><i class="bi bi-building-fill"></i></div>
+            <div class="stat-num">{{ total_active }}</div>
+            <div class="stat-label">Объектов в работе</div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="stat-card stat-green">
+            <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
+            <div class="stat-num">{{ total_opened }}</div>
+            <div class="stat-label">Открыто СМ</div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="stat-card stat-yellow">
+            <div class="stat-icon"><i class="bi bi-clock-fill"></i></div>
+            <div class="stat-num">{{ total_on_time }}</div>
+            <div class="stat-label">Открыто в срок</div>
+        </div>
+    </div>
+    <div class="col-6 col-xl-3">
+        <div class="stat-card stat-red">
+            <div class="stat-icon"><i class="bi bi-exclamation-circle-fill"></i></div>
+            <div class="stat-num">{{ total_late }}</div>
+            <div class="stat-label">С опозданием / Просрочено</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Main stats table -->
+    <div class="col-lg-8">
+        <div class="data-card">
+            <div class="data-card-header">
+                <span><i class="bi bi-people-fill me-2"></i>Показатели по менеджерам</span>
+                <div class="d-flex gap-2">
+                    <a href="/stats/export" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-download me-1"></i>Excel
+                    </a>
+                </div>
+            </div>
+            <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-head">
+                    <tr>
+                        <th>Менеджер</th>
+                        <th class="text-center">В работе</th>
+                        <th class="text-center">Открыто СМ</th>
+                        <th class="text-center">В срок</th>
+                        <th class="text-center">С опозданием</th>
+                        <th class="text-center">Просрочено</th>
+                        <th class="text-center">% в срок</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for s in manager_stats %}
+                <tr>
+                    <td class="fw-semibold">{{ s.name }}</td>
+                    <td class="text-center">
+                        <span class="badge bg-primary rounded-pill">{{ s.active }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-success rounded-pill">{{ s.opened }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge rounded-pill" style="background:#dcfce7;color:#166534">{{ s.on_time }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge rounded-pill" style="background:#fef9c3;color:#854d0e">{{ s.late }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge rounded-pill {% if s.overdue > 0 %}bg-danger{% else %}bg-light text-muted border{% endif %}">{{ s.overdue }}</span>
+                    </td>
+                    <td class="text-center fw-bold">
+                        {% if s.opened > 0 %}
+                        {% set pct = ((s.on_time / s.opened) * 100)|int %}
+                        <span class="{% if pct >= 80 %}text-success{% elif pct >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                            {{ pct }}%
+                        </span>
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="fw-bold" style="background:#f4faf5;font-size:13px">
+                        <td>ИТОГО</td>
+                        <td class="text-center">{{ total_active }}</td>
+                        <td class="text-center">{{ total_opened }}</td>
+                        <td class="text-center text-success">{{ total_on_time }}</td>
+                        <td class="text-center" style="color:#854d0e">{{ total_late }}</td>
+                        <td class="text-center text-danger">{{ total_overdue }}</td>
+                        <td class="text-center fw-bold {% if total_opened > 0 and (total_on_time / total_opened * 100)|int >= 80 %}text-success{% else %}text-warning{% endif %}">
+                            {% if total_opened > 0 %}{{ ((total_on_time / total_opened) * 100)|int }}%{% else %}—{% endif %}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+            </div>
+        </div>
+
+        <!-- Projects detail table -->
+        {% if projects_with_stats %}
+        <div class="data-card mt-3">
+            <div class="data-card-header">
+                <span><i class="bi bi-list-ul me-2"></i>Детализация по объектам</span>
+                <span class="badge bg-secondary">{{ projects_with_stats|length }}</span>
+            </div>
+            <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle small">
+                <thead class="table-head">
+                    <tr>
+                        <th>ТК №</th>
+                        <th>Менеджер</th>
+                        <th>Плановая дата</th>
+                        <th>Дата открытия</th>
+                        <th>Результат</th>
+                        <th>Отклонение</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for p in projects_with_stats %}
+                <tr class="{% if p.status_class == 'opened-on-time' %}table-success{% elif p.status_class == 'opened-late' %}table-warning{% elif p.status_class == 'overdue' %}table-danger{% endif %}">
+                    <td class="fw-semibold">
+                        <a href="/projects/{{ p.id }}" class="text-decoration-none">ТК {{ p.tk_number }}</a>
+                    </td>
+                    <td>{{ p.manager_name }}</td>
+                    <td>{{ p.end_date.strftime('%d.%m.%Y') if p.end_date else '—' }}</td>
+                    <td class="fw-semibold {% if p.opening_date %}text-success{% endif %}">
+                        {{ p.opening_date.strftime('%d.%m.%Y') if p.opening_date else '—' }}
+                    </td>
+                    <td>
+                        {% if p.status_class == 'opened-on-time' %}
+                        <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>В срок</span>
+                        {% elif p.status_class == 'opened-late' %}
+                        <span class="badge bg-warning text-dark"><i class="bi bi-exclamation me-1"></i>С опозданием</span>
+                        {% elif p.status_class == 'overdue' %}
+                        <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i>Просрочено</span>
+                        {% elif p.status_class == 'active' %}
+                        <span class="badge bg-primary">В работе</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if p.delta_days is not none %}
+                        <span class="fw-semibold {% if p.delta_days <= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {% if p.delta_days <= 0 %}0 дней{% else %}+{{ p.delta_days }} дней{% endif %}
+                        </span>
+                        {% else %}
+                        {% if p.days_left is not none %}
+                        <span class="{% if p.days_left < 0 %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                            {% if p.days_left < 0 %}{{ p.days_left }} д{% else %}+{{ p.days_left }} д{% endif %}
+                        </span>
+                        {% else %}—{% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Right: upload + legend -->
+    <div class="col-lg-4">
+        <!-- Upload additional stats file -->
+        <div class="data-card mb-3">
+            <div class="data-card-header">
+                <span><i class="bi bi-upload me-2"></i>Загрузить данные открытий</span>
+            </div>
+            <div class="p-3">
+                <div class="alert alert-info small mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Загрузи Excel-файл с датами фактических открытий, чтобы обновить статистику.
+                    Нужны колонки: <strong>ТК номер</strong> и <strong>Дата открытия</strong>.
+                </div>
+                <form method="post" action="/stats/upload" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-upload me-1"></i>Загрузить и обновить
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="data-card">
+            <div class="data-card-header"><span><i class="bi bi-bookmark me-2"></i>Обозначения</span></div>
+            <div class="p-3 small">
+                <div class="d-flex align-items-center gap-2 mb-2 p-2 rounded" style="background:#dcfce7">
+                    <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                    <div>
+                        <strong>В срок</strong><br>
+                        <span class="text-muted">Дата открытия ≤ плановой</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-2 p-2 rounded" style="background:#fef9c3">
+                    <i class="bi bi-exclamation-circle-fill text-warning fs-5"></i>
+                    <div>
+                        <strong>С опозданием</strong><br>
+                        <span class="text-muted">Открыт, но позже плановой</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2 mb-2 p-2 rounded" style="background:#fee2e2">
+                    <i class="bi bi-x-circle-fill text-danger fs-5"></i>
+                    <div>
+                        <strong>Просрочено</strong><br>
+                        <span class="text-muted">Плановая дата прошла, не открыт</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2 p-2 rounded" style="background:#dbeafe">
+                    <i class="bi bi-building-fill text-primary fs-5"></i>
+                    <div>
+                        <strong>В работе</strong><br>
+                        <span class="text-muted">Срок ещё не наступил</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block page_title %}{{ project.name }} — Лента{% endblock %}
+{% block title %}
+    <a href="/projects" class="text-decoration-none text-muted small me-2"><i class="bi bi-arrow-left"></i> Проекты</a>
+    {{ project.name[:40] }}
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <!-- Project info card -->
+    <div class="col-lg-5">
+        <div class="data-card h-100">
+            <div class="data-card-header">
+                <span><i class="bi bi-info-circle me-2"></i>Информация о проекте</span>
+                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#editForm">
+                    <i class="bi bi-pencil me-1"></i>Редактировать
+                </button>
+            </div>
+            <div class="p-3">
+                <dl class="row mb-0 small">
+                    <dt class="col-5 text-muted">ТК №</dt>
+                    <dd class="col-7 fw-semibold">{{ project.tk_number or '—' }}</dd>
+                    <dt class="col-5 text-muted">Город</dt>
+                    <dd class="col-7">{{ project.city or '—' }}</dd>
+                    <dt class="col-5 text-muted">Тип</dt>
+                    <dd class="col-7"><span class="badge bg-light text-dark border">{{ project.project_type or '—' }}</span></dd>
+                    <dt class="col-5 text-muted">Менеджер</dt>
+                    <dd class="col-7 fw-semibold">{{ project.manager.name if project.manager else '—' }}</dd>
+                    <dt class="col-5 text-muted">Статус</dt>
+                    <dd class="col-7">
+                        <span class="badge {% if project.status == 'Активный' %}bg-success{% elif project.status == 'Завершён' %}bg-secondary{% elif project.status == 'Приостановлен' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
+                            {{ project.status }}
+                        </span>
+                    </dd>
+                    <dt class="col-5 text-muted">Этап</dt>
+                    <dd class="col-7">{{ project.stage or '—' }}</dd>
+                    <dt class="col-5 text-muted">Дата начала</dt>
+                    <dd class="col-7">{{ project.start_date.strftime('%d.%m.%Y') if project.start_date else '—' }}</dd>
+                    <dt class="col-5 text-muted">Дата окончания</dt>
+                    <dd class="col-7 fw-semibold">
+                        {% if project.end_date %}
+                        {% set days = (project.end_date - today).days %}
+                        {{ project.end_date.strftime('%d.%m.%Y') }}
+                        <span class="dl-badge ms-1 {% if days < 0 %}dl-over{% elif days <= 7 %}dl-warn{% else %}dl-ok{% endif %}">
+                            {% if days < 0 %}{{ days }} д{% else %}+{{ days }} д{% endif %}
+                        </span>
+                        {% else %}—{% endif %}
+                    </dd>
+                    <dt class="col-5 text-muted">Бюджет</dt>
+                    <dd class="col-7">
+                        {% if project.budget %}
+                        {{ "{:,.0f}".format(project.budget) }} руб.
+                        {% else %}—{% endif %}
+                    </dd>
+                    {% if project.description %}
+                    <dt class="col-5 text-muted">Описание</dt>
+                    <dd class="col-7">{{ project.description }}</dd>
+                    {% endif %}
+                </dl>
+            </div>
+
+            <!-- Edit form (collapsed) -->
+            <div class="collapse border-top" id="editForm">
+                <form method="post" action="/projects/{{ project.id }}/update" class="p-3">
+                    <div class="row g-2">
+                        <div class="col-12">
+                            <input type="text" name="name" class="form-control form-control-sm" value="{{ project.name }}" required>
+                        </div>
+                        <div class="col-6">
+                            <input type="text" name="tk_number" class="form-control form-control-sm" value="{{ project.tk_number }}" placeholder="ТК №">
+                        </div>
+                        <div class="col-6">
+                            <input type="text" name="city" class="form-control form-control-sm" value="{{ project.city }}" placeholder="Город">
+                        </div>
+                        <div class="col-6">
+                            <select name="project_type" class="form-select form-select-sm">
+                                <option value="">Тип</option>
+                                {% for t in project_types %}
+                                <option value="{{ t }}" {% if t == project.project_type %}selected{% endif %}>{{ t }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <select name="manager_id" class="form-select form-select-sm">
+                                <option value="">Менеджер</option>
+                                {% for m in managers %}
+                                <option value="{{ m.id }}" {% if m.id == project.manager_id %}selected{% endif %}>{{ m.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <select name="status" class="form-select form-select-sm">
+                                {% for s in statuses %}
+                                <option value="{{ s }}" {% if s == project.status %}selected{% endif %}>{{ s }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <input type="text" name="stage" class="form-control form-control-sm" value="{{ project.stage }}" placeholder="Этап">
+                        </div>
+                        <div class="col-6">
+                            <input type="date" name="start_date" class="form-control form-control-sm" value="{{ project.start_date }}">
+                        </div>
+                        <div class="col-6">
+                            <input type="date" name="end_date" class="form-control form-control-sm" value="{{ project.end_date }}">
+                        </div>
+                        <div class="col-12">
+                            <input type="text" name="budget" class="form-control form-control-sm" value="{{ project.budget or '' }}" placeholder="Бюджет">
+                        </div>
+                        <div class="col-12">
+                            <textarea name="description" class="form-control form-control-sm" rows="2">{{ project.description }}</textarea>
+                        </div>
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-sm btn-dark flex-grow-1">Сохранить</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#editForm">Отмена</button>
+                        </div>
+                    </div>
+                </form>
+                <div class="border-top p-3">
+                    <form method="post" action="/projects/{{ project.id }}/delete"
+                          onsubmit="return confirm('Удалить проект {{ project.name }}?')">
+                        <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                            <i class="bi bi-trash me-1"></i>Удалить проект
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stages + Tasks -->
+    <div class="col-lg-7">
+        <!-- Stages -->
+        <div class="data-card mb-3">
+            <div class="data-card-header">
+                <span><i class="bi bi-list-ol me-2"></i>Этапы проекта</span>
+                <button class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#modalAddStage">
+                    <i class="bi bi-plus me-1"></i>Этап
+                </button>
+            </div>
+            {% if project.stages %}
+            <div class="p-2">
+            {% for stage in project.stages %}
+            <div class="stage-row">
+                <div class="stage-info">
+                    <span class="stage-dot {% if stage.status == 'Завершён' %}bg-success{% elif stage.status == 'В работе' %}bg-primary{% elif stage.status == 'Просрочен' %}bg-danger{% else %}bg-secondary{% endif %}"></span>
+                    <div>
+                        <div class="fw-semibold small">{{ stage.name }}</div>
+                        <div class="text-muted small">
+                            {% if stage.start_date %}{{ stage.start_date.strftime('%d.%m') }}{% endif %}
+                            {% if stage.start_date and stage.end_date %} → {% endif %}
+                            {% if stage.end_date %}{{ stage.end_date.strftime('%d.%m.%Y') }}{% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <span class="badge {% if stage.status == 'Завершён' %}bg-success{% elif stage.status == 'В работе' %}bg-primary{% elif stage.status == 'Просрочен' %}bg-danger{% else %}bg-light text-dark border{% endif %} small">
+                        {{ stage.status }}
+                    </span>
+                    <form method="post" action="/stages/{{ stage.id }}/delete"
+                          onsubmit="return confirm('Удалить этап?')" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-link text-danger p-0"><i class="bi bi-x-lg"></i></button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state py-3"><i class="bi bi-list-ol"></i><p class="mb-0">Этапы не добавлены</p></div>
+            {% endif %}
+        </div>
+
+        <!-- Tasks -->
+        <div class="data-card">
+            <div class="data-card-header">
+                <span><i class="bi bi-clipboard2-check me-2"></i>Задачи по проекту</span>
+                <a href="/tasks" class="btn btn-sm btn-dark">+ Задача</a>
+            </div>
+            {% if project.tasks %}
+            <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle small">
+                <thead class="table-head">
+                    <tr><th>Задача</th><th>Кому</th><th>Дедлайн</th><th>Приоритет</th><th>Статус</th></tr>
+                </thead>
+                <tbody>
+                {% for t in project.tasks %}
+                <tr>
+                    <td class="fw-semibold">{{ t.title }}</td>
+                    <td>{{ t.assignee.name if t.assignee else '—' }}</td>
+                    <td>{{ t.deadline.strftime('%d.%m.%Y') if t.deadline else '—' }}</td>
+                    <td><span class="badge {% if t.priority == 'Высокий' %}bg-danger{% elif t.priority == 'Средний' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ t.priority }}</span></td>
+                    <td><span class="badge {% if t.status == 'Завершена' %}bg-success{% elif t.status == 'В работе' %}bg-primary{% else %}bg-secondary{% endif %}">{{ t.status }}</span></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}
+            <div class="empty-state py-3"><i class="bi bi-clipboard2"></i><p class="mb-0">Задач нет</p></div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Stage -->
+<div class="modal fade" id="modalAddStage" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Добавить этап</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="/projects/{{ project.id }}/stages/add">
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Название этапа</label>
+                    <input type="text" name="name" class="form-control" required list="stage-suggestions">
+                    <datalist id="stage-suggestions">
+                        {% for sn in stage_names %}
+                        <option value="{{ sn }}">
+                        {% endfor %}
+                    </datalist>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label fw-semibold">Дата начала</label>
+                        <input type="date" name="start_date" class="form-control">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-semibold">Дата окончания</label>
+                        <input type="date" name="end_date" class="form-control">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Статус</label>
+                    <select name="stage_status" class="form-select">
+                        <option value="Запланировано">Запланировано</option>
+                        <option value="В работе">В работе</option>
+                        <option value="Завершён">Завершён</option>
+                        <option value="Просрочен">Просрочен</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-dark">Добавить</button>
+            </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

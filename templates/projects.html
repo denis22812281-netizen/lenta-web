@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% block page_title %}Проекты — Лента{% endblock %}
+{% block title %}<i class="bi bi-building-fill me-2"></i>Список проектов{% endblock %}
+
+{% block content %}
+<!-- Toolbar -->
+<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+    <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#modalCreateProject">
+        <i class="bi bi-plus-lg me-1"></i>Новый проект
+    </button>
+    <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#modalImport">
+        <i class="bi bi-upload me-1"></i>Импорт Excel
+    </button>
+    <a href="/api/export/projects-excel" class="btn btn-outline-primary">
+        <i class="bi bi-download me-1"></i>Экспорт Excel
+    </a>
+    <span class="ms-auto text-muted small">{{ projects|length }} проектов</span>
+</div>
+
+<!-- Filters -->
+<div class="filter-bar mb-3">
+    <form method="get" class="d-flex flex-wrap gap-2">
+        <input type="text" name="search" class="form-control form-control-sm" style="width:200px"
+               placeholder="Номер ТК (например 610)" value="{{ search }}">
+        <select name="manager_id" class="form-select form-select-sm" style="width:180px">
+            <option value="">Все менеджеры</option>
+            {% for m in managers %}
+            <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>{{ m.name }}</option>
+            {% endfor %}
+        </select>
+        <select name="status" class="form-select form-select-sm" style="width:150px">
+            <option value="">Все статусы</option>
+            {% for s in statuses %}
+            <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+        <select name="project_type" class="form-select form-select-sm" style="width:180px">
+            <option value="">Все типы</option>
+            {% for t in project_types %}
+            <option value="{{ t }}" {% if filter_type == t %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-sm btn-primary">Применить</button>
+        {% if search or filter_manager_id or filter_status or filter_type %}
+        <a href="/projects" class="btn btn-sm btn-outline-secondary">Сбросить</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Table -->
+<div class="data-card">
+    {% if projects %}
+    <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+        <thead class="table-head">
+            <tr>
+                <th>ТК №</th>
+                <th>Название / Город</th>
+                <th>Тип</th>
+                <th>Менеджер</th>
+                <th>Статус</th>
+                <th>Этап</th>
+                <th>Начало</th>
+                <th>Окончание</th>
+                <th>Дней</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for p in projects %}
+        {% if p.end_date %}
+        {% set days = (p.end_date - today).days %}
+        {% else %}
+        {% set days = None %}
+        {% endif %}
+        <tr>
+            <td class="text-muted small">{{ p.tk_number or '—' }}</td>
+            <td>
+                <a href="/projects/{{ p.id }}" class="fw-semibold text-decoration-none text-dark">{{ p.name }}</a>
+                {% if p.address %}<br><small class="text-muted"><i class="bi bi-geo-alt"></i> {{ p.address }}</small>{% elif p.city %}<br><small class="text-muted"><i class="bi bi-geo-alt"></i> {{ p.city }}</small>{% endif %}
+            </td>
+            <td><span class="badge bg-light text-dark border">{{ p.project_type or '—' }}</span></td>
+            <td class="small">{{ p.manager.name if p.manager else '—' }}</td>
+            <td>
+                <span class="badge {% if p.status == 'Активный' %}bg-success{% elif p.status == 'Завершён' %}bg-secondary{% elif p.status == 'Приостановлен' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
+                    {{ p.status }}
+                </span>
+            </td>
+            <td class="small text-muted">{{ p.stage or '—' }}</td>
+            <td class="small">{{ p.start_date.strftime('%d.%m.%y') if p.start_date else '—' }}</td>
+            <td class="small fw-semibold">{{ p.end_date.strftime('%d.%m.%Y') if p.end_date else '—' }}</td>
+            <td>
+                {% if days is not none %}
+                <span class="dl-badge {% if days < 0 %}dl-over{% elif days <= 7 %}dl-warn{% else %}dl-ok{% endif %}">
+                    {% if days < 0 %}{{ days }}{% else %}+{{ days }}{% endif %}
+                </span>
+                {% else %}—{% endif %}
+            </td>
+            <td>
+                <a href="/projects/{{ p.id }}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil"></i>
+                </a>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-building"></i>
+        <p>Проектов пока нет. <a href="#" data-bs-toggle="modal" data-bs-target="#modalCreateProject">Создать первый</a></p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal: Create Project -->
+<div class="modal fade" id="modalCreateProject" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Новый проект</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="/projects/create">
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label fw-semibold">Название проекта *</label>
+                        <input type="text" name="name" class="form-control" required placeholder="Например: ТК 651 Москва">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">ТК №</label>
+                        <input type="text" name="tk_number" class="form-control" placeholder="651">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Город</label>
+                        <input type="text" name="city" class="form-control" placeholder="Москва">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Тип проекта</label>
+                        <select name="project_type" class="form-select">
+                            <option value="">— выбрать —</option>
+                            {% for t in project_types %}
+                            <option value="{{ t }}">{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Менеджер</label>
+                        <select name="manager_id" class="form-select">
+                            <option value="">— не назначен —</option>
+                            {% for m in managers %}
+                            <option value="{{ m.id }}">{{ m.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Статус</label>
+                        <select name="status" class="form-select">
+                            {% for s in statuses %}
+                            <option value="{{ s }}" {% if s == 'Активный' %}selected{% endif %}>{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold">Текущий этап</label>
+                        <input type="text" name="stage" class="form-control" placeholder="Например: Конструктивные работы">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Дата начала</label>
+                        <input type="date" name="start_date" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold">Дата окончания</label>
+                        <input type="date" name="end_date" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Бюджет (руб.)</label>
+                        <input type="text" name="budget" class="form-control" placeholder="0">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Описание</label>
+                        <textarea name="description" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-dark">Создать проект</button>
+            </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Import Excel -->
+<div class="modal fade" id="modalImport" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-upload me-2"></i>Импорт из Excel</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="/projects/import-excel" enctype="multipart/form-data">
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Файл Excel (.xlsx)</label>
+                    <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
+                    <div class="form-text">Каждый лист = один проект. Система ищет строки с "ТК" в первых 10 строках.</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Назначить менеджера</label>
+                    <select name="manager_id" class="form-select">
+                        <option value="">— не назначать —</option>
+                        {% for m in managers %}
+                        <option value="{{ m.id }}">{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-success">Загрузить</button>
+            </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

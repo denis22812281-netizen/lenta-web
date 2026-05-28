@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block page_title %}Дедлайны — Лента Проекты{% endblock %}
+{% block title %}<i class="bi bi-clock-history me-2"></i>Дедлайны{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="filter-bar mb-4">
+    <form method="get" class="d-flex flex-wrap gap-2 align-items-center">
+        <select name="manager_id" class="form-select form-select-sm" style="width:200px" onchange="this.form.submit()">
+            <option value="">Все менеджеры</option>
+            {% for m in managers %}
+            <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>{{ m.name }}</option>
+            {% endfor %}
+        </select>
+        <select name="view" class="form-select form-select-sm" style="width:160px" onchange="this.form.submit()">
+            <option value="all" {% if view == 'all' %}selected{% endif %}>Все</option>
+            <option value="overdue" {% if view == 'overdue' %}selected{% endif %}>Просроченные</option>
+            <option value="week" {% if view == 'week' %}selected{% endif %}>На этой неделе</option>
+            <option value="month" {% if view == 'month' %}selected{% endif %}>В этом месяце</option>
+        </select>
+        {% if filter_manager_id or view != 'all' %}
+        <a href="/deadlines" class="btn btn-sm btn-outline-secondary">Сбросить</a>
+        {% endif %}
+    </form>
+</div>
+
+<div class="row g-4">
+    <!-- Project deadlines -->
+    <div class="col-12">
+        <div class="data-card">
+            <div class="data-card-header">
+                <span><i class="bi bi-building-fill me-2"></i>Дедлайны проектов</span>
+                <span class="badge bg-secondary">{{ projects|length }}</span>
+            </div>
+            {% if projects %}
+            <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-head">
+                    <tr>
+                        <th>ТК №</th>
+                        <th>Название</th>
+                        <th>Менеджер</th>
+                        <th>Тип</th>
+                        <th>Статус</th>
+                        <th>Дата окончания</th>
+                        <th>Осталось</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for p in projects %}
+                {% set days = (p.end_date - today).days %}
+                <tr class="{% if days < 0 %}table-danger{% elif days <= 3 %}table-warning{% elif days <= 7 %}table-light{% endif %}">
+                    <td class="text-muted small">{{ p.tk_number or '—' }}</td>
+                    <td>
+                        <a href="/projects/{{ p.id }}" class="fw-semibold text-decoration-none text-dark">{{ p.name }}</a>
+                        {% if p.address %}<br><small class="text-muted">{{ p.address }}</small>{% elif p.city %}<br><small class="text-muted">{{ p.city }}</small>{% endif %}
+                    </td>
+                    <td>{{ p.manager.name if p.manager else '—' }}</td>
+                    <td><span class="badge bg-light text-dark">{{ p.project_type or '—' }}</span></td>
+                    <td><span class="badge {% if p.status == 'Активный' %}bg-success{% elif p.status == 'Приостановлен' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ p.status }}</span></td>
+                    <td class="fw-semibold">{{ p.end_date.strftime('%d.%m.%Y') }}</td>
+                    <td>
+                        <span class="dl-badge {% if days < 0 %}dl-over{% elif days <= 3 %}dl-crit{% elif days <= 7 %}dl-warn{% else %}dl-ok{% endif %}">
+                            {% if days < 0 %}Просрочено {{ -days }} д{% elif days == 0 %}Сегодня!{% else %}{{ days }} дней{% endif %}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}
+            <div class="empty-state"><i class="bi bi-check2-all"></i><p>Нет активных дедлайнов</p></div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Task deadlines -->
+    <div class="col-12">
+        <div class="data-card">
+            <div class="data-card-header">
+                <span><i class="bi bi-clipboard2-check me-2"></i>Дедлайны задач</span>
+                <div class="d-flex gap-2 align-items-center">
+                    <span class="badge bg-secondary">{{ tasks|length }}</span>
+                    <a href="/tasks" class="btn btn-sm btn-dark">+ Задача</a>
+                </div>
+            </div>
+            {% if tasks %}
+            <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-head">
+                    <tr>
+                        <th>Задача</th>
+                        <th>Проект</th>
+                        <th>Назначено</th>
+                        <th>Приоритет</th>
+                        <th>Статус</th>
+                        <th>Дедлайн</th>
+                        <th>Осталось</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for t in tasks %}
+                {% set days = (t.deadline - today).days %}
+                <tr class="{% if days < 0 %}table-danger{% elif days <= 3 %}table-warning{% endif %}">
+                    <td class="fw-semibold small">{{ t.title }}</td>
+                    <td class="text-muted small">{{ t.project.name[:20] if t.project else '—' }}</td>
+                    <td>{{ t.assignee.name if t.assignee else '—' }}</td>
+                    <td>
+                        <span class="badge {% if t.priority == 'Высокий' %}bg-danger{% elif t.priority == 'Средний' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                            {{ t.priority }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge {% if t.status == 'Завершена' %}bg-success{% elif t.status == 'В работе' %}bg-primary{% elif t.status == 'На проверке' %}bg-info text-dark{% else %}bg-secondary{% endif %}">
+                            {{ t.status }}
+                        </span>
+                    </td>
+                    <td class="fw-semibold">{{ t.deadline.strftime('%d.%m.%Y') }}</td>
+                    <td>
+                        <span class="dl-badge {% if days < 0 %}dl-over{% elif days <= 3 %}dl-crit{% elif days <= 7 %}dl-warn{% else %}dl-ok{% endif %}">
+                            {% if days < 0 %}Просрочено {{ -days }} д{% elif days == 0 %}Сегодня!{% else %}{{ days }} дней{% endif %}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}
+            <div class="empty-state"><i class="bi bi-clipboard2"></i><p>Нет задач с дедлайнами</p></div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

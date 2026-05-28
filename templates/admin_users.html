@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block page_title %}Доступ — Лента{% endblock %}
+{% block title %}<i class="bi bi-shield-lock-fill me-2"></i>Управление доступом{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <!-- Add phone -->
+    <div class="col-lg-5">
+        <div class="data-card">
+            <div class="data-card-header" style="background:#E31C25;color:#fff">
+                <span><i class="bi bi-plus-circle-fill me-2"></i>Добавить номер телефона</span>
+            </div>
+            <form method="post" action="/admin/whitelist/add" class="p-3">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Имя сотрудника</label>
+                    <input type="text" name="display_name" class="form-control"
+                           placeholder="Ловчиков Александр" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Номер телефона</label>
+                    <div class="input-group">
+                        <span class="input-group-text">+7</span>
+                        <input type="text" name="phone" class="form-control"
+                               placeholder="999 730 3914" required
+                               pattern="[\d\s\-]{10,13}">
+                    </div>
+                    <div class="form-text">Можно вводить в любом формате: 89991234567, 9991234567</div>
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" name="is_admin" id="is_admin" value="1">
+                    <label class="form-check-label" for="is_admin">
+                        Администратор (управление доступом)
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-danger w-100">
+                    <i class="bi bi-plus-lg me-1"></i>Добавить в белый список
+                </button>
+            </form>
+        </div>
+
+        <div class="data-card mt-3">
+            <div class="data-card-header">
+                <span><i class="bi bi-info-circle me-2"></i>Как работает доступ</span>
+            </div>
+            <div class="p-3 small text-muted">
+                <ol class="mb-0 ps-3">
+                    <li>Ты добавляешь номер телефона сотрудника</li>
+                    <li>Сотрудник открывает приложение, вводит свой номер</li>
+                    <li>Если номер в списке → придумывает пароль (один раз)</li>
+                    <li>При следующем входе — только номер + пароль</li>
+                    <li>Чужой номер → <strong class="text-danger">доступ полностью закрыт</strong></li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- Whitelist -->
+    <div class="col-lg-7">
+        <div class="data-card">
+            <div class="data-card-header">
+                <span><i class="bi bi-list-check me-2"></i>Разрешённые номера</span>
+                <span class="badge bg-secondary">{{ whitelist|length }}</span>
+            </div>
+            {% if whitelist %}
+            <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-head">
+                    <tr>
+                        <th>Сотрудник</th>
+                        <th>Номер телефона</th>
+                        <th>Роль</th>
+                        <th>Аккаунт</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for wl in whitelist %}
+                {% set u = user_by_phone.get(wl.phone) %}
+                <tr>
+                    <td class="fw-semibold">{{ wl.display_name or '—' }}</td>
+                    <td class="font-monospace">{{ wl.phone }}</td>
+                    <td>
+                        <span class="badge {% if wl.is_admin %}bg-danger{% else %}bg-secondary{% endif %}">
+                            {% if wl.is_admin %}Администратор{% else %}Менеджер{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        {% if u and u.password_hash %}
+                        <span class="badge bg-success"><i class="bi bi-check2 me-1"></i>Вошёл</span>
+                        {% elif u %}
+                        <span class="badge bg-warning text-dark">Нет пароля</span>
+                        {% else %}
+                        <span class="badge bg-light text-muted border">Не входил</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            {% if u and u.id != user.id %}
+                            <form method="post" action="/admin/users/{{ u.id }}/reset-password" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-warning"
+                                        title="Сбросить пароль" onclick="return confirm('Сбросить пароль?')">
+                                    <i class="bi bi-key"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                            {% if wl.phone != user.phone %}
+                            <form method="post" action="/admin/whitelist/{{ wl.id }}/delete" class="d-inline"
+                                  onsubmit="return confirm('Удалить {{ wl.display_name }} из списка доступа?')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="text-muted small">текущий</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}
+            <div class="empty-state py-4">
+                <i class="bi bi-shield-lock"></i>
+                <p>Список пуст</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

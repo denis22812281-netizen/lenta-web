@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block page_title %}Менеджеры — Лента{% endblock %}
+{% block title %}<i class="bi bi-people-fill me-2"></i>Менеджеры проектов{% endblock %}
+
+{% block content %}
+
+<!-- Руководитель проектов -->
+{% if leader_stat %}
+{% set lm = leader_stat.manager %}
+<div class="data-card mb-4" style="border-left:4px solid #FFD200">
+    <div class="p-3 d-flex align-items-center gap-3 flex-wrap">
+        <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#1A5C22,#3CB34A);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#FFD200;flex-shrink:0">
+            {{ lm.name[0] }}
+        </div>
+        <div>
+            <div class="fw-bold fs-5">{{ lm.name }}</div>
+            <div class="text-muted small"><i class="bi bi-star-fill text-warning me-1"></i>Руководитель проектов — видит все объекты</div>
+        </div>
+        <div class="ms-auto d-flex gap-2">
+            <a href="/deadlines" class="btn btn-sm btn-outline-warning">
+                <i class="bi bi-clock me-1"></i>Все дедлайны
+            </a>
+            <a href="/reconstruct" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-building me-1"></i>Все проекты
+            </a>
+            <a href="/stats" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-bar-chart me-1"></i>Статистика
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Manager cards grid -->
+<div class="row g-3 mb-4">
+{% for s in manager_stats %}
+{% set m = s.manager %}
+<div class="col-sm-6 col-xl-4">
+    <div class="manager-card {% if s.overdue_tasks > 0 %}manager-alert{% endif %}"
+         style="cursor:pointer" onclick="toggleProjects('mgr-{{ m.id }}')">
+        <div class="manager-header">
+            <div class="manager-avatar">{{ m.name[0] }}</div>
+            <div class="flex-grow-1">
+                <div class="fw-bold">{{ m.name }}</div>
+                {% if m.email %}<div class="small text-muted">{{ m.email }}</div>{% endif %}
+            </div>
+            <i class="bi bi-chevron-down text-muted" id="chevron-mgr-{{ m.id }}"></i>
+        </div>
+        <div class="manager-stats">
+            <div class="ms-item">
+                <div class="ms-num text-primary">{{ s.active_projects }}</div>
+                <div class="ms-label">Активных</div>
+            </div>
+            <div class="ms-item">
+                <div class="ms-num text-secondary">{{ s.open_tasks }}</div>
+                <div class="ms-label">Задач</div>
+            </div>
+            <div class="ms-item">
+                <div class="ms-num {% if s.overdue_tasks > 0 %}text-danger{% else %}text-success{% endif %}">
+                    {{ s.overdue_tasks }}
+                </div>
+                <div class="ms-label">Просрочено</div>
+            </div>
+        </div>
+
+        {% if s.urgent_projects %}
+        <div class="manager-alerts-bar">
+            <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+            Срочно: {{ s.urgent_projects|length }} объект(ов)
+        </div>
+        {% endif %}
+
+        <div class="d-flex gap-2 mt-2" onclick="event.stopPropagation()">
+            <a href="/deadlines?manager_id={{ m.id }}" class="btn btn-sm btn-outline-warning flex-fill">
+                <i class="bi bi-clock me-1"></i>Дедлайны
+            </a>
+            <a href="/tasks?manager_id={{ m.id }}" class="btn btn-sm btn-outline-secondary flex-fill">
+                <i class="bi bi-clipboard2 me-1"></i>Задачи
+            </a>
+        </div>
+    </div>
+</div>
+{% endfor %}
+</div>
+
+<!-- Projects by manager (expandable) -->
+{% for s in manager_stats %}
+{% set m = s.manager %}
+<div id="mgr-{{ m.id }}" class="d-none mb-4">
+    <div class="data-card">
+        <div class="data-card-header bg-light">
+            <span class="fw-bold">
+                <i class="bi bi-building-fill me-2 text-danger"></i>
+                Объекты менеджера: {{ m.name }}
+            </span>
+            <div class="d-flex gap-2">
+                <span class="badge bg-secondary">{{ s.manager.projects|length }} объектов</span>
+                <button class="btn btn-sm btn-outline-secondary" onclick="toggleProjects('mgr-{{ m.id }}')">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+        </div>
+        {% if s.manager.projects %}
+        <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle small">
+            <thead class="table-head">
+                <tr>
+                    <th>ТК №</th>
+                    <th>Адрес</th>
+                    <th>Статус</th>
+                    <th>СИД<br><small class="text-muted fw-normal">Старт → Оконч</small></th>
+                    <th>Зонирование<br><small class="text-muted fw-normal">Старт → Оконч</small></th>
+                    <th>Старт<br>закрытие</th>
+                    <th>ВПК1 / ВПК</th>
+                    <th>Дата открытия</th>
+                    <th>Дедлайн</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for p in s.manager.projects %}
+            {% set is_opened = p.opening_date and p.opening_date < today %}
+            {% set days_left = (p.end_date - today).days if p.end_date else None %}
+            <tr class="{% if is_opened %}table-success{% elif p.status == 'Приостановлен' %}table-secondary{% elif days_left is not none and days_left < 0 %}table-danger{% elif days_left is not none and days_left <= 7 %}table-warning{% endif %}">
+                <td>
+                    <a href="/projects/{{ p.id }}" class="fw-bold text-decoration-none">
+                        ТК {{ p.tk_number or p.id }}
+                    </a>
+                    {% if is_opened %}
+                    <span class="badge bg-success ms-1" title="Объект открыт"><i class="bi bi-check-lg"></i></span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div>{{ p.city or '' }}</div>
+                    {% if p.description or p.name != 'ТК ' + (p.tk_number or '') %}
+                    <div class="text-muted" style="font-size:11px">{{ p.name[:35] }}</div>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="badge {% if is_opened %}bg-success{% elif p.status == 'Активный' %}bg-primary{% elif p.status == 'Приостановлен' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                        {% if is_opened %}Открыт{% else %}{{ p.status }}{% endif %}
+                    </span>
+                </td>
+                <td class="text-nowrap">
+                    {% if p.sid_start %}
+                    <span class="text-primary">{{ p.sid_start.strftime('%d.%m.%y') }}</span>
+                    {% if p.sid_end %}→ <span class="text-danger">{{ p.sid_end.strftime('%d.%m.%y') }}</span>{% endif %}
+                    {% else %}—{% endif %}
+                </td>
+                <td class="text-nowrap">
+                    {% if p.zoning_start %}
+                    <span class="text-primary">{{ p.zoning_start.strftime('%d.%m.%y') }}</span>
+                    {% if p.zoning_end %}→ <span class="text-danger">{{ p.zoning_end.strftime('%d.%m.%y') }}</span>{% endif %}
+                    {% else %}—{% endif %}
+                </td>
+                <td>{{ p.closure_date.strftime('%d.%m.%Y') if p.closure_date else '—' }}</td>
+                <td>{{ p.vpk_date.strftime('%d.%m.%Y') if p.vpk_date else '—' }}</td>
+                <td class="fw-semibold {% if is_opened %}text-success{% endif %}">
+                    {{ p.opening_date.strftime('%d.%m.%Y') if p.opening_date else '—' }}
+                </td>
+                <td>
+                    {% if p.end_date %}
+                    <span class="dl-badge {% if is_opened %}dl-ok{% elif days_left < 0 %}dl-over{% elif days_left <= 7 %}dl-warn{% else %}dl-ok{% endif %}">
+                        {% if is_opened %}Открыт{% elif days_left < 0 %}{{ days_left }} д{% else %}+{{ days_left }} д{% endif %}
+                    </span>
+                    {% else %}—{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <div class="empty-state py-3">
+            <i class="bi bi-building"></i>
+            <p class="mb-0">Объектов нет</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+
+<style>
+.manager-card { transition: box-shadow .2s; }
+.manager-card:hover { box-shadow: 0 4px 16px rgba(227,28,37,.15); }
+.manager-alert { border: 1px solid #ffc107; }
+.manager-alerts-bar {
+    background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px;
+    padding: 6px 10px; font-size: 12px; margin-bottom: 10px; margin-top: 8px;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleProjects(id) {
+    const el = document.getElementById(id);
+    const mgrId = id.replace('mgr-', '');
+    const chevron = document.getElementById('chevron-' + id);
+
+    if (el.classList.contains('d-none')) {
+        el.classList.remove('d-none');
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+        el.scrollIntoView({behavior: 'smooth', block: 'start'});
+    } else {
+        el.classList.add('d-none');
+        if (chevron) chevron.style.transform = '';
+    }
+}
+</script>
+{% endblock %}

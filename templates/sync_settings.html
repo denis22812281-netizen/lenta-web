@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block page_title %}Синхронизация Excel — Лента{% endblock %}
+{% block title %}<i class="bi bi-arrow-repeat me-2"></i>Авто-синхронизация Excel{% endblock %}
+
+{% block content %}
+{% if request.query_params.get('saved') %}
+<div class="alert alert-success alert-dismissible fade show"><i class="bi bi-check-circle me-2"></i>Настройки сохранены! <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+{% endif %}
+{% if request.query_params.get('ran') %}
+<div class="alert alert-info alert-dismissible fade show"><i class="bi bi-arrow-repeat me-2"></i>Синхронизация запущена! <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+{% endif %}
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="data-card">
+            <div class="data-card-header">
+                <span><i class="bi bi-folder-fill me-2"></i>Пути к файлам Excel</span>
+            </div>
+            <div class="p-3">
+                <div class="alert alert-info small mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <strong>Как работает авто-синхронизация:</strong><br>
+                    Укажи путь к файлу Excel на своём ПК или в сети (например: <code>C:\Projects\ТК_651.xlsx</code> или <code>\\server\share\projects.xlsx</code>).
+                    Система будет автоматически читать файл и обновлять даты проектов по ТК-номеру.
+                    <br><br>
+                    <strong>Важно:</strong> при развёртывании на сервере (Railway, Koyeb) авто-синк по локальному пути работает только если файл доступен серверу. Для удалённого сервера — используй ручную загрузку Excel или OneDrive.
+                </div>
+
+                <form method="post" action="/sync-settings/save">
+                {% for ptype in section_types %}
+                {% set key = ptype.lower().replace(' ', '_') %}
+                {% set cfg = configs.get(ptype) %}
+                <div class="mb-4 p-3 border rounded">
+                    <h6 class="fw-bold mb-3">
+                        {% if ptype == 'Реконструкция' %}<i class="bi bi-building-fill text-danger me-2"></i>
+                        {% elif ptype == 'Констракшн' %}<i class="bi bi-buildings-fill text-primary me-2"></i>
+                        {% else %}<i class="bi bi-file-earmark-check-fill text-success me-2"></i>
+                        {% endif %}{{ ptype }}
+                    </h6>
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Путь к Excel-файлу</label>
+                        <input type="text" name="path_{{ key }}" class="form-control"
+                               value="{{ cfg.file_path if cfg else '' }}"
+                               placeholder="C:\Users\...\projects.xlsx">
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox"
+                                       name="auto_{{ key }}" id="auto_{{ key }}"
+                                       {% if cfg and cfg.auto_sync %}checked{% endif %}>
+                                <label class="form-check-label" for="auto_{{ key }}">Авто-синк</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Интервал (минут)</label>
+                            <input type="number" name="interval_{{ key }}" class="form-control form-control-sm"
+                                   value="{{ cfg.sync_interval_minutes if cfg else 60 }}" min="5" max="1440">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            {% if cfg and cfg.last_synced %}
+                            <div class="small text-muted">
+                                Последний синк:<br>
+                                <strong>{{ cfg.last_synced.strftime('%d.%m %H:%M') }}</strong><br>
+                                <span class="{% if 'OK' in cfg.last_status %}text-success{% else %}text-danger{% endif %}">
+                                    {{ cfg.last_status[:50] }}
+                                </span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if cfg and cfg.file_path %}
+                    <div class="mt-2">
+                        <form method="post" action="/sync-settings/run-now" class="d-inline">
+                            <input type="hidden" name="project_type" value="{{ ptype }}">
+                            <button type="submit" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-arrow-clockwise me-1"></i>Синхронизировать сейчас
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-danger w-100">
+                    <i class="bi bi-save me-1"></i>Сохранить настройки
+                </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="data-card">
+            <div class="data-card-header"><span><i class="bi bi-question-circle me-2"></i>Как синхронизировать</span></div>
+            <div class="p-3 small">
+                <p><strong>Вариант 1 (ПК/локальная сеть):</strong><br>
+                Приложение запущено на твоём ПК — указывай обычный путь к файлу.</p>
+                <p><strong>Вариант 2 (облачный сервер):</strong><br>
+                Загружай файл вручную через кнопку «Загрузить Excel» в разделе.
+                Система найдёт проекты по ТК-номеру и обновит даты.</p>
+                <p><strong>Что обновляется при загрузке:</strong></p>
+                <ul>
+                    <li>Дата начала / окончания проекта</li>
+                    <li>Этапы и их даты</li>
+                    <li>Новые проекты создаются автоматически</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

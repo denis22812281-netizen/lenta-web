@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block page_title %}Задачи — Лента{% endblock %}
+{% block title %}<i class="bi bi-clipboard2-check-fill me-2"></i>Задачи{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <!-- Create task form -->
+    <div class="col-lg-4">
+        <div class="data-card">
+            <div class="data-card-header">
+                <span><i class="bi bi-plus-circle-fill me-2"></i>Поставить задачу</span>
+            </div>
+            <form method="post" action="/tasks/create" class="p-3">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Название задачи *</label>
+                    <input type="text" name="title" class="form-control" required placeholder="Что нужно сделать?">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Описание</label>
+                    <textarea name="description" class="form-control" rows="3" placeholder="Подробнее..."></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Проект</label>
+                    <select name="project_id" class="form-select">
+                        <option value="">— без проекта —</option>
+                        {% for p in projects %}
+                        <option value="{{ p.id }}">{{ p.tk_number and '[' + p.tk_number + '] ' or '' }}{{ p.name[:35] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Назначить менеджеру</label>
+                    <select name="assignee_id" class="form-select">
+                        <option value="">— не назначена —</option>
+                        {% for m in managers %}
+                        <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Дедлайн</label>
+                    <input type="date" name="deadline" class="form-control">
+                </div>
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Приоритет</label>
+                    <div class="d-flex gap-2">
+                        {% for pr in priorities %}
+                        <div class="form-check flex-fill text-center">
+                            <input class="form-check-input d-none" type="radio" name="priority" value="{{ pr }}" id="pr_{{ pr }}" {% if pr == 'Средний' %}checked{% endif %}>
+                            <label class="form-check-label btn btn-sm w-100 {% if pr == 'Высокий' %}btn-outline-danger{% elif pr == 'Средний' %}btn-outline-warning{% else %}btn-outline-secondary{% endif %} priority-label" for="pr_{{ pr }}">
+                                {{ pr }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-dark w-100">
+                    <i class="bi bi-check2-circle me-1"></i>Поставить задачу
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Task list -->
+    <div class="col-lg-8">
+        <div class="data-card">
+            <div class="data-card-header">
+                <span>Все задачи <span class="badge bg-secondary ms-1">{{ tasks|length }}</span></span>
+                <div class="d-flex gap-2">
+                    <select id="filter-status" class="form-select form-select-sm" style="width:140px" onchange="filterTasks(this)">
+                        <option value="">Все статусы</option>
+                        {% for s in task_statuses %}
+                        <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                    <select id="filter-manager" class="form-select form-select-sm" style="width:160px" onchange="filterTasks(this)">
+                        <option value="">Все менеджеры</option>
+                        {% for m in managers %}
+                        <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            {% if tasks %}
+            <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle small">
+                <thead class="table-head">
+                    <tr>
+                        <th>Задача</th>
+                        <th>Проект</th>
+                        <th>Назначено</th>
+                        <th>Дедлайн</th>
+                        <th>Приоритет</th>
+                        <th>Статус</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for t in tasks %}
+                {% if t.deadline %}{% set days = (t.deadline - today).days %}{% else %}{% set days = None %}{% endif %}
+                <tr class="{% if days is not none and days < 0 and t.status != 'Завершена' %}table-danger{% elif days is not none and days <= 3 and t.status != 'Завершена' %}table-warning{% endif %}">
+                    <td>
+                        <div class="fw-semibold">{{ t.title }}</div>
+                        {% if t.description %}<div class="text-muted small">{{ t.description[:50] }}{% if t.description|length > 50 %}…{% endif %}</div>{% endif %}
+                    </td>
+                    <td class="text-muted">{{ t.project.name[:18] if t.project else '—' }}</td>
+                    <td>{{ t.assignee.name if t.assignee else '—' }}</td>
+                    <td class="fw-semibold">
+                        {% if t.deadline %}
+                        {{ t.deadline.strftime('%d.%m.%Y') }}
+                        {% if days is not none %}
+                        <br><span class="dl-badge {% if days < 0 %}dl-over{% elif days <= 3 %}dl-crit{% elif days <= 7 %}dl-warn{% else %}dl-ok{% endif %}">
+                            {% if days < 0 %}{{ -days }} д назад{% elif days == 0 %}Сегодня{% else %}{{ days }} д{% endif %}
+                        </span>
+                        {% endif %}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge {% if t.priority == 'Высокий' %}bg-danger{% elif t.priority == 'Средний' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                            {{ t.priority }}
+                        </span>
+                    </td>
+                    <td>
+                        <form method="post" action="/tasks/{{ t.id }}/update-status">
+                            <select name="status" class="form-select form-select-sm" style="width:130px" onchange="this.form.submit()">
+                                {% for s in task_statuses %}
+                                <option value="{{ s }}" {% if t.status == s %}selected{% endif %}>{{ s }}</option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    </td>
+                    <td>
+                        <form method="post" action="/tasks/{{ t.id }}/delete"
+                              onsubmit="return confirm('Удалить задачу?')">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}
+            <div class="empty-state"><i class="bi bi-clipboard2"></i><p>Задач пока нет</p></div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Priority button toggle
+document.querySelectorAll('.priority-label').forEach(label => {
+    label.addEventListener('click', function() {
+        document.querySelectorAll('.priority-label').forEach(l => l.classList.remove('active'));
+        this.classList.add('active');
+    });
+});
+
+function filterTasks(el) {
+    const status = document.getElementById('filter-status').value;
+    const manager = document.getElementById('filter-manager').value;
+    let url = '/tasks?';
+    if (status) url += 'status=' + encodeURIComponent(status) + '&';
+    if (manager) url += 'manager_id=' + manager;
+    window.location.href = url;
+}
+</script>
+{% endblock %}

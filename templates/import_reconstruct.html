@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block page_title %}Импорт Реконструкций — Лента{% endblock %}
+{% block title %}<i class="bi bi-upload me-2"></i>Импорт реконструкций из Excel{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+
+        {% if msg %}
+        <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-check-circle-fill fs-5"></i>
+            <div>{{ msg }}</div>
+        </div>
+        {% endif %}
+        {% if error %}
+        <div class="alert alert-danger d-flex align-items-center gap-2 mb-3">
+            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+            <div>{{ error }}</div>
+        </div>
+        {% endif %}
+
+        <div class="data-card">
+            <div class="data-card-header bg-danger text-white" style="background:#E31C25!important;color:#fff!important">
+                <span><i class="bi bi-file-earmark-excel me-2"></i>Загрузить файл Реконструкции</span>
+            </div>
+            <div class="p-4">
+                <div class="alert alert-info small mb-4">
+                    <strong><i class="bi bi-info-circle me-1"></i>Что загружается:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Лист <strong>Реконструкции 2026</strong> — все активные объекты</li>
+                        <li>Лист <strong>Лайт реконструкции 2026</strong> — лёгкие реконструкции</li>
+                        <li>Лист <strong>Рисковые объекты 2026 АЛ</strong></li>
+                        <li>Лист <strong>Рисковые объекты Малая площадь</strong></li>
+                    </ul>
+                    <br>
+                    <strong>Автоматически извлекаются:</strong> ТК №, адрес, менеджер, СИД, зонирование, дата закрытия, ВПК1, дата открытия.<br>
+                    <strong>Зелёный</strong> — дата открытия уже прошла (объект открыт).
+                </div>
+
+                <form method="post" action="/import-reconstruct" enctype="multipart/form-data">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold fs-5">Файл Excel (.xlsx)</label>
+                        <input type="file" name="file" class="form-control form-control-lg"
+                               accept=".xlsx,.xls" required id="file-input">
+                        <div class="form-text mt-2">
+                            Выберите файл <em>"Реконструкции ДД.ММ.ГГГГ.xlsx"</em>
+                        </div>
+                    </div>
+
+                    <div id="file-preview" class="d-none mb-3 p-3 bg-light rounded">
+                        <i class="bi bi-file-earmark-excel text-success me-2"></i>
+                        <span id="file-name"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-danger btn-lg w-100">
+                        <i class="bi bi-upload me-2"></i>Загрузить и импортировать
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="data-card mt-3">
+            <div class="data-card-header">
+                <span><i class="bi bi-link me-2"></i>Быстрый переход</span>
+            </div>
+            <div class="p-3 d-flex gap-2 flex-wrap">
+                <a href="/reconstruct" class="btn btn-outline-danger">
+                    <i class="bi bi-building-fill me-1"></i>Реконструкции
+                </a>
+                <a href="/managers" class="btn btn-outline-secondary">
+                    <i class="bi bi-people-fill me-1"></i>Менеджеры
+                </a>
+                <a href="/deadlines" class="btn btn-outline-warning">
+                    <i class="bi bi-clock me-1"></i>Дедлайны
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('file-input').addEventListener('change', function() {
+    if (this.files.length) {
+        document.getElementById('file-name').textContent = this.files[0].name;
+        document.getElementById('file-preview').classList.remove('d-none');
+    }
+});
+</script>
+{% endblock %}
