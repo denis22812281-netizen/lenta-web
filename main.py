@@ -381,6 +381,131 @@ def _sync_stages(ws, project_id: int, db: Session):
                 break
 
 
+def import_construction_excel(content: bytes, db: Session) -> dict:
+    """
+    Import Лента Констракшн Excel.
+    Reads sheet named '2026'. Searches headers dynamically.
+    """
+    wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+    managers = db.query(models.Manager).all()
+    today = date.today()
+    created = updated = 0
+
+    # Find 2026 sheet
+    ws = None
+    for sheet in wb.worksheets:
+        if '2026' in sheet.title:
+            ws = sheet
+            break
+    if not ws:
+        ws = wb.worksheets[0]
+
+    # Find header row (search rows 1-8 for "Номер ТК" or "Адрес")
+    header_row = 4
+    for r in range(1, 9):
+        row_text = ' '.join(str(ws.cell(r, c).value or '') for c in range(1, 20))
+        if 'Номер' in row_text or 'Адрес' in row_text:
+            header_row = r
+            break
+
+    # Map column names → indices
+    col = {}
+    for c in range(1, 60):
+        v = str(ws.cell(header_row, c).value or '').strip()
+        vl = v.lower()
+        if 'номер тк' in vl or (c == 2 and 'тк' in vl):
+            col['tk'] = c
+        elif 'адрес' in vl and 'tk' not in col.get('addr', ''):
+            col['addr'] = c
+        elif ('регион' in vl or 'город' in vl) and 'city' not in col:
+            col['city'] = c
+        elif 'площадь' in vl and 'area' not in col:
+            col['area'] = c
+        elif ('приёмка' in vl or 'приемка' in vl) and 'reception' not in col:
+            col['reception'] = c
+        elif 'смр' in vl and 'cmp' not in col:
+            col['cmp'] = c
+        elif 'впк' in vl and 'vpk' not in col:
+            col['vpk'] = c
+        elif ('первоначальная' in vl or 'план' in vl) and 'open_plan' not in col:
+            col['open_plan'] = c
+        elif ('фактическая' in vl or 'факт' in vl) and 'open_fact' not in col:
+            col['open_fact'] = c
+        elif 'менеджер' in vl and 'ос' in vl:
+            col['mgr_os'] = c
+        elif 'менеджер' in vl and 'развит' in vl:
+            col['mgr_dev'] = c
+        elif 'менеджер' in vl and 'строит' in vl:
+            col['mgr_build'] = c
+
+    # Fallbacks
+    col.setdefault('tk', 2)
+    col.setdefault('addr', 3)
+    col.setdefault('city', 9)
+    col.setdefault('area', 7)
+
+    for row_idx in range(header_row + 1, ws.max_row + 1):
+        tk_val = ws.cell(row_idx, col['tk']).value
+        if not tk_val:
+            continue
+        tk_num = str(tk_val).strip()
+        if not tk_num or tk_num == 'None':
+            continue
+
+        address = str(ws.cell(row_idx, col['addr']).value or '').strip()
+        city = str(ws.cell(row_idx, col['city']).value or '').strip()
+        area_val = ws.cell(row_idx, col['area']).value
+        area = float(area_val) if isinstance(area_val, (int, float)) else None
+
+        reception = _safe_date(ws.cell(row_idx, col.get('reception', 0)).value) if col.get('reception') else None
+        cmp_date  = _safe_date(ws.cell(row_idx, col.get('cmp', 0)).value)        if col.get('cmp')       else None
+        vpk_date  = _safe_date(ws.cell(row_idx, col.get('vpk', 0)).value)        if col.get('vpk')       else None
+        open_plan = _safe_date(ws.cell(row_idx, col.get('open_plan', 0)).value)  if col.get('open_plan') else None
+        open_fact = _safe_date(ws.cell(row_idx, col.get('open_fact', 0)).value)  if col.get('open_fact') else None
+
+        # Try managers: ОС → development → build
+        manager_id = None
+        for key in ('mgr_os', 'mgr_dev', 'mgr_build'):
+            if col.get(key):
+                mgr_val = str(ws.cell(row_idx, col[key]).value or '')
+                manager_id = _match_manager(mgr_val, managers)
+                if manager_id:
+                    break
+
+        opening = open_fact or open_plan
+        status = "Завершён" if (opening and opening < today) else "Активный"
+
+        proj_name = f"ТК {tk_num}"
+        if city:
+            proj_name += f" {city}"
+
+        existing = db.query(models.Project).filter(models.Project.tk_number == tk_num).first()
+        if existing:
+            existing.project_type = "Констракшн"
+            existing.city = city or existing.city
+            existing.address = address or existing.address
+            existing.area = area or existing.area
+            existing.start_date = reception or cmp_date or existing.start_date
+            existing.end_date = open_plan or existing.end_date
+            existing.opening_date = open_fact or existing.opening_date
+            existing.vpk_date = vpk_date or existing.vpk_date
+            existing.status = status
+            if manager_id and not existing.manager_id:
+                existing.manager_id = manager_id
+            updated += 1
+        else:
+            db.add(models.Project(
+                name=proj_name, tk_number=tk_num, city=city, address=address,
+                project_type="Констракшн", manager_id=manager_id, status=status,
+                start_date=reception or cmp_date, end_date=open_plan,
+                opening_date=open_fact, vpk_date=vpk_date, area=area,
+            ))
+            created += 1
+
+    db.commit()
+    return {"created": created, "updated": updated}
+
+
 async def auto_sync_loop():
     """Background task: check sync configs and run file sync."""
     while True:
@@ -1383,6 +1508,37 @@ async def do_import_reconstruct(request: Request, db: Session = Depends(get_db),
             status_code=303)
     except Exception as e:
         return RedirectResponse(f"/import-reconstruct?error={str(e)[:120]}", status_code=303)
+
+
+# ─── ИМПОРТ КОНСТРАКШН ───────────────────────────────────────────────────────
+
+@app.get("/import-construction", response_class=HTMLResponse)
+async def import_construction_page(request: Request):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    return templates.TemplateResponse("import_reconstruct.html", {
+        "request": request, "user": user,
+        "section_title": "Констракшн",
+        "msg": request.query_params.get("msg"),
+        "error": request.query_params.get("error"),
+    })
+
+
+@app.post("/import-construction")
+async def do_import_construction(request: Request, db: Session = Depends(get_db),
+                                  file: UploadFile = File(...)):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    content = await file.read()
+    try:
+        result = import_construction_excel(content, db)
+        return RedirectResponse(
+            f"/import-construction?msg=Импорт завершён: создано {result['created']}, обновлено {result['updated']} проектов",
+            status_code=303)
+    except Exception as e:
+        return RedirectResponse(f"/import-construction?error={str(e)[:120]}", status_code=303)
 
 
 # ─── SMART EXCEL IMPORT (section) ────────────────────────────────────────────
