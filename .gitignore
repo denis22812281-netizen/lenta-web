@@ -7,3 +7,9 @@ lenta.db
 .DS_Store
 venv/
 .venv/
+*.txt.bak
+addr_check.txt
+check.txt
+distribution.txt
+mgr_debug.txt
+mgr_tk_debug.txt
