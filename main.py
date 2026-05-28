@@ -1553,9 +1553,11 @@ async def clear_all_construction(request: Request, db: Session = Depends(get_db)
     user = get_current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=302)
-    db.query(models.Project).filter(
+    projects = db.query(models.Project).filter(
         models.Project.project_type == "Констракшн"
-    ).delete()
+    ).all()
+    for p in projects:
+        db.delete(p)
     db.commit()
     return RedirectResponse("/construction?msg=Все проекты Констракшн удалены. Загрузите файл заново.", status_code=303)
 
