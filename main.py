@@ -473,6 +473,13 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
                     break
 
         opening = open_fact or open_plan
+
+        # Пропускаем объекты не 2026 года
+        if open_plan and open_plan.year != 2026:
+            continue
+        if not open_plan and opening and opening.year != 2026:
+            continue
+
         status = "Завершён" if (opening and opening < today) else "Активный"
 
         proj_name = f"ТК {tk_num}"
@@ -1539,6 +1546,38 @@ async def import_construction_page(request: Request):
         "msg": request.query_params.get("msg"),
         "error": request.query_params.get("error"),
     })
+
+
+@app.post("/construction/clear-all")
+async def clear_all_construction(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    db.query(models.Project).filter(
+        models.Project.project_type == "Констракшн"
+    ).delete()
+    db.commit()
+    return RedirectResponse("/construction?msg=Все проекты Констракшн удалены. Загрузите файл заново.", status_code=303)
+
+
+@app.post("/construction/delete-non-2026")
+async def delete_construction_non_2026(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    deleted = db.query(models.Project).filter(
+        models.Project.project_type == "Констракшн",
+        models.Project.end_date != None,
+        models.Project.end_date < date(2026, 1, 1),
+    ).delete()
+    # Также удаляем где дата открытия в 2025
+    deleted2 = db.query(models.Project).filter(
+        models.Project.project_type == "Констракшн",
+        models.Project.opening_date != None,
+        models.Project.opening_date < date(2026, 1, 1),
+    ).delete()
+    db.commit()
+    return RedirectResponse(f"/construction?msg=Удалено объектов 2025 года: {deleted + deleted2}", status_code=303)
 
 
 @app.post("/import-construction")

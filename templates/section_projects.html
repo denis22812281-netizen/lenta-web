@@ -19,6 +19,13 @@
     <a href="/sync-settings" class="btn btn-outline-secondary">
         <i class="bi bi-arrow-repeat me-1"></i>Авто-синхронизация
     </a>
+    {% if section_type == "Констракшн" %}
+    <form method="post" action="/construction/clear-all" onsubmit="return confirm('Удалить ВСЕ проекты Констракшн и загрузить заново?')">
+        <button type="submit" class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-trash me-1"></i>Очистить и перезагрузить
+        </button>
+    </form>
+    {% endif %}
     <span class="ms-auto text-muted small">{{ projects|length }} проектов</span>
 </div>
 
