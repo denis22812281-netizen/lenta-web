@@ -1,0 +1,23 @@
+{
+  "name": "Менеджер проекта",
+  "short_name": "Менеджер",
+  "description": "Управление проектами ЛЕНТА",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D2010",
+  "theme_color": "#3CB34A",
+  "icons": [
+    {
+      "src": "/static/img/raccoon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/img/raccoon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

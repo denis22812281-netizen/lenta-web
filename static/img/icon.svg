@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background dark green rounded square -->
+  <rect width="512" height="512" rx="110" fill="#0D2010"/>
+
+  <!-- Yellow cape sides (peeking behind body) -->
+  <ellipse cx="90"  cy="380" rx="72" ry="110" fill="#FFD200" transform="rotate(-18,90,380)"/>
+  <ellipse cx="422" cy="380" rx="72" ry="110" fill="#FFD200" transform="rotate(18,422,380)"/>
+
+  <!-- Green body / suit -->
+  <ellipse cx="256" cy="430" rx="120" ry="90" fill="#3CB34A"/>
+  <!-- Suit collar highlight -->
+  <ellipse cx="256" cy="350" rx="55" ry="30" fill="#2A8436"/>
+
+  <!-- Yellow belt buckle hint -->
+  <ellipse cx="256" cy="460" rx="28" ry="18" fill="#FFD200"/>
+  <ellipse cx="256" cy="460" rx="16" ry="11" fill="#E6A000"/>
+
+  <!-- Neck / lower face connector -->
+  <ellipse cx="256" cy="355" rx="52" ry="28" fill="#B0B0B0"/>
+
+  <!-- Left ear outer -->
+  <ellipse cx="148" cy="118" rx="56" ry="64" fill="#8A8A8A"/>
+  <!-- Left ear inner -->
+  <ellipse cx="148" cy="128" rx="33" ry="42" fill="#C8A0A8"/>
+
+  <!-- Right ear outer -->
+  <ellipse cx="364" cy="118" rx="56" ry="64" fill="#8A8A8A"/>
+  <!-- Right ear inner -->
+  <ellipse cx="364" cy="128" rx="33" ry="42" fill="#C8A0A8"/>
+
+  <!-- Head base (gray fur) -->
+  <ellipse cx="256" cy="265" rx="175" ry="165" fill="#A8A8A8"/>
+
+  <!-- Dark stripe across top of head (raccoon marking) -->
+  <ellipse cx="256" cy="148" rx="135" ry="36" fill="#555"/>
+  <!-- Side dark patches blending into ear area -->
+  <ellipse cx="148" cy="200" rx="42" ry="60" fill="#666" opacity="0.6"/>
+  <ellipse cx="364" cy="200" rx="42" ry="60" fill="#666" opacity="0.6"/>
+
+  <!-- White face center (bright patch around muzzle+eyes) -->
+  <ellipse cx="256" cy="278" rx="138" ry="138" fill="#D8D8D8"/>
+
+  <!-- White eye patch left -->
+  <ellipse cx="186" cy="248" rx="66" ry="54" fill="#EFEFEF"/>
+  <!-- White eye patch right -->
+  <ellipse cx="326" cy="248" rx="66" ry="54" fill="#EFEFEF"/>
+
+  <!-- Eyes: green iris left -->
+  <circle cx="186" cy="248" r="34" fill="#3CB34A"/>
+  <!-- Dark limbal ring left -->
+  <circle cx="186" cy="248" r="34" fill="none" stroke="#1A5C22" stroke-width="3"/>
+  <!-- Pupil left -->
+  <circle cx="186" cy="248" r="19" fill="#111"/>
+  <!-- Shine left -->
+  <circle cx="177" cy="238" r="7" fill="white" opacity="0.95"/>
+  <circle cx="195" cy="258" r="4" fill="white" opacity="0.5"/>
+
+  <!-- Eyes: green iris right -->
+  <circle cx="326" cy="248" r="34" fill="#3CB34A"/>
+  <circle cx="326" cy="248" r="34" fill="none" stroke="#1A5C22" stroke-width="3"/>
+  <!-- Pupil right -->
+  <circle cx="326" cy="248" r="19" fill="#111"/>
+  <!-- Shine right -->
+  <circle cx="317" cy="238" r="7" fill="white" opacity="0.95"/>
+  <circle cx="335" cy="258" r="4" fill="white" opacity="0.5"/>
+
+  <!-- Muzzle area (lighter) -->
+  <ellipse cx="256" cy="318" rx="72" ry="55" fill="#E0E0E0"/>
+
+  <!-- Nose -->
+  <ellipse cx="256" cy="305" rx="20" ry="13" fill="#222"/>
+  <!-- Nose shine -->
+  <ellipse cx="250" cy="300" rx="6" ry="4" fill="#555"/>
+
+  <!-- Smile / mouth -->
+  <path d="M230 326 Q256 350 282 326" stroke="#888" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <!-- Teeth hint (open happy mouth) -->
+  <path d="M236 328 Q256 344 276 328" fill="white"/>
+  <line x1="256" y1="328" x2="256" y2="343" stroke="#CCC" stroke-width="1.5"/>
+
+  <!-- Cheek blush left -->
+  <ellipse cx="152" cy="300" rx="28" ry="16" fill="#E87070" opacity="0.25"/>
+  <!-- Cheek blush right -->
+  <ellipse cx="360" cy="300" rx="28" ry="16" fill="#E87070" opacity="0.25"/>
+
+  <!-- Whiskers left -->
+  <line x1="82"  y1="308" x2="210" y2="316" stroke="#777" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+  <line x1="80"  y1="322" x2="210" y2="323" stroke="#777" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+  <line x1="85"  y1="336" x2="210" y2="330" stroke="#777" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+
+  <!-- Whiskers right -->
+  <line x1="302" y1="316" x2="430" y2="308" stroke="#777" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+  <line x1="302" y1="323" x2="432" y2="322" stroke="#777" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+  <line x1="302" y1="330" x2="428" y2="336" stroke="#777" stroke-width="2" stroke-linecap="round" opacity="0.8"/>
+</svg>
