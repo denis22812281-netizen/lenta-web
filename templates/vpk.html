@@ -97,7 +97,7 @@
                        class="vpk-check" onchange="updateRow({{ c.id }}, this.checked)">
                 <label for="c_{{ c.id }}" class="vpk-label" id="lbl-{{ c.id }}">
                     <span class="vpk-no">Не выполнено</span>
-                    <span class="vpk-yes d-none">✓ Выполнено</span>
+                    <span class="vpk-yes">✓ Выполнено</span>
                 </label>
             </div>
         </div>
@@ -199,9 +199,9 @@
 .vpk-check:checked + .vpk-label {
     background:#dcfce7; border-color:#16a34a; color:#15803d;
 }
-.vpk-yes { display:none !important; }
+.vpk-yes { display:none; }
 .vpk-check:checked + .vpk-label .vpk-no { display:none; }
-.vpk-check:checked + .vpk-label .vpk-yes { display:inline !important; }
+.vpk-check:checked + .vpk-label .vpk-yes { display:inline; }
 
 .vpk-report-card {
     padding:16px; border-bottom:1px solid #e9ecef; cursor:pointer;
