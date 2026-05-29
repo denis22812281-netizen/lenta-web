@@ -1532,12 +1532,12 @@ async def construction_notifications(request: Request, db: Session = Depends(get
         if p.closure_date:
             days = (p.closure_date - today).days
             if days in (0, 1, 2):
-                label = "сегодня" if days == 0 else f"через {days} дн."
+                day_label = "сегодня" if days == 0 else ("завтра" if days == 1 else f"через {days} дня")
                 notifications.append({
                     "type": "smr",
-                    "title": f"ТК {tk} — Выход на СМР {label}",
-                    "body": f"{mgr_name}: выход на СМР {p.closure_date.strftime('%d.%m.%Y')}",
-                    "urgency": "high" if days == 0 else "medium",
+                    "title": f"На ТК {tk} {day_label} выход на СМР",
+                    "body": f"Дата: {p.closure_date.strftime('%d.%m.%Y')}",
+                    "urgency": "high",
                     "date": str(p.closure_date),
                 })
 
@@ -1545,12 +1545,12 @@ async def construction_notifications(request: Request, db: Session = Depends(get
         if p.vpk_date:
             days = (p.vpk_date - today).days
             if days in (0, 1, 2, 3):
-                label = "сегодня" if days == 0 else f"через {days} дн."
+                day_label = "сегодня" if days == 0 else ("завтра" if days == 1 else f"через {days} дня")
                 notifications.append({
                     "type": "vpk",
-                    "title": f"ТК {tk} — ВПК1 {label}",
-                    "body": f"{mgr_name}: ВПК1 {p.vpk_date.strftime('%d.%m.%Y')}",
-                    "urgency": "high" if days == 0 else "medium",
+                    "title": f"Через {days} {'день' if days == 1 else 'дня'} на ТК {tk} ВПК1",
+                    "body": f"Дата: {p.vpk_date.strftime('%d.%m.%Y')}",
+                    "urgency": "high",
                     "date": str(p.vpk_date),
                 })
 
@@ -1558,7 +1558,7 @@ async def construction_notifications(request: Request, db: Session = Depends(get
         if p.opening_date and p.opening_date == today:
             notifications.append({
                 "type": "opening",
-                "title": f"Поздравляю с открытием! 🎉",
+                "title": "Поздравляю с открытием! 🎉",
                 "body": f"{mgr_name}, поздравляю с открытием ТК {tk}!!!",
                 "urgency": "celebration",
                 "date": str(p.opening_date),
@@ -1607,8 +1607,8 @@ async def reconstruct_notifications(request: Request, db: Session = Depends(get_
             if days in (1, 2, 3):
                 notifications.append({
                     "type": "sid",
-                    "title": f"ТК {tk} — СИД начинается через {days} дн.",
-                    "body": f"{mgr_name}: начало СИД {p.sid_start.strftime('%d.%m.%Y')}",
+                    "title": f"ТК {tk} приближается дата сбора данных",
+                    "body": f"Начало СИД: {p.sid_start.strftime('%d.%m.%Y')} (через {days} {'день' if days == 1 else 'дня'})",
                     "urgency": "high",
                     "date": str(p.sid_start),
                 })
@@ -1619,8 +1619,8 @@ async def reconstruct_notifications(request: Request, db: Session = Depends(get_
             if days == 1:
                 notifications.append({
                     "type": "zoning",
-                    "title": f"ТК {tk} — Зонирование начинается завтра!",
-                    "body": f"{mgr_name}: начало зонирования {p.zoning_start.strftime('%d.%m.%Y')}",
+                    "title": f"ТК {tk}, провести Зонирование",
+                    "body": f"Начало зонирования завтра: {p.zoning_start.strftime('%d.%m.%Y')}",
                     "urgency": "high",
                     "date": str(p.zoning_start),
                 })
