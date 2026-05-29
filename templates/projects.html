@@ -68,12 +68,9 @@
         </thead>
         <tbody>
         {% for p in projects %}
-        {% if p.end_date %}
-        {% set days = (p.end_date - today).days %}
-        {% else %}
-        {% set days = None %}
-        {% endif %}
-        <tr>
+        {% if p.end_date %}{% set days = (p.end_date - today).days %}{% else %}{% set days = None %}{% endif %}
+        {% set is_opened = p.opening_date and p.opening_date <= today %}
+        <tr class="{% if is_opened %}table-success{% endif %}">
             <td class="text-muted small">{{ p.tk_number or '—' }}</td>
             <td>
                 <a href="/projects/{{ p.id }}" class="fw-semibold text-decoration-none text-dark">{{ p.name }}</a>
@@ -82,9 +79,15 @@
             <td><span class="badge bg-light text-dark border">{{ p.project_type or '—' }}</span></td>
             <td class="small">{{ p.manager.name if p.manager else '—' }}</td>
             <td>
-                <span class="badge {% if p.status == 'Активный' %}bg-success{% elif p.status == 'Завершён' %}bg-secondary{% elif p.status == 'Приостановлен' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
-                    {{ p.status }}
-                </span>
+                {% if is_opened %}
+                <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Открыт</span>
+                {% elif p.status == 'Приостановлен' %}
+                <span class="badge bg-warning text-dark">{{ p.status }}</span>
+                {% elif p.status == 'Завершён' %}
+                <span class="badge bg-secondary">{{ p.status }}</span>
+                {% else %}
+                <span class="badge bg-primary">Активный</span>
+                {% endif %}
             </td>
             <td class="small text-muted">{{ p.stage or '—' }}</td>
             <td class="small">{{ p.start_date.strftime('%d.%m.%y') if p.start_date else '—' }}</td>

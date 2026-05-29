@@ -28,9 +28,16 @@
                     <dd class="col-7 fw-semibold">{{ project.manager.name if project.manager else '—' }}</dd>
                     <dt class="col-5 text-muted">Статус</dt>
                     <dd class="col-7">
-                        <span class="badge {% if project.status == 'Активный' %}bg-success{% elif project.status == 'Завершён' %}bg-secondary{% elif project.status == 'Приостановлен' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}">
-                            {{ project.status }}
-                        </span>
+                        {% set is_opened = project.opening_date and project.opening_date <= today %}
+                        {% if is_opened %}
+                        <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Открыт</span>
+                        {% elif project.status == 'Приостановлен' %}
+                        <span class="badge bg-warning text-dark">{{ project.status }}</span>
+                        {% elif project.status == 'Завершён' %}
+                        <span class="badge bg-secondary">{{ project.status }}</span>
+                        {% else %}
+                        <span class="badge bg-primary">Активный</span>
+                        {% endif %}
                     </dd>
                     <dt class="col-5 text-muted">Этап</dt>
                     <dd class="col-7">{{ project.stage or '—' }}</dd>
