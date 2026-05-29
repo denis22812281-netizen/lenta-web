@@ -4,77 +4,69 @@
 
 {% block content %}
 
-<!-- Руководитель проектов -->
+<!-- Руководитель -->
 {% if leader_stat %}
 {% set lm = leader_stat.manager %}
 <div class="data-card mb-4" style="border-left:4px solid #FFD200">
     <div class="p-3 d-flex align-items-center gap-3 flex-wrap">
-        <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,#1A5C22,#3CB34A);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#FFD200;flex-shrink:0">
-            {{ lm.name[0] }}
-        </div>
+        <div class="mgr-avatar-lg">{{ lm.name[0] }}</div>
         <div>
             <div class="fw-bold fs-5">{{ lm.name }}</div>
             <div class="text-muted small"><i class="bi bi-star-fill text-warning me-1"></i>Руководитель проектов — видит все объекты</div>
         </div>
-        <div class="ms-auto d-flex gap-2">
-            <a href="/deadlines" class="btn btn-sm btn-outline-warning">
-                <i class="bi bi-clock me-1"></i>Все дедлайны
-            </a>
-            <a href="/reconstruct" class="btn btn-sm btn-outline-success">
-                <i class="bi bi-building me-1"></i>Все проекты
-            </a>
-            <a href="/stats" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-bar-chart me-1"></i>Статистика
-            </a>
+        <div class="ms-auto d-flex gap-2 flex-wrap">
+            <a href="/deadlines" class="btn btn-sm btn-outline-warning"><i class="bi bi-clock me-1"></i>Дедлайны</a>
+            <a href="/reconstruct" class="btn btn-sm btn-outline-success"><i class="bi bi-building me-1"></i>Проекты</a>
+            <a href="/stats" class="btn btn-sm btn-outline-secondary"><i class="bi bi-bar-chart me-1"></i>Статистика</a>
         </div>
     </div>
 </div>
 {% endif %}
 
-<!-- Manager cards grid -->
-<div class="row g-3 mb-4">
+<!-- Карточки менеджеров -->
+<div class="row g-3">
 {% for s in manager_stats %}
 {% set m = s.manager %}
-<div class="col-sm-6 col-xl-4">
-    <div class="manager-card {% if s.overdue_tasks > 0 %}manager-alert{% endif %}"
-         style="cursor:pointer" onclick="toggleProjects('mgr-{{ m.id }}')">
-        <div class="manager-header">
-            <div class="manager-avatar">{{ m.name[0] }}</div>
-            <div class="flex-grow-1">
-                <div class="fw-bold">{{ m.name }}</div>
-                {% if m.email %}<div class="small text-muted">{{ m.email }}</div>{% endif %}
-            </div>
-            <i class="bi bi-chevron-down text-muted" id="chevron-mgr-{{ m.id }}"></i>
-        </div>
-        <div class="manager-stats">
-            <div class="ms-item">
-                <div class="ms-num text-success">{{ s.recon_projects|length }}</div>
-                <div class="ms-label">Реконстр.</div>
-            </div>
-            <div class="ms-item">
-                <div class="ms-num text-primary">{{ s.constr_projects|length }}</div>
-                <div class="ms-label">Констракшн</div>
-            </div>
-            <div class="ms-item">
-                <div class="ms-num {% if s.overdue_tasks > 0 %}text-danger{% else %}text-secondary{% endif %}">
-                    {{ s.overdue_tasks }}
+<div class="col-12 col-md-6 col-xl-4">
+    <div class="mgr-card {% if s.overdue_tasks > 0 %}mgr-card-warn{% endif %}">
+
+        <!-- Имя -->
+        <div class="mgr-name-row">
+            <div class="mgr-avatar">{{ m.name[0] }}</div>
+            <div>
+                <div class="fw-bold fs-6">{{ m.name }}</div>
+                <div class="text-muted" style="font-size:12px">
+                    {% if s.overdue_tasks > 0 %}
+                    <span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>{{ s.overdue_tasks }} просроч. задач</span>
+                    {% else %}
+                    <span class="text-success"><i class="bi bi-check-circle me-1"></i>Всё в порядке</span>
+                    {% endif %}
                 </div>
-                <div class="ms-label">Просрочено</div>
             </div>
         </div>
 
-        {% if s.urgent_projects %}
-        <div class="manager-alerts-bar">
-            <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
-            Срочно: {{ s.urgent_projects|length }} объект(ов)
+        <!-- Вкладки -->
+        <div class="mgr-tabs-row">
+            <button class="mgr-tab mgr-tab-recon"
+                    id="btn-recon-{{ m.id }}"
+                    onclick="showMgrTab({{ m.id }}, 'recon')">
+                <i class="bi bi-building me-1"></i>Реконструкции
+                <span class="mgr-tab-count">{{ s.recon_projects|length }}</span>
+            </button>
+            <button class="mgr-tab mgr-tab-constr"
+                    id="btn-constr-{{ m.id }}"
+                    onclick="showMgrTab({{ m.id }}, 'constr')">
+                <i class="bi bi-hammer me-1"></i>Констракшн
+                <span class="mgr-tab-count">{{ s.constr_projects|length }}</span>
+            </button>
         </div>
-        {% endif %}
 
-        <div class="d-flex gap-2 mt-2" onclick="event.stopPropagation()">
-            <a href="/deadlines?manager_id={{ m.id }}" class="btn btn-sm btn-outline-warning flex-fill">
+        <!-- Быстрые ссылки -->
+        <div class="mgr-links">
+            <a href="/deadlines?manager_id={{ m.id }}" class="btn btn-xs btn-outline-warning">
                 <i class="bi bi-clock me-1"></i>Дедлайны
             </a>
-            <a href="/tasks?manager_id={{ m.id }}" class="btn btn-sm btn-outline-secondary flex-fill">
+            <a href="/tasks?manager_id={{ m.id }}" class="btn btn-xs btn-outline-secondary">
                 <i class="bi bi-clipboard2 me-1"></i>Задачи
             </a>
         </div>
@@ -83,45 +75,35 @@
 {% endfor %}
 </div>
 
-<!-- Projects by manager (expandable) -->
+<!-- Развёртываемые таблицы (вне сетки карточек) -->
 {% for s in manager_stats %}
 {% set m = s.manager %}
-<div id="mgr-{{ m.id }}" class="d-none mb-4">
-    <div class="data-card">
-        <div class="data-card-header bg-light">
-            <span class="fw-bold">
-                <i class="bi bi-person-fill me-2"></i>{{ m.name }}
-            </span>
-            <div class="d-flex gap-2 align-items-center">
-                <span class="badge bg-success">Реконстр: {{ s.recon_projects|length }}</span>
-                <span class="badge bg-primary">Констракшн: {{ s.constr_projects|length }}</span>
-                <button class="btn btn-sm btn-outline-secondary" onclick="toggleProjects('mgr-{{ m.id }}')">
-                    <i class="bi bi-x"></i>
-                </button>
-            </div>
-        </div>
 
-        <!-- РЕКОНСТРУКЦИИ -->
-        <div class="px-3 pt-3 pb-1">
-            <div class="section-label-recon mb-2">
-                <i class="bi bi-building-fill me-1"></i>Реконструкции
-                <span class="badge bg-success ms-1">{{ s.recon_projects|length }}</span>
-            </div>
+<!-- Реконструкции -->
+<div id="tab-{{ m.id }}-recon" class="mgr-table-panel d-none mt-3">
+    <div class="data-card">
+        <div class="data-card-header" style="background:#f0faf0;border-bottom:2px solid #1A5C22">
+            <span class="fw-bold text-success">
+                <i class="bi bi-building-fill me-2"></i>{{ m.name }} — Реконструкции
+            </span>
+            <button class="btn btn-sm btn-outline-secondary" onclick="closeMgrTab({{ m.id }}, 'recon')">
+                <i class="bi bi-x"></i>
+            </button>
         </div>
         {% if s.recon_projects %}
-        <div class="table-responsive px-1">
+        <div class="table-responsive">
         <table class="table table-hover mb-0 align-middle small">
             <thead class="table-head">
                 <tr>
                     <th>ТК №</th>
                     <th>Адрес</th>
                     <th>Статус</th>
-                    <th>СИД<br><small class="text-muted fw-normal">Старт → Оконч</small></th>
-                    <th>Зонирование<br><small class="text-muted fw-normal">Старт → Оконч</small></th>
+                    <th>СИД<br><small class="fw-normal text-muted">Старт → Оконч</small></th>
+                    <th>Зонирование<br><small class="fw-normal text-muted">Старт → Оконч</small></th>
                     <th>Старт закрытие</th>
                     <th>ВПК1</th>
                     <th>Дата открытия</th>
-                    <th>Дедлайн</th>
+                    <th>До дедлайна</th>
                 </tr>
             </thead>
             <tbody>
@@ -129,22 +111,14 @@
             {% set is_opened = p.opening_date and p.opening_date < today %}
             {% set days_left = (p.end_date - today).days if p.end_date else None %}
             <tr class="{% if is_opened %}table-success{% elif p.status == 'Приостановлен' %}table-secondary{% elif days_left is not none and days_left < 0 %}table-danger{% elif days_left is not none and days_left <= 7 %}table-warning{% endif %}">
-                <td>
-                    <a href="/projects/{{ p.id }}" class="fw-bold text-decoration-none">
-                        ТК {{ p.tk_number or p.id }}
-                    </a>
+                <td><a href="/projects/{{ p.id }}" class="fw-bold text-decoration-none">ТК {{ p.tk_number or p.id }}</a>
                     {% if is_opened %}<span class="badge bg-success ms-1"><i class="bi bi-check-lg"></i></span>{% endif %}
                 </td>
-                <td>
-                    <div>{{ p.city or '' }}</div>
-                    {% if p.name != 'ТК ' + (p.tk_number or '') %}
-                    <div class="text-muted" style="font-size:11px">{{ p.name[:35] }}</div>
-                    {% endif %}
+                <td><div>{{ p.city or '' }}</div>
+                    {% if p.name != 'ТК ' + (p.tk_number or '') %}<div class="text-muted" style="font-size:11px">{{ p.name[:35] }}</div>{% endif %}
                 </td>
-                <td>
-                    <span class="badge {% if is_opened %}bg-success{% elif p.status == 'Активный' %}bg-primary{% elif p.status == 'Приостановлен' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                        {% if is_opened %}Открыт{% else %}{{ p.status }}{% endif %}
-                    </span>
+                <td><span class="badge {% if is_opened %}bg-success{% elif p.status == 'Активный' %}bg-primary{% elif p.status == 'Приостановлен' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                    {% if is_opened %}Открыт{% else %}{{ p.status }}{% endif %}</span>
                 </td>
                 <td class="text-nowrap">
                     {% if p.sid_start %}<span class="text-primary">{{ p.sid_start.strftime('%d.%m.%y') }}</span>
@@ -161,12 +135,10 @@
                 <td class="fw-semibold {% if is_opened %}text-success{% endif %}">
                     {{ p.opening_date.strftime('%d.%m.%Y') if p.opening_date else '—' }}
                 </td>
-                <td>
-                    {% if p.end_date %}
+                <td>{% if p.end_date %}
                     <span class="dl-badge {% if is_opened %}dl-ok{% elif days_left < 0 %}dl-over{% elif days_left <= 7 %}dl-warn{% else %}dl-ok{% endif %}">
                         {% if is_opened %}Открыт{% elif days_left < 0 %}{{ days_left }} д{% else %}+{{ days_left }} д{% endif %}
-                    </span>
-                    {% else %}—{% endif %}
+                    </span>{% else %}—{% endif %}
                 </td>
             </tr>
             {% endfor %}
@@ -174,21 +146,24 @@
         </table>
         </div>
         {% else %}
-        <div class="empty-state py-2 px-3">
-            <i class="bi bi-building"></i>
-            <p class="mb-0 small">Реконструкций нет</p>
-        </div>
+        <div class="empty-state py-3"><i class="bi bi-building"></i><p class="mb-0">Реконструкций нет</p></div>
         {% endif %}
+    </div>
+</div>
 
-        <!-- КОНСТРАКШН -->
-        <div class="px-3 pt-3 pb-1 mt-2" style="border-top:1px solid #e9ecef">
-            <div class="section-label-constr mb-2">
-                <i class="bi bi-hammer me-1"></i>Констракшн
-                <span class="badge bg-primary ms-1">{{ s.constr_projects|length }}</span>
-            </div>
+<!-- Констракшн -->
+<div id="tab-{{ m.id }}-constr" class="mgr-table-panel d-none mt-3">
+    <div class="data-card">
+        <div class="data-card-header" style="background:#f0f5ff;border-bottom:2px solid #0d6efd">
+            <span class="fw-bold text-primary">
+                <i class="bi bi-hammer me-2"></i>{{ m.name }} — Констракшн
+            </span>
+            <button class="btn btn-sm btn-outline-secondary" onclick="closeMgrTab({{ m.id }}, 'constr')">
+                <i class="bi bi-x"></i>
+            </button>
         </div>
         {% if s.constr_projects %}
-        <div class="table-responsive px-1">
+        <div class="table-responsive">
         <table class="table table-hover mb-0 align-middle small">
             <thead class="table-head">
                 <tr>
@@ -208,20 +183,11 @@
             {% set is_opened = p.opening_date and p.opening_date < today %}
             {% set days_left = (p.end_date - today).days if p.end_date else None %}
             <tr class="{% if is_opened %}table-success{% elif p.status == 'Приостановлен' %}table-secondary{% elif days_left is not none and days_left < 0 %}table-danger{% elif days_left is not none and days_left <= 7 %}table-warning{% endif %}">
-                <td>
-                    <a href="/projects/{{ p.id }}" class="fw-bold text-decoration-none">
-                        ТК {{ p.tk_number or p.id }}
-                    </a>
+                <td><a href="/projects/{{ p.id }}" class="fw-bold text-decoration-none">ТК {{ p.tk_number or p.id }}</a>
                     {% if is_opened %}<span class="badge bg-success ms-1"><i class="bi bi-check-lg"></i></span>{% endif %}
                 </td>
-                <td style="max-width:200px">
-                    <div class="text-truncate" title="{{ p.address }}">{{ p.address or p.city or '—' }}</div>
-                </td>
-                <td>
-                    {% if p.format_type %}
-                    <span class="badge bg-info text-dark">{{ p.format_type }}</span>
-                    {% else %}—{% endif %}
-                </td>
+                <td style="max-width:180px"><div class="text-truncate" title="{{ p.address }}">{{ p.address or p.city or '—' }}</div></td>
+                <td>{% if p.format_type %}<span class="badge bg-info text-dark">{{ p.format_type }}</span>{% else %}—{% endif %}</td>
                 <td class="text-nowrap">{{ p.start_date.strftime('%d.%m.%Y') if p.start_date else '—' }}</td>
                 <td class="text-nowrap">{{ p.closure_date.strftime('%d.%m.%Y') if p.closure_date else '—' }}</td>
                 <td class="text-nowrap">{{ p.vpk_date.strftime('%d.%m.%Y') if p.vpk_date else '—' }}</td>
@@ -231,16 +197,15 @@
                 </td>
                 <td>
                     {% if p.open_status %}
-                    <span class="badge {% if 'open' in p.open_status.lower() %}bg-success{% else %}bg-secondary{% endif %} text-truncate" style="max-width:90px" title="{{ p.open_status }}">
-                        {{ p.open_status[:15] }}
+                    <span class="badge {% if 'open' in p.open_status.lower() %}bg-success{% else %}bg-secondary{% endif %}"
+                          style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block"
+                          title="{{ p.open_status }}">{{ p.open_status[:16] }}</span>
+                    {% elif is_opened %}<span class="badge bg-success">Открыт</span>
+                    {% elif days_left is not none %}
+                    <span class="dl-badge {% if days_left < 0 %}dl-over{% elif days_left <= 7 %}dl-warn{% else %}dl-ok{% endif %}">
+                        {% if days_left < 0 %}{{ days_left }} д{% else %}+{{ days_left }} д{% endif %}
                     </span>
-                    {% elif is_opened %}
-                    <span class="badge bg-success">Открыт</span>
-                    {% else %}
-                    <span class="dl-badge {% if days_left is not none and days_left < 0 %}dl-over{% elif days_left is not none and days_left <= 7 %}dl-warn{% else %}dl-ok{% endif %}">
-                        {% if days_left is not none %}{% if days_left < 0 %}{{ days_left }} д{% else %}+{{ days_left }} д{% endif %}{% else %}—{% endif %}
-                    </span>
-                    {% endif %}
+                    {% else %}—{% endif %}
                 </td>
             </tr>
             {% endfor %}
@@ -248,48 +213,131 @@
         </table>
         </div>
         {% else %}
-        <div class="empty-state py-2 px-3">
-            <i class="bi bi-hammer"></i>
-            <p class="mb-0 small">Проектов Констракшн нет</p>
-        </div>
+        <div class="empty-state py-3"><i class="bi bi-hammer"></i><p class="mb-0">Проектов Констракшн нет</p></div>
         {% endif %}
-
     </div>
 </div>
+
 {% endfor %}
 
 <style>
-.manager-card { transition: box-shadow .2s; }
-.manager-card:hover { box-shadow: 0 4px 16px rgba(227,28,37,.15); }
-.manager-alert { border: 1px solid #ffc107; }
-.manager-alerts-bar {
-    background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px;
-    padding: 6px 10px; font-size: 12px; margin-bottom: 10px; margin-top: 8px;
+.mgr-card {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 14px;
+    padding: 16px;
+    transition: box-shadow .2s;
 }
-.section-label-recon {
-    font-size: 13px; font-weight: 700; color: #1A5C22;
-    text-transform: uppercase; letter-spacing: .5px;
+.mgr-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+.mgr-card-warn { border-color: #ffc107; }
+
+.mgr-name-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
 }
-.section-label-constr {
-    font-size: 13px; font-weight: 700; color: #0d6efd;
-    text-transform: uppercase; letter-spacing: .5px;
+.mgr-avatar {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    background: linear-gradient(135deg,#1A5C22,#3CB34A);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 900; color: #FFD200;
+    flex-shrink: 0;
+}
+.mgr-avatar-lg {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg,#1A5C22,#3CB34A);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 900; color: #FFD200;
+    flex-shrink: 0;
+}
+
+.mgr-tabs-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.mgr-tab {
+    flex: 1;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    background: #f8f9fa;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+.mgr-tab-count {
+    background: rgba(0,0,0,.1);
+    border-radius: 20px;
+    padding: 1px 7px;
+    font-size: 12px;
+}
+.mgr-tab-recon:hover, .mgr-tab-recon.active {
+    background: #f0faf0;
+    border-color: #1A5C22;
+    color: #1A5C22;
+}
+.mgr-tab-constr:hover, .mgr-tab-constr.active {
+    background: #f0f5ff;
+    border-color: #0d6efd;
+    color: #0d6efd;
+}
+.mgr-tab-recon.active .mgr-tab-count { background: #1A5C22; color: #fff; }
+.mgr-tab-constr.active .mgr-tab-count { background: #0d6efd; color: #fff; }
+
+.mgr-links {
+    display: flex;
+    gap: 8px;
+}
+.btn-xs {
+    padding: 3px 10px;
+    font-size: 12px;
+    border-radius: 6px;
 }
 </style>
 {% endblock %}
 
 {% block scripts %}
 <script>
-function toggleProjects(id) {
-    const el = document.getElementById(id);
-    const chevron = document.getElementById('chevron-' + id);
-    if (el.classList.contains('d-none')) {
-        el.classList.remove('d-none');
-        if (chevron) chevron.style.transform = 'rotate(180deg)';
-        el.scrollIntoView({behavior: 'smooth', block: 'start'});
-    } else {
-        el.classList.add('d-none');
-        if (chevron) chevron.style.transform = '';
+function showMgrTab(mgrId, tab) {
+    const reconPanel = document.getElementById('tab-' + mgrId + '-recon');
+    const constrPanel = document.getElementById('tab-' + mgrId + '-constr');
+    const btnRecon = document.getElementById('btn-recon-' + mgrId);
+    const btnConstr = document.getElementById('btn-constr-' + mgrId);
+    const targetPanel = tab === 'recon' ? reconPanel : constrPanel;
+    const otherPanel = tab === 'recon' ? constrPanel : reconPanel;
+
+    // Если уже открыта эта же — закрываем
+    if (!targetPanel.classList.contains('d-none')) {
+        targetPanel.classList.add('d-none');
+        (tab === 'recon' ? btnRecon : btnConstr).classList.remove('active');
+        return;
     }
+
+    // Закрываем другую
+    otherPanel.classList.add('d-none');
+    (tab === 'recon' ? btnConstr : btnRecon).classList.remove('active');
+
+    // Открываем нужную
+    targetPanel.classList.remove('d-none');
+    (tab === 'recon' ? btnRecon : btnConstr).classList.add('active');
+    targetPanel.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
+function closeMgrTab(mgrId, tab) {
+    const panel = document.getElementById('tab-' + mgrId + '-' + tab);
+    const btn = document.getElementById('btn-' + tab + '-' + mgrId);
+    panel.classList.add('d-none');
+    if (btn) btn.classList.remove('active');
 }
 </script>
 {% endblock %}
