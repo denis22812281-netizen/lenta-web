@@ -36,20 +36,43 @@
     <input type="hidden" name="vpk_type" value="{{ vpk_num }}">
 
     <!-- Выбор ТК -->
-    <div class="data-card mb-3 p-3">
+    <div class="data-card mb-3 p-3" style="overflow:visible">
         <div class="fw-bold mb-2 fs-6">
             <i class="bi bi-building me-2 text-{{ accent }}"></i>Выберите объект Констракшн
         </div>
-        <select name="project_id" class="form-select" required id="projectSelect">
-            <option value="">— выберите ТК —</option>
-            {% for p in projects %}
-            <option value="{{ p.id }}">
-                ТК {{ p.tk_number }}
-                {% if p.address %} — {{ p.address[:50] }}{% endif %}
-                {% if p.manager %} ({{ p.manager.name }}){% endif %}
-            </option>
-            {% endfor %}
-        </select>
+
+        <input type="hidden" name="project_id" id="projectId">
+
+        <div class="position-relative mb-2">
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-123 text-muted"></i></span>
+                <input type="text" id="tkInput" class="form-control form-control-lg fw-bold"
+                       placeholder="Введите номер ТК…"
+                       autocomplete="off" inputmode="numeric"
+                       oninput="tkSearch(this.value)"
+                       onkeydown="tkKeydown(event)">
+                <button type="button" class="btn btn-outline-secondary" onclick="tkClear()" id="tkClearBtn" style="display:none">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <ul id="tkDropdown" class="list-group shadow position-absolute w-100 z-3"
+                style="top:100%;display:none;max-height:260px;overflow-y:auto"></ul>
+        </div>
+
+        <div id="selectedTk" class="d-none">
+            <div class="alert alert-success d-flex align-items-center gap-2 py-2 mb-0">
+                <i class="bi bi-check-circle-fill fs-5"></i>
+                <div>
+                    <div class="fw-bold" id="selectedTkLabel"></div>
+                    <div class="small text-muted" id="selectedTkMgr"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Скрытые данные проектов для JS -->
+        <script id="projectsData" type="application/json">
+        [{% for p in projects %}{"id":{{ p.id }},"tk":{{ p.tk_number|string|tojson }},"addr":{{ (p.address or p.city or '')|tojson }},"mgr":{{ (p.manager.name if p.manager else '')|tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]
+        </script>
     </div>
 
     <!-- Критерии -->
@@ -199,6 +222,9 @@
 <script>
 const totalCriteria = {{ criteria1|length if tab == 'vpk1' else (criteria2|length if tab == 'vpk2' else 0) }};
 let checkedCount = 0;
+let dropdownIndex = -1;
+
+const PROJECTS = JSON.parse(document.getElementById('projectsData')?.textContent || '[]');
 
 function updateRow(id, checked) {
     const row = document.getElementById('row-' + id);
@@ -223,9 +249,93 @@ function checkAll(val) {
     });
 }
 
+// ── TK autocomplete ──────────────────────────────────────────────
+function tkSearch(query) {
+    const q = query.trim().toLowerCase();
+    const dd = document.getElementById('tkDropdown');
+    const clearBtn = document.getElementById('tkClearBtn');
+    clearBtn.style.display = q ? '' : 'none';
+
+    if (!q) { dd.style.display = 'none'; return; }
+
+    const matches = PROJECTS.filter(p =>
+        p.tk.toLowerCase().includes(q) ||
+        p.addr.toLowerCase().includes(q)
+    ).slice(0, 12);
+
+    if (!matches.length) {
+        dd.innerHTML = '<li class="list-group-item text-muted small py-2 px-3">Не найдено</li>';
+        dd.style.display = 'block';
+        dropdownIndex = -1;
+        return;
+    }
+
+    dd.innerHTML = matches.map((p, i) =>
+        `<li class="list-group-item list-group-item-action py-2 px-3 tk-option" data-i="${i}" style="cursor:pointer"
+             onmousedown="tkSelect(${p.id},'${p.tk}','${p.addr.replace(/'/g,"\\'")}','${p.mgr.replace(/'/g,"\\'")}')">
+            <span class="fw-bold me-2">ТК ${p.tk}</span>
+            <span class="text-muted small">${p.addr ? p.addr.substring(0,50) : ''}</span>
+            ${p.mgr ? `<span class="badge bg-secondary ms-1 small">${p.mgr}</span>` : ''}
+        </li>`
+    ).join('');
+    dd.style.display = 'block';
+    dropdownIndex = -1;
+}
+
+function tkKeydown(e) {
+    const dd = document.getElementById('tkDropdown');
+    const items = dd.querySelectorAll('.tk-option');
+    if (!items.length) return;
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        dropdownIndex = Math.min(dropdownIndex + 1, items.length - 1);
+        items.forEach((el, i) => el.classList.toggle('active', i === dropdownIndex));
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        dropdownIndex = Math.max(dropdownIndex - 1, 0);
+        items.forEach((el, i) => el.classList.toggle('active', i === dropdownIndex));
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (dropdownIndex >= 0 && items[dropdownIndex]) items[dropdownIndex].dispatchEvent(new MouseEvent('mousedown'));
+    } else if (e.key === 'Escape') {
+        dd.style.display = 'none';
+    }
+}
+
+function tkSelect(id, tk, addr, mgr) {
+    document.getElementById('projectId').value = id;
+    document.getElementById('tkInput').value = 'ТК ' + tk;
+    document.getElementById('tkDropdown').style.display = 'none';
+    document.getElementById('tkClearBtn').style.display = '';
+
+    const box = document.getElementById('selectedTk');
+    document.getElementById('selectedTkLabel').textContent = 'ТК ' + tk + (addr ? ' — ' + addr.substring(0, 60) : '');
+    document.getElementById('selectedTkMgr').textContent = mgr ? 'Менеджер: ' + mgr : '';
+    box.classList.remove('d-none');
+}
+
+function tkClear() {
+    document.getElementById('projectId').value = '';
+    document.getElementById('tkInput').value = '';
+    document.getElementById('tkDropdown').style.display = 'none';
+    document.getElementById('tkClearBtn').style.display = 'none';
+    document.getElementById('selectedTk').classList.add('d-none');
+    document.getElementById('tkInput').focus();
+}
+
+document.addEventListener('click', e => {
+    if (!e.target.closest('.position-relative')) {
+        document.getElementById('tkDropdown').style.display = 'none';
+    }
+});
+
 function confirmSubmit() {
-    const sel = document.getElementById('projectSelect');
-    if (!sel || !sel.value) { alert('Выберите объект'); return false; }
+    if (!document.getElementById('projectId').value) {
+        alert('Выберите объект из списка');
+        document.getElementById('tkInput').focus();
+        return false;
+    }
     return confirm('Отправить отчёт? Уведомление получат Гаврин Игорь и Месмер Денис.');
 }
 
