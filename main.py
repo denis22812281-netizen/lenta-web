@@ -1522,9 +1522,11 @@ async def stats_export(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse("/login", status_code=302)
 
+    today_date = date.today()
     projects = db.query(models.Project).filter(
         models.Project.project_type == "Констракшн",
         models.Project.opening_date != None,
+        models.Project.opening_date <= today_date,
     ).order_by(models.Project.manager_id, models.Project.opening_date).all()
 
     wb = Workbook()
