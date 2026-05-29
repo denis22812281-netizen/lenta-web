@@ -216,7 +216,7 @@ def import_reconstruct_excel(content: bytes, db: Session) -> dict:
                 proj_name += f" {city}"
 
             # Auto-status based on opening date
-            if opening and opening < today:
+            if opening and opening <= today:
                 status = "Завершён"
             else:
                 status = "Активный"
@@ -514,7 +514,7 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
                 continue
 
             opening = open_fact or open_plan
-            status = "Завершён" if (opening and opening < today) else "Активный"
+            status = "Завершён" if (opening and opening <= today) else "Активный"
 
             proj_name = f"ТК {tk_num}"
             if city:
@@ -1506,7 +1506,7 @@ async def stats_upload(request: Request, db: Session = Depends(get_db),
                     if p:
                         p.opening_date = open_date
                         today = date.today()
-                        if open_date < today:
+                        if open_date <= today:
                             p.status = "Завершён"
                         updated += 1
         db.commit()

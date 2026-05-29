@@ -119,7 +119,7 @@
             </thead>
             <tbody>
             {% for p in s.recon_projects %}
-            {% set is_opened = p.opening_date and p.opening_date < today %}
+            {% set is_opened = p.opening_date and p.opening_date <= today %}
             {% set days_left = (p.end_date - today).days if p.end_date else None %}
             <tr class="{% if is_opened %}table-success{% elif p.status == 'Приостановлен' %}table-secondary{% elif days_left is not none and days_left < 0 %}table-danger{% elif days_left is not none and days_left <= 7 %}table-warning{% endif %}">
                 <td><a href="/projects/{{ p.id }}" class="fw-bold text-decoration-none">ТК {{ p.tk_number or p.id }}</a>
@@ -191,7 +191,7 @@
             </thead>
             <tbody>
             {% for p in s.constr_projects %}
-            {% set is_opened = p.opening_date and p.opening_date < today %}
+            {% set is_opened = p.opening_date and p.opening_date <= today %}
             {% set days_left = (p.end_date - today).days if p.end_date else None %}
             <tr class="{% if is_opened %}table-success{% elif p.status == 'Приостановлен' %}table-secondary{% elif days_left is not none and days_left < 0 %}table-danger{% elif days_left is not none and days_left <= 7 %}table-warning{% endif %}">
                 <td><a href="/projects/{{ p.id }}" class="fw-bold text-decoration-none">ТК {{ p.tk_number or p.id }}</a>
