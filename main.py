@@ -640,15 +640,23 @@ async def startup():
                 db.add(models.Manager(name=name, is_leader=is_leader))
             db.commit()
 
-        # Seed whitelist and admin user for Denis
+        # Seed whitelist
         admin_phone = os.getenv("ADMIN_PHONE", "+79997303914")
         if db.query(models.PhoneWhitelist).count() == 0:
-            db.add(models.PhoneWhitelist(
-                phone=admin_phone,
-                display_name="Месмер Денис",
-                is_admin=True,
-            ))
+            db.add(models.PhoneWhitelist(phone=admin_phone, display_name="Месмер Денис", is_admin=True))
             db.commit()
+
+        # Добавляем новых пользователей если их ещё нет
+        new_users = [
+            ("+79150511700", "Гаврин Игорь",        True),
+            ("+79112744420", "Ловчиков Александр",   False),
+        ]
+        for phone, name, is_admin in new_users:
+            exists = db.query(models.PhoneWhitelist).filter(
+                models.PhoneWhitelist.phone == phone).first()
+            if not exists:
+                db.add(models.PhoneWhitelist(phone=phone, display_name=name, is_admin=is_admin))
+        db.commit()
 
         # Users are created on first login — no auto password here
     finally:
