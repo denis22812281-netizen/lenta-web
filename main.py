@@ -401,6 +401,9 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
 
     skipped_fmt = 0
     skipped_mgr = 0
+    sample_formats = set()
+    sample_managers = set()
+    rows_with_tk = 0
 
     for ws in target_sheets:
         # Найти строку заголовков — правильный break из обоих циклов
@@ -473,8 +476,14 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
             if len(tk_num) > 20:
                 continue
 
+            rows_with_tk += 1
             address = str(ws.cell(row_idx, col['addr']).value or '').strip()
             fmt_type = str(ws.cell(row_idx, col['fmt']).value or '').strip()
+            if fmt_type and len(sample_formats) < 8:
+                sample_formats.add(fmt_type)
+            mgr_raw = str(ws.cell(row_idx, col['mgr_os']).value or '').strip()
+            if mgr_raw and len(sample_managers) < 8:
+                sample_managers.add(mgr_raw)
             city = str(ws.cell(row_idx, col.get('city', 0)).value or '').strip() if col.get('city') else ''
             area_val = ws.cell(row_idx, col.get('area', 0)).value if col.get('area') else None
             area = float(area_val) if isinstance(area_val, (int, float)) else None
@@ -487,7 +496,7 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
             open_st   = str(ws.cell(row_idx, col['open_status']).value or '').strip()
 
             # Менеджер проектов ОС (колонка AL)
-            mgr_val = str(ws.cell(row_idx, col['mgr_os']).value or '').strip()
+            mgr_val = mgr_raw
             manager_id = _match_manager(mgr_val, managers)
 
             # Только форматы SM и Utkonos (регистронезависимо)
@@ -548,8 +557,11 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
         "created": created,
         "updated": updated,
         "sheets": sheets_info,
+        "rows_with_tk": rows_with_tk,
         "skipped_fmt": skipped_fmt,
         "skipped_mgr": skipped_mgr,
+        "sample_formats": sorted(sample_formats),
+        "sample_managers": sorted(sample_managers),
     }
 
 
@@ -1818,10 +1830,12 @@ async def do_import_construction(request: Request, db: Session = Depends(get_db)
     content = await file.read()
     try:
         result = import_construction_excel(content, db)
-        msg = (f"Создано: {result['created']}, обновлено: {result['updated']}. "
-               f"Листы: {result.get('sheets','?')}. "
-               f"Пропущено (формат): {result.get('skipped_fmt',0)}, "
-               f"пропущено (менеджер): {result.get('skipped_mgr',0)}")
+        msg = (f"Создано:{result['created']} Обновлено:{result['updated']} "
+               f"Строк:{result.get('rows_with_tk',0)} "
+               f"Пропущено_формат:{result.get('skipped_fmt',0)} "
+               f"Пропущено_менеджер:{result.get('skipped_mgr',0)} | "
+               f"Форматы:[{','.join(result.get('sample_formats',[]))}] "
+               f"Менеджеры:[{','.join(result.get('sample_managers',[]))}]")
         return RedirectResponse(f"/import-construction?msg={msg}", status_code=303)
     except Exception as e:
         return RedirectResponse(f"/import-construction?error={str(e)[:120]}", status_code=303)
