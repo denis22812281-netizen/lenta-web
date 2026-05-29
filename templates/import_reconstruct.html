@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block page_title %}Импорт Реконструкций — Лента{% endblock %}
-{% block title %}<i class="bi bi-upload me-2"></i>Импорт реконструкций из Excel{% endblock %}
+{% block page_title %}Импорт {{ section_title }} — Лента{% endblock %}
+{% block title %}<i class="bi bi-upload me-2"></i>Импорт {{ section_title }} из Excel{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -20,30 +20,53 @@
         {% endif %}
 
         <div class="data-card">
-            <div class="data-card-header bg-danger text-white" style="background:#E31C25!important;color:#fff!important">
-                <span><i class="bi bi-file-earmark-excel me-2"></i>Загрузить файл Реконструкции</span>
+            <div class="data-card-header text-white"
+                 style="background:{% if section_title == 'Констракшн' %}#0d6efd{% else %}#E31C25{% endif %}!important;color:#fff!important">
+                <span>
+                    <i class="bi bi-file-earmark-excel me-2"></i>
+                    Загрузить файл {{ section_title }}
+                </span>
             </div>
             <div class="p-4">
+
+                {% if section_title == 'Констракшн' %}
+                <div class="alert alert-info small mb-4">
+                    <strong><i class="bi bi-info-circle me-1"></i>Что загружается:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Листы <strong>2026</strong> и <strong>2027</strong></li>
+                        <li>Только форматы <strong>SM</strong> и <strong>Utkonos</strong></li>
+                        <li>Только объекты менеджеров нашей команды (колонка AL)</li>
+                    </ul>
+                    <br>
+                    <strong>Автоматически извлекаются:</strong> ТК №, адрес, тип формата,
+                    приёмка помещения, выход на СМР, ВПК1, план/факт открытия, статус открытия, менеджер.
+                </div>
+                {% else %}
                 <div class="alert alert-info small mb-4">
                     <strong><i class="bi bi-info-circle me-1"></i>Что загружается:</strong>
                     <ul class="mb-0 mt-2">
                         <li>Лист <strong>Реконструкции 2026</strong> — все активные объекты</li>
-                        <li>Лист <strong>Лайт реконструкции 2026</strong> — лёгкие реконструкции</li>
+                        <li>Лист <strong>Лайт реконструкции 2026</strong></li>
                         <li>Лист <strong>Рисковые объекты 2026 АЛ</strong></li>
                         <li>Лист <strong>Рисковые объекты Малая площадь</strong></li>
                     </ul>
                     <br>
-                    <strong>Автоматически извлекаются:</strong> ТК №, адрес, менеджер, СИД, зонирование, дата закрытия, ВПК1, дата открытия.<br>
-                    <strong>Зелёный</strong> — дата открытия уже прошла (объект открыт).
+                    <strong>Автоматически извлекаются:</strong> ТК №, адрес, менеджер,
+                    СИД, зонирование, дата закрытия, ВПК1, дата открытия.
                 </div>
+                {% endif %}
 
-                <form method="post" action="/import-reconstruct" enctype="multipart/form-data">
+                <form method="post" action="{{ form_action }}" enctype="multipart/form-data">
                     <div class="mb-4">
-                        <label class="form-label fw-bold fs-5">Файл Excel (.xlsx)</label>
+                        <label class="form-label fw-bold fs-5">Файл Excel</label>
                         <input type="file" name="file" class="form-control form-control-lg"
-                               accept=".xlsx,.xls" required id="file-input">
+                               accept="{{ file_accept }}" required id="file-input">
                         <div class="form-text mt-2">
-                            Выберите файл <em>"Реконструкции ДД.ММ.ГГГГ.xlsx"</em>
+                            {% if section_title == 'Констракшн' %}
+                            Поддерживаются форматы: <em>.xlsx, .xls, .xlsm</em>
+                            {% else %}
+                            Поддерживаются форматы: <em>.xlsx, .xls</em>
+                            {% endif %}
                         </div>
                     </div>
 
@@ -52,7 +75,8 @@
                         <span id="file-name"></span>
                     </div>
 
-                    <button type="submit" class="btn btn-danger btn-lg w-100">
+                    <button type="submit" class="btn btn-lg w-100 text-white"
+                            style="background:{% if section_title == 'Констракшн' %}#0d6efd{% else %}#E31C25{% endif %}">
                         <i class="bi bi-upload me-2"></i>Загрузить и импортировать
                     </button>
                 </form>
@@ -67,11 +91,14 @@
                 <a href="/reconstruct" class="btn btn-outline-danger">
                     <i class="bi bi-building-fill me-1"></i>Реконструкции
                 </a>
+                <a href="/construction" class="btn btn-outline-primary">
+                    <i class="bi bi-hammer me-1"></i>Констракшн
+                </a>
                 <a href="/managers" class="btn btn-outline-secondary">
                     <i class="bi bi-people-fill me-1"></i>Менеджеры
                 </a>
-                <a href="/deadlines" class="btn btn-outline-warning">
-                    <i class="bi bi-clock me-1"></i>Дедлайны
+                <a href="/stats" class="btn btn-outline-success">
+                    <i class="bi bi-bar-chart me-1"></i>Статистика
                 </a>
             </div>
         </div>

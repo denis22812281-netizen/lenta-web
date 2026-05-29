@@ -1662,6 +1662,9 @@ async def import_reconstruct_page(request: Request, db: Session = Depends(get_db
         return RedirectResponse("/login", status_code=302)
     return templates.TemplateResponse("import_reconstruct.html", {
         "request": request, "user": user,
+        "section_title": "Реконструкции",
+        "form_action": "/import-reconstruct",
+        "file_accept": ".xlsx,.xls",
         "msg": request.query_params.get("msg"),
         "error": request.query_params.get("error"),
     })
@@ -1693,6 +1696,8 @@ async def import_construction_page(request: Request):
     return templates.TemplateResponse("import_reconstruct.html", {
         "request": request, "user": user,
         "section_title": "Констракшн",
+        "form_action": "/import-construction",
+        "file_accept": ".xlsx,.xls,.xlsm",
         "msg": request.query_params.get("msg"),
         "error": request.query_params.get("error"),
     })
