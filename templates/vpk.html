@@ -196,12 +196,8 @@
     border:2px solid #d1d5db; color:#6b7280; background:#f9fafb;
     transition:all .15s; user-select:none; white-space:nowrap;
 }
-.vpk-check:checked + .vpk-label {
-    background:#dcfce7; border-color:#16a34a; color:#15803d;
-}
 .vpk-yes { display:none; }
-.vpk-check:checked + .vpk-label .vpk-no { display:none; }
-.vpk-check:checked + .vpk-label .vpk-yes { display:inline; }
+.vpk-label-done { background:#dcfce7 !important; border-color:#16a34a !important; color:#15803d !important; }
 
 .vpk-report-card {
     padding:16px; border-bottom:1px solid #e9ecef; cursor:pointer;
@@ -228,8 +224,24 @@ const PROJECTS = JSON.parse(document.getElementById('projectsData')?.textContent
 
 function updateRow(id, checked) {
     const row = document.getElementById('row-' + id);
-    if (checked) { row.classList.add('done'); checkedCount++; }
-    else { row.classList.remove('done'); checkedCount--; }
+    const lbl = document.getElementById('lbl-' + id);
+    if (checked) {
+        row.classList.add('done');
+        checkedCount++;
+        if (lbl) {
+            lbl.querySelector('.vpk-no').style.display = 'none';
+            lbl.querySelector('.vpk-yes').style.display = 'inline';
+            lbl.classList.add('vpk-label-done');
+        }
+    } else {
+        row.classList.remove('done');
+        checkedCount--;
+        if (lbl) {
+            lbl.querySelector('.vpk-no').style.display = 'inline';
+            lbl.querySelector('.vpk-yes').style.display = 'none';
+            lbl.classList.remove('vpk-label-done');
+        }
+    }
     updateProgress();
 }
 
