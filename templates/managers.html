@@ -9,7 +9,7 @@
 {% set lm = leader_stat.manager %}
 <div class="data-card mb-4" style="border-left:4px solid #FFD200">
     <div class="p-3 d-flex align-items-center gap-3 flex-wrap">
-        <div class="mgr-avatar-lg">{{ lm.name[0] }}</div>
+        <img src="/static/img/raccoon.png" style="width:48px;height:48px;object-fit:contain;border-radius:12px;flex-shrink:0" alt="руководитель">
         <div>
             <div class="fw-bold fs-5">{{ lm.name }}</div>
             <div class="text-muted small"><i class="bi bi-star-fill text-warning me-1"></i>Руководитель проектов — видит все объекты</div>
@@ -32,18 +32,7 @@
 
         <!-- Имя -->
         <div class="mgr-name-row">
-            <form method="post" action="/managers/{{ m.id }}/photo" enctype="multipart/form-data" class="mgr-photo-form">
-                <div class="mgr-avatar-wrap" onclick="document.getElementById('photo-{{ m.id }}').click()" title="Нажмите чтобы загрузить фото">
-                    {% if m.photo %}
-                    <img src="/static/{{ m.photo }}" class="mgr-photo" alt="{{ m.name }}">
-                    {% else %}
-                    <div class="mgr-avatar">{{ m.name[0] }}</div>
-                    {% endif %}
-                    <div class="mgr-photo-overlay"><i class="bi bi-camera-fill"></i></div>
-                </div>
-                <input type="file" id="photo-{{ m.id }}" name="file" accept="image/*" class="d-none"
-                       onchange="this.closest('form').submit()">
-            </form>
+            <img src="/static/img/raccoon.png" class="mgr-raccoon" alt="менеджер">
             <div>
                 <div class="fw-bold fs-6">{{ m.name }}</div>
                 <div class="text-muted" style="font-size:12px">
@@ -314,34 +303,12 @@
     font-size: 12px;
     border-radius: 6px;
 }
-.mgr-photo-form { flex-shrink: 0; }
-.mgr-avatar-wrap {
-    position: relative;
+.mgr-raccoon {
     width: 44px; height: 44px;
-    cursor: pointer;
+    object-fit: contain;
     border-radius: 10px;
-    overflow: hidden;
+    flex-shrink: 0;
 }
-.mgr-photo {
-    width: 44px; height: 44px;
-    object-fit: cover;
-    border-radius: 10px;
-    display: block;
-}
-.mgr-photo-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 16px;
-    opacity: 0;
-    transition: opacity .2s;
-    border-radius: 10px;
-}
-.mgr-avatar-wrap:hover .mgr-photo-overlay { opacity: 1; }
 </style>
 {% endblock %}
 
