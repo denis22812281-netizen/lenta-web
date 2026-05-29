@@ -658,6 +658,48 @@ async def startup():
                 db.add(models.PhoneWhitelist(phone=phone, display_name=name, is_admin=is_admin))
         db.commit()
 
+        # Seed VPK criteria
+        if db.query(models.VpkCriterion).count() == 0:
+            vpk1 = [
+                "Документация на произведённые работы предоставлена в полном объёме в печатном виде, согласно технического задания.",
+                "Температурный режим на объекте обеспечивается, согласно условий технического задания с учётом времени года.",
+                "Подъёмное оборудование для перегрузки товара смонтировано и введено в эксплуатацию.",
+                "Холодильное оборудование запущено и выведено в режим, функционирует без аварий более 24 часов.",
+                "Строительство подъездных путей окончено, препятствий для подъезда к зоне разгрузки нет.",
+                "Системы пожарной безопасности смонтированы, находятся в исправном и автоматическом режиме, готовы к проведению комплексных испытаний.",
+                "Электроснабжение объекта осуществляется по постоянной схеме подключения.",
+                "Объект обеспечен всеми необходимыми коммунальными ресурсами, согласно условий договора аренды.",
+                "Периметр объекта замкнут, все двери/ворота установлены, исправны.",
+                "Лотки и кабельные трассы системы видеонаблюдения смонтированы, проводятся пуско-наладочные работы.",
+                "Объект обеспечен доступом в интернет (один канал), зона приёмки товара оборудована всем необходимым, препятствий для приёма товара нет.",
+                "Основные строительно-монтажные работы закончены.",
+                "Лотки и кабельные трассы системы охранной сигнализации смонтированы, проводятся пуско-наладочные работы.",
+                "Охрана объекта обеспечена сотрудником ЧОП.",
+                "ДДА с распределением зон эксплуатационной ответственности предоставлен.",
+                "Согласование контейнерной площадки со стороны местной администрации предоставлено от АРДД.",
+                "Укомплектованность собственным персоналом не ниже 60%.",
+            ]
+            vpk2 = [
+                "Технологическое оборудование полностью смонтировано и запущено.",
+                "Системы пожарной безопасности находятся в полностью исправном состоянии, все неисправности устранены или признаны инженером ПБ не значительными и не влияющими на общую работоспособность системы.",
+                "Рекламная вывеска смонтирована, в ночное время светится.",
+                "Всё кассовое оборудование запущено и исправно, все IT коммуникации смонтированы, исправны.",
+                "Входная группа готова для открытия объекта, наружные работы и благоустройство завершены.",
+                "Охранная сигнализация смонтирована, исправна.",
+                "Система видеонаблюдения смонтирована, исправна.",
+                "Уличное освещение объекта смонтировано, исправно.",
+                "Маркетинговое оформление СМ полностью закончено.",
+                "Строительство парковки для клиентов (при наличии) окончено, препятствий для размещения автомобилей нет.",
+                "Укомплектованность собственным персоналом не ниже 70%.",
+                "Объект обеспечен доступом в интернет (два канала передачи данных).",
+                "В зоне кассовой линейки должен быть обеспечен устойчивый сигнал сотовой связи (мобильное приложение ЛЕНТА запускается, существует возможность оплаты по СБП с личного мобильного телефона покупателя).",
+            ]
+            for i, name in enumerate(vpk1):
+                db.add(models.VpkCriterion(vpk_type=1, name=name, order=i))
+            for i, name in enumerate(vpk2):
+                db.add(models.VpkCriterion(vpk_type=2, name=name, order=i))
+            db.commit()
+
         # Users are created on first login — no auto password here
     finally:
         db.close()
@@ -1499,6 +1541,123 @@ async def export_excel(db: Session = Depends(get_db), type: str = None):
 
 
 # ─── API ─────────────────────────────────────────────────────────────────────
+
+# ─── ВПК ─────────────────────────────────────────────────────────────────────
+
+@app.get("/vpk", response_class=HTMLResponse)
+async def vpk_page(request: Request, db: Session = Depends(get_db),
+                   tab: str = "vpk1"):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    projects = db.query(models.Project).filter(
+        models.Project.project_type == "Констракшн"
+    ).order_by(models.Project.tk_number).all()
+    criteria1 = db.query(models.VpkCriterion).filter(
+        models.VpkCriterion.vpk_type == 1).order_by(models.VpkCriterion.order).all()
+    criteria2 = db.query(models.VpkCriterion).filter(
+        models.VpkCriterion.vpk_type == 2).order_by(models.VpkCriterion.order).all()
+    reports = db.query(models.VpkReport).order_by(
+        models.VpkReport.submitted_at.desc()).limit(50).all()
+
+    display_name = user.get("display_name", "")
+    unread = 0
+    if "Гаврин" in display_name:
+        unread = db.query(models.VpkReport).filter(models.VpkReport.read_gavrin == False).count()
+    elif "Месмер" in display_name:
+        unread = db.query(models.VpkReport).filter(models.VpkReport.read_mesmer == False).count()
+
+    return templates.TemplateResponse("vpk.html", {
+        "request": request, "user": user,
+        "tab": tab, "projects": projects,
+        "criteria1": criteria1, "criteria2": criteria2,
+        "reports": reports, "unread": unread,
+        "msg": request.query_params.get("msg"),
+    })
+
+
+@app.post("/vpk/submit")
+async def vpk_submit(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    form = await request.form()
+    project_id = form.get("project_id")
+    vpk_type = int(form.get("vpk_type", 1))
+
+    report = models.VpkReport(
+        project_id=int(project_id) if project_id else None,
+        vpk_type=vpk_type,
+        submitted_by=user.get("display_name", ""),
+        read_gavrin=False,
+        read_mesmer=False,
+    )
+    db.add(report)
+    db.flush()
+
+    criteria = db.query(models.VpkCriterion).filter(
+        models.VpkCriterion.vpk_type == vpk_type
+    ).order_by(models.VpkCriterion.order).all()
+
+    for c in criteria:
+        done = form.get(f"criterion_{c.id}") == "on"
+        db.add(models.VpkReportItem(
+            report_id=report.id, criterion_id=c.id,
+            criterion_name=c.name, done=done,
+        ))
+    db.commit()
+
+    proj = db.query(models.Project).filter(models.Project.id == project_id).first()
+    tk = proj.tk_number if proj else "—"
+    return RedirectResponse(
+        f"/vpk?tab=reports&msg=Отчёт ВПК{vpk_type} по ТК {tk} отправлен",
+        status_code=303)
+
+
+@app.post("/vpk/reports/{report_id}/read")
+async def vpk_mark_read(report_id: int, request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user:
+        return {"error": "Не авторизован"}
+    report = db.query(models.VpkReport).filter(models.VpkReport.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404)
+    display_name = user.get("display_name", "")
+    if "Гаврин" in display_name:
+        report.read_gavrin = True
+    elif "Месмер" in display_name:
+        report.read_mesmer = True
+    db.commit()
+    return {"ok": True}
+
+
+@app.get("/api/vpk/unread")
+async def vpk_unread(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user:
+        return {"reports": []}
+    display_name = user.get("display_name", "")
+    if "Гаврин" in display_name:
+        reports = db.query(models.VpkReport).filter(
+            models.VpkReport.read_gavrin == False).all()
+    elif "Месмер" in display_name:
+        reports = db.query(models.VpkReport).filter(
+            models.VpkReport.read_mesmer == False).all()
+    else:
+        return {"reports": []}
+
+    result = []
+    for r in reports:
+        tk = r.project.tk_number if r.project else "—"
+        done = sum(1 for i in r.items if i.done)
+        total = len(r.items)
+        result.append({
+            "id": r.id,
+            "title": f"Новый отчёт ВПК{r.vpk_type} по ТК {tk}",
+            "body": f"Подал: {r.submitted_by} | Выполнено: {done}/{total} критериев",
+        })
+    return {"reports": result}
+
 
 @app.get("/api/notifications/construction")
 async def construction_notifications(request: Request, db: Session = Depends(get_db)):

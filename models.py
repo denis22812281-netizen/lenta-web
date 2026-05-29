@@ -98,6 +98,39 @@ class SyncConfig(Base):
     last_status = Column(String(200), default="")
 
 
+class VpkCriterion(Base):
+    __tablename__ = "vpk_criteria"
+    id = Column(Integer, primary_key=True)
+    vpk_type = Column(Integer, default=1)   # 1 = ВПК1, 2 = ВПК2
+    name = Column(String(300), nullable=False)
+    order = Column(Integer, default=0)
+
+
+class VpkReport(Base):
+    __tablename__ = "vpk_reports"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
+    vpk_type = Column(Integer, default=1)
+    submitted_by = Column(String(100), default="")
+    submitted_at = Column(DateTime, default=datetime.utcnow)
+    read_gavrin = Column(Boolean, default=False)
+    read_mesmer = Column(Boolean, default=False)
+    project = relationship("Project")
+    items = relationship("VpkReportItem", back_populates="report",
+                         cascade="all, delete-orphan")
+
+
+class VpkReportItem(Base):
+    __tablename__ = "vpk_report_items"
+    id = Column(Integer, primary_key=True)
+    report_id = Column(Integer, ForeignKey("vpk_reports.id"))
+    criterion_id = Column(Integer, ForeignKey("vpk_criteria.id"), nullable=True)
+    criterion_name = Column(String(300), default="")
+    done = Column(Boolean, default=False)
+    report = relationship("VpkReport", back_populates="items")
+    criterion = relationship("VpkCriterion")
+
+
 class KsoObject(Base):
     __tablename__ = "kso_objects"
     id = Column(Integer, primary_key=True)

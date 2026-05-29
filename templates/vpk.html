@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block page_title %}ВПК 1/2 — Лента{% endblock %}
+{% block title %}<i class="bi bi-clipboard2-check-fill me-2"></i>ВПК 1 / ВПК 2{% endblock %}
+
+{% block content %}
+
+{% if msg %}
+<div class="alert alert-success d-flex align-items-center gap-2 mb-3">
+    <i class="bi bi-check-circle-fill"></i><div>{{ msg }}</div>
+</div>
+{% endif %}
+
+<!-- Вкладки -->
+<div class="d-flex gap-2 mb-4">
+    <a href="/vpk?tab=vpk1" class="btn {% if tab == 'vpk1' %}btn-danger{% else %}btn-outline-danger{% endif %} fw-bold">
+        <i class="bi bi-1-circle-fill me-1"></i>ВПК 1
+    </a>
+    <a href="/vpk?tab=vpk2" class="btn {% if tab == 'vpk2' %}btn-primary{% else %}btn-outline-primary{% endif %} fw-bold">
+        <i class="bi bi-2-circle-fill me-1"></i>ВПК 2
+    </a>
+    <a href="/vpk?tab=reports" class="btn {% if tab == 'reports' %}btn-dark{% else %}btn-outline-dark{% endif %} fw-bold ms-auto">
+        <i class="bi bi-list-ul me-1"></i>Отчёты
+        {% if unread > 0 %}
+        <span class="badge bg-danger ms-1">{{ unread }}</span>
+        {% endif %}
+    </a>
+</div>
+
+<!-- ═══ ВПК 1 ═══ -->
+{% if tab in ('vpk1', 'vpk2') %}
+{% set vpk_num = 1 if tab == 'vpk1' else 2 %}
+{% set criteria = criteria1 if tab == 'vpk1' else criteria2 %}
+{% set accent = 'danger' if tab == 'vpk1' else 'primary' %}
+
+<form method="post" action="/vpk/submit" id="vpkForm">
+    <input type="hidden" name="vpk_type" value="{{ vpk_num }}">
+
+    <!-- Выбор ТК -->
+    <div class="data-card mb-3 p-3">
+        <div class="fw-bold mb-2 fs-6">
+            <i class="bi bi-building me-2 text-{{ accent }}"></i>Выберите объект Констракшн
+        </div>
+        <select name="project_id" class="form-select" required id="projectSelect">
+            <option value="">— выберите ТК —</option>
+            {% for p in projects %}
+            <option value="{{ p.id }}">
+                ТК {{ p.tk_number }}
+                {% if p.address %} — {{ p.address[:50] }}{% endif %}
+                {% if p.manager %} ({{ p.manager.name }}){% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Критерии -->
+    <div class="data-card mb-3">
+        <div class="data-card-header" style="background:{% if tab == 'vpk1' %}#fef2f2{% else %}#eff6ff{% endif %}">
+            <span class="fw-bold text-{{ accent }}">
+                <i class="bi bi-list-check me-2"></i>Критерии ВПК-{{ vpk_num }}
+                <span class="badge bg-{{ accent }} ms-1">{{ criteria|length }}</span>
+            </span>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-success" onclick="checkAll(true)">Все выполнены</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="checkAll(false)">Сбросить</button>
+            </div>
+        </div>
+        <div class="p-0">
+        {% for c in criteria %}
+        <div class="vpk-criterion-row" id="row-{{ c.id }}">
+            <div class="vpk-num text-{{ accent }}">{{ loop.index }}.{{ vpk_num if vpk_num > 1 else '' }}</div>
+            <div class="vpk-text">{{ c.name }}</div>
+            <div class="vpk-toggle">
+                <input type="checkbox" name="criterion_{{ c.id }}" id="c_{{ c.id }}"
+                       class="vpk-check" onchange="updateRow({{ c.id }}, this.checked)">
+                <label for="c_{{ c.id }}" class="vpk-label" id="lbl-{{ c.id }}">
+                    <span class="vpk-no">Не выполнено</span>
+                    <span class="vpk-yes d-none">✓ Выполнено</span>
+                </label>
+            </div>
+        </div>
+        {% endfor %}
+        </div>
+    </div>
+
+    <!-- Прогресс и кнопка -->
+    <div class="data-card p-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="fw-bold" id="progressText">Выполнено: 0 / {{ criteria|length }}</span>
+            <span class="fw-bold" id="progressPct">0%</span>
+        </div>
+        <div class="progress mb-3" style="height:10px;border-radius:8px">
+            <div class="progress-bar bg-{{ accent }}" id="progressBar" style="width:0%"></div>
+        </div>
+        <button type="submit" class="btn btn-{{ accent }} w-100 btn-lg fw-bold"
+                onclick="return confirmSubmit()">
+            <i class="bi bi-send-fill me-2"></i>Отправить отчёт
+        </button>
+        <div class="text-muted small text-center mt-2">
+            Отчёт будет отправлен Гаврину Игорю и Месмеру Денису
+        </div>
+    </div>
+</form>
+{% endif %}
+
+<!-- ═══ ОТЧЁТЫ ═══ -->
+{% if tab == 'reports' %}
+<div class="data-card">
+    <div class="data-card-header">
+        <span><i class="bi bi-list-ul me-2"></i>Отправленные отчёты</span>
+        <span class="badge bg-secondary">{{ reports|length }}</span>
+    </div>
+    {% if reports %}
+    {% for r in reports %}
+    {% set done_count = r.items|selectattr('done')|list|length %}
+    {% set total = r.items|length %}
+    {% set pct = ((done_count / total * 100)|int) if total > 0 else 0 %}
+    <div class="vpk-report-card" id="rpt-{{ r.id }}"
+         onclick="markRead({{ r.id }})">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+                <span class="badge {% if r.vpk_type == 1 %}bg-danger{% else %}bg-primary{% endif %} me-2">ВПК{{ r.vpk_type }}</span>
+                <strong>ТК {{ r.project.tk_number if r.project else '—' }}</strong>
+                {% if r.project and r.project.address %}
+                <span class="text-muted small ms-1">{{ r.project.address[:40] }}</span>
+                {% endif %}
+            </div>
+            <span class="text-muted small">{{ r.submitted_at.strftime('%d.%m.%Y %H:%M') }}</span>
+        </div>
+        <div class="small text-muted mb-2">Подал: <strong>{{ r.submitted_by }}</strong></div>
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <div class="progress flex-grow-1" style="height:8px;border-radius:6px">
+                <div class="progress-bar {% if pct == 100 %}bg-success{% elif pct >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                     style="width:{{ pct }}%"></div>
+            </div>
+            <span class="fw-bold small {% if pct == 100 %}text-success{% elif pct >= 50 %}text-warning{% else %}text-danger{% endif %}">
+                {{ done_count }}/{{ total }}
+            </span>
+        </div>
+        <!-- Детали критериев -->
+        <div class="vpk-items-list">
+        {% for item in r.items %}
+        <div class="vpk-item-row {% if item.done %}vpk-item-ok{% else %}vpk-item-no{% endif %}">
+            <span>{% if item.done %}✓{% else %}✗{% endif %}</span>
+            <span>{{ item.criterion_name[:80] }}{% if item.criterion_name|length > 80 %}…{% endif %}</span>
+        </div>
+        {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state py-5">
+        <i class="bi bi-clipboard2-check" style="font-size:3rem;color:#ccc"></i>
+        <p class="mt-2 text-muted">Отчётов пока нет</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<style>
+.vpk-criterion-row {
+    display:flex; align-items:flex-start; gap:12px;
+    padding:12px 16px; border-bottom:1px solid #f0f0f0;
+    transition: background .15s;
+}
+.vpk-criterion-row.done { background:#f0faf0; }
+.vpk-num { font-weight:700; font-size:13px; min-width:28px; padding-top:2px; }
+.vpk-text { flex:1; font-size:13px; line-height:1.5; color:#374151; }
+.vpk-toggle { flex-shrink:0; }
+.vpk-check { display:none; }
+.vpk-label {
+    display:inline-flex; align-items:center; cursor:pointer;
+    padding:5px 12px; border-radius:20px; font-size:12px; font-weight:600;
+    border:2px solid #d1d5db; color:#6b7280; background:#f9fafb;
+    transition:all .15s; user-select:none; white-space:nowrap;
+}
+.vpk-check:checked + .vpk-label {
+    background:#dcfce7; border-color:#16a34a; color:#15803d;
+}
+.vpk-yes { display:none !important; }
+.vpk-check:checked + .vpk-label .vpk-no { display:none; }
+.vpk-check:checked + .vpk-label .vpk-yes { display:inline !important; }
+
+.vpk-report-card {
+    padding:16px; border-bottom:1px solid #e9ecef; cursor:pointer;
+    transition:background .15s;
+}
+.vpk-report-card:hover { background:#f8f9fa; }
+.vpk-items-list { margin-top:8px; }
+.vpk-item-row {
+    display:flex; gap:8px; font-size:11px; padding:2px 0;
+    color:#6b7280;
+}
+.vpk-item-ok { color:#16a34a; }
+.vpk-item-no { color:#dc2626; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const totalCriteria = {{ criteria1|length if tab == 'vpk1' else (criteria2|length if tab == 'vpk2' else 0) }};
+let checkedCount = 0;
+
+function updateRow(id, checked) {
+    const row = document.getElementById('row-' + id);
+    if (checked) { row.classList.add('done'); checkedCount++; }
+    else { row.classList.remove('done'); checkedCount--; }
+    updateProgress();
+}
+
+function updateProgress() {
+    const pct = totalCriteria > 0 ? Math.round(checkedCount / totalCriteria * 100) : 0;
+    const bar = document.getElementById('progressBar');
+    const txt = document.getElementById('progressText');
+    const pctEl = document.getElementById('progressPct');
+    if (bar) bar.style.width = pct + '%';
+    if (txt) txt.textContent = 'Выполнено: ' + checkedCount + ' / ' + totalCriteria;
+    if (pctEl) pctEl.textContent = pct + '%';
+}
+
+function checkAll(val) {
+    document.querySelectorAll('.vpk-check').forEach(cb => {
+        if (cb.checked !== val) { cb.checked = val; cb.dispatchEvent(new Event('change')); }
+    });
+}
+
+function confirmSubmit() {
+    const sel = document.getElementById('projectSelect');
+    if (!sel || !sel.value) { alert('Выберите объект'); return false; }
+    return confirm('Отправить отчёт? Уведомление получат Гаврин Игорь и Месмер Денис.');
+}
+
+async function markRead(reportId) {
+    try {
+        await fetch('/vpk/reports/' + reportId + '/read', { method: 'POST' });
+    } catch(e) {}
+}
+</script>
+{% endblock %}

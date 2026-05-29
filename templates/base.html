@@ -54,6 +54,10 @@
         <a href="/stats" class="nav-item {% if '/stats' in request.url.path %}active{% endif %}">
             <i class="bi bi-bar-chart-fill"></i><span>Статистика</span>
         </a>
+        <a href="/vpk" class="nav-item {% if '/vpk' in request.url.path %}active{% endif %}" style="position:relative">
+            <i class="bi bi-clipboard2-check-fill"></i><span>ВПК 1 / 2</span>
+            <span id="vpk-badge" class="d-none" style="position:absolute;top:6px;right:8px;background:#dc2626;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700"></span>
+        </a>
         <div class="nav-section-label">КОМАНДА</div>
         <a href="/managers" class="nav-item {% if '/managers' in request.url.path %}active{% endif %}">
             <i class="bi bi-people-fill"></i><span>Менеджеры проектов</span>
@@ -283,6 +287,38 @@
     // Первая проверка через 10 сек, затем каждую минуту (чтобы не пропустить окно)
     setTimeout(checkNotifications, 10000);
     setInterval(checkNotifications, 60000);
+
+    // Проверка новых ВПК отчётов (для Гаврина и Месмера)
+    async function checkVpkReports() {
+        try {
+            const r = await fetch('/api/vpk/unread');
+            const data = await r.json();
+            const reports = data.reports || [];
+            const badge = document.getElementById('vpk-badge');
+            if (badge) {
+                if (reports.length > 0) {
+                    badge.textContent = reports.length;
+                    badge.classList.remove('d-none');
+                    badge.style.display = 'flex';
+                } else {
+                    badge.classList.add('d-none');
+                    badge.style.display = 'none';
+                }
+            }
+            reports.forEach((rpt, i) => {
+                const key = 'vpk_notif_' + rpt.id;
+                if (!localStorage.getItem(key)) {
+                    localStorage.setItem(key, '1');
+                    setTimeout(() => {
+                        playSound('high');
+                        showNotifToast(rpt.title, rpt.body, 'high');
+                    }, i * 2000);
+                }
+            });
+        } catch(e) {}
+    }
+    setTimeout(checkVpkReports, 6000);
+    setInterval(checkVpkReports, 60000);
 
     // Глобальная функция для кнопки теста
     window.testNotification = function() {
