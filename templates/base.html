@@ -144,8 +144,26 @@
 
 // ─── УВЕДОМЛЕНИЯ КОНСТРАКШН ───────────────────────────────────────────────
 (function() {
-    const SHOWN_KEY = 'shown_notifications';
+    // Ключ включает дату — сбрасывается каждый день
+    const today = new Date().toISOString().slice(0, 10);
+    const SHOWN_KEY = `shown_notifications_${today}`;
     const shownIds = new Set(JSON.parse(localStorage.getItem(SHOWN_KEY) || '[]'));
+
+    // Расписание: тип → [час, минута, окно_минут]
+    const SCHEDULE = {
+        smr:      [10,  0, 10],   // 10:00 ± 10 мин
+        vpk:      [13,  0, 10],   // 13:00 ± 10 мин
+        opening:  [ 9, 30, 10],   // 09:30 ± 10 мин
+    };
+
+    function isInTimeWindow(type) {
+        const s = SCHEDULE[type];
+        if (!s) return true;
+        const now = new Date();
+        const nowMins = now.getHours() * 60 + now.getMinutes();
+        const targetMins = s[0] * 60 + s[1];
+        return nowMins >= targetMins && nowMins <= targetMins + s[2];
+    }
 
     // Запрашиваем разрешение на уведомления
     if ('Notification' in window && Notification.permission === 'default') {
@@ -226,13 +244,14 @@
             const fresh = [];
             (data.notifications || []).forEach(n => {
                 const id = `${n.type}_${n.date}`;
-                if (!shownIds.has(id)) {
+                // Показываем только в нужном временном окне и если ещё не показывали
+                if (!shownIds.has(id) && isInTimeWindow(n.type)) {
                     shownIds.add(id);
                     fresh.push(n);
                 }
             });
             if (fresh.length) {
-                localStorage.setItem(SHOWN_KEY, JSON.stringify([...shownIds].slice(-50)));
+                localStorage.setItem(SHOWN_KEY, JSON.stringify([...shownIds]));
                 fresh.forEach((n, i) => {
                     setTimeout(() => {
                         playSound(n.urgency);
@@ -243,9 +262,9 @@
         } catch(e) {}
     }
 
-    // Первая проверка через 8 сек, затем каждые 5 минут
-    setTimeout(checkNotifications, 8000);
-    setInterval(checkNotifications, 300000);
+    // Первая проверка через 10 сек, затем каждую минуту (чтобы не пропустить окно)
+    setTimeout(checkNotifications, 10000);
+    setInterval(checkNotifications, 60000);
 })();
 </script>
 <style>
