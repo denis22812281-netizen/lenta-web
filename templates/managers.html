@@ -32,7 +32,11 @@
 
         <!-- Имя -->
         <div class="mgr-name-row">
+            {% if 'Месмер' in m.name %}
+            <img src="/static/img/raccoon_mesmer.jpg" class="mgr-raccoon" alt="{{ m.name }}">
+            {% else %}
             <img src="/static/img/raccoon.png" class="mgr-raccoon" alt="менеджер">
+            {% endif %}
             <div>
                 <div class="fw-bold fs-6">{{ m.name }}</div>
                 <div class="text-muted" style="font-size:12px">
