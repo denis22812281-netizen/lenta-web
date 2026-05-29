@@ -49,7 +49,8 @@
                 <tbody>
                 {% for p in projects %}
                 {% set days = (p.end_date - today).days %}
-                <tr class="{% if days < 0 %}table-danger{% elif days <= 3 %}table-warning{% elif days <= 7 %}table-light{% endif %}">
+                {% set is_opened = p.opening_date and p.opening_date <= today %}
+                <tr class="{% if is_opened %}table-success{% elif days < 0 %}table-danger{% elif days <= 3 %}table-warning{% elif days <= 7 %}table-light{% endif %}">
                     <td class="text-muted small">{{ p.tk_number or '—' }}</td>
                     <td>
                         <a href="/projects/{{ p.id }}" class="fw-semibold text-decoration-none text-dark">{{ p.name }}</a>
@@ -57,7 +58,15 @@
                     </td>
                     <td>{{ p.manager.name if p.manager else '—' }}</td>
                     <td><span class="badge bg-light text-dark">{{ p.project_type or '—' }}</span></td>
-                    <td><span class="badge {% if p.status == 'Активный' %}bg-success{% elif p.status == 'Приостановлен' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">{{ p.status }}</span></td>
+                    <td>
+                        {% if is_opened %}
+                        <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Открыт</span>
+                        {% elif p.status == 'Приостановлен' %}
+                        <span class="badge bg-warning text-dark">{{ p.status }}</span>
+                        {% else %}
+                        <span class="badge bg-primary">Активный</span>
+                        {% endif %}
+                    </td>
                     <td class="fw-semibold">{{ p.end_date.strftime('%d.%m.%Y') }}</td>
                     <td>
                         <span class="dl-badge {% if days < 0 %}dl-over{% elif days <= 3 %}dl-crit{% elif days <= 7 %}dl-warn{% else %}dl-ok{% endif %}">

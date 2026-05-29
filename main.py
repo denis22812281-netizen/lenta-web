@@ -1074,7 +1074,11 @@ async def deadlines(request: Request, db: Session = Depends(get_db),
         return RedirectResponse("/login", status_code=302)
     today = date.today()
     pq = db.query(models.Project).filter(
-        models.Project.status == "Активный", models.Project.end_date != None)
+        models.Project.status != "Завершён",
+        models.Project.end_date != None,
+        # Исключаем уже открытые объекты
+        (models.Project.opening_date == None) | (models.Project.opening_date > today)
+    )
     if manager_id and str(manager_id).isdigit():
         pq = pq.filter(models.Project.manager_id == int(manager_id))
     projects = pq.order_by(models.Project.end_date).all()
