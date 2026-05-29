@@ -1357,6 +1357,81 @@ async def export_excel(db: Session = Depends(get_db), type: str = None):
 
 # ─── API ─────────────────────────────────────────────────────────────────────
 
+@app.get("/api/notifications/construction")
+async def construction_notifications(request: Request, db: Session = Depends(get_db)):
+    """Returns upcoming Construction deadline notifications for the current user's manager."""
+    user = get_current_user(request)
+    if not user:
+        return {"notifications": []}
+
+    today = date.today()
+    display_name = user.get("display_name", "")
+
+    # Найти менеджера по имени из сессии
+    managers = db.query(models.Manager).all()
+    manager = None
+    if display_name:
+        name_part = display_name.split()[0].lower()
+        for m in managers:
+            if m.name.lower().startswith(name_part) or name_part in m.name.lower():
+                manager = m
+                break
+
+    # Руководитель видит все проекты
+    is_leader = user.get("is_admin") or (manager and manager.is_leader)
+
+    q = db.query(models.Project).filter(models.Project.project_type == "Констракшн")
+    if not is_leader and manager:
+        q = q.filter(models.Project.manager_id == manager.id)
+    elif not is_leader:
+        return {"notifications": []}
+
+    projects = q.all()
+    notifications = []
+
+    for p in projects:
+        tk = p.tk_number or str(p.id)
+        mgr_name = p.manager.name if p.manager else ""
+
+        # За 2 дня до выхода на СМР
+        if p.closure_date:
+            days = (p.closure_date - today).days
+            if days in (0, 1, 2):
+                label = "сегодня" if days == 0 else f"через {days} дн."
+                notifications.append({
+                    "type": "smr",
+                    "title": f"ТК {tk} — Выход на СМР {label}",
+                    "body": f"{mgr_name}: выход на СМР {p.closure_date.strftime('%d.%m.%Y')}",
+                    "urgency": "high" if days == 0 else "medium",
+                    "date": str(p.closure_date),
+                })
+
+        # За 3 дня до ВПК1
+        if p.vpk_date:
+            days = (p.vpk_date - today).days
+            if days in (0, 1, 2, 3):
+                label = "сегодня" if days == 0 else f"через {days} дн."
+                notifications.append({
+                    "type": "vpk",
+                    "title": f"ТК {tk} — ВПК1 {label}",
+                    "body": f"{mgr_name}: ВПК1 {p.vpk_date.strftime('%d.%m.%Y')}",
+                    "urgency": "high" if days == 0 else "medium",
+                    "date": str(p.vpk_date),
+                })
+
+        # В день открытия — поздравление
+        if p.opening_date and p.opening_date == today:
+            notifications.append({
+                "type": "opening",
+                "title": f"Поздравляю с открытием! 🎉",
+                "body": f"{mgr_name}, поздравляю с открытием ТК {tk}!!!",
+                "urgency": "celebration",
+                "date": str(p.opening_date),
+            })
+
+    return {"notifications": notifications, "manager": manager.name if manager else "Все"}
+
+
 @app.get("/api/data-version")
 async def data_version(db: Session = Depends(get_db)):
     """Returns timestamp of latest project change — used by clients for polling."""

@@ -113,53 +113,145 @@
 {% block scripts %}{% endblock %}
 
 <script>
-// Авто-обновление данных: каждые 30 сек проверяем версию данных на сервере
+// ─── АВТО-ОБНОВЛЕНИЕ ДАННЫХ ───────────────────────────────────────────────
 (function() {
     let currentVersion = null;
     let notifyShown = false;
-
     async function checkVersion() {
         try {
             const r = await fetch('/api/data-version');
             const data = await r.json();
-            if (currentVersion === null) {
-                currentVersion = data.version;
-                return;
-            }
-            if (data.version !== currentVersion) {
-                currentVersion = data.version;
-                showUpdateNotice();
+            if (currentVersion === null) { currentVersion = data.version; return; }
+            if (data.version !== currentVersion) { currentVersion = data.version; showUpdateNotice(); }
+        } catch(e) {}
+    }
+    function showUpdateNotice() {
+        if (notifyShown) return;
+        notifyShown = true;
+        const n = document.createElement('div');
+        n.innerHTML = `<div style="position:fixed;bottom:20px;right:20px;z-index:9999;
+            background:#1A5C22;color:#fff;border-radius:12px;padding:12px 18px;
+            box-shadow:0 4px 20px rgba(0,0,0,.3);display:flex;align-items:center;
+            gap:10px;cursor:pointer;font-size:14px;font-weight:600;animation:slideIn .3s ease">
+            <i class="bi bi-arrow-clockwise fs-5"></i>
+            Данные обновлены — нажмите чтобы обновить страницу</div>`;
+        n.onclick = () => location.reload();
+        document.body.appendChild(n);
+    }
+    setTimeout(checkVersion, 5000);
+    setInterval(checkVersion, 30000);
+})();
+
+// ─── УВЕДОМЛЕНИЯ КОНСТРАКШН ───────────────────────────────────────────────
+(function() {
+    const SHOWN_KEY = 'shown_notifications';
+    const shownIds = new Set(JSON.parse(localStorage.getItem(SHOWN_KEY) || '[]'));
+
+    // Запрашиваем разрешение на уведомления
+    if ('Notification' in window && Notification.permission === 'default') {
+        setTimeout(() => Notification.requestPermission(), 3000);
+    }
+
+    function playSound(type) {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            if (type === 'celebration') {
+                // Весёлая мелодия для открытия
+                const notes = [523, 659, 784, 1047];
+                let t = ctx.currentTime;
+                notes.forEach(freq => {
+                    const o = ctx.createOscillator();
+                    const g = ctx.createGain();
+                    o.connect(g); g.connect(ctx.destination);
+                    o.frequency.value = freq;
+                    o.type = 'sine';
+                    g.gain.setValueAtTime(0.3, t);
+                    g.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+                    o.start(t); o.stop(t + 0.25);
+                    t += 0.2;
+                });
+            } else {
+                // Стандартный сигнал для дедлайнов
+                osc.frequency.value = type === 'high' ? 880 : 660;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.4, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.6);
             }
         } catch(e) {}
     }
 
-    function showUpdateNotice() {
-        if (notifyShown) return;
-        notifyShown = true;
-        const notice = document.createElement('div');
-        notice.id = 'update-notice';
-        notice.innerHTML = `
-            <div style="position:fixed;bottom:20px;right:20px;z-index:9999;
-                background:#1A5C22;color:#fff;border-radius:12px;
-                padding:12px 18px;box-shadow:0 4px 20px rgba(0,0,0,.3);
-                display:flex;align-items:center;gap:10px;cursor:pointer;
-                font-size:14px;font-weight:600;animation:slideIn .3s ease">
-                <i class="bi bi-arrow-clockwise fs-5"></i>
-                Данные обновлены — нажмите чтобы обновить страницу
-            </div>`;
-        notice.onclick = () => location.reload();
-        document.body.appendChild(notice);
+    function showBrowserNotification(title, body, urgency) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+            const icon = '/static/img/raccoon.png';
+            new Notification(title, { body, icon });
+        }
+        showToast(title, body, urgency);
     }
 
-    // Первая проверка через 5 сек, далее каждые 30 сек
-    setTimeout(checkVersion, 5000);
-    setInterval(checkVersion, 30000);
+    function showToast(title, body, urgency) {
+        const colors = {
+            celebration: 'linear-gradient(135deg,#16a34a,#22c55e)',
+            high: 'linear-gradient(135deg,#dc2626,#ef4444)',
+            medium: 'linear-gradient(135deg,#d97706,#f59e0b)',
+        };
+        const icons = { celebration: 'bi-trophy-fill', high: 'bi-exclamation-triangle-fill', medium: 'bi-clock-fill' };
+        const bg = colors[urgency] || colors.medium;
+        const icon = icons[urgency] || icons.medium;
+
+        const toast = document.createElement('div');
+        toast.style.cssText = `position:fixed;top:20px;right:20px;z-index:10000;
+            background:${bg};color:#fff;border-radius:14px;padding:14px 18px;
+            box-shadow:0 6px 24px rgba(0,0,0,.35);max-width:320px;
+            animation:slideIn .3s ease;font-size:14px`;
+        toast.innerHTML = `
+            <div style="font-weight:700;font-size:15px;margin-bottom:4px">
+                <i class="bi ${icon} me-2"></i>${title}
+            </div>
+            <div style="opacity:.9">${body}</div>`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), urgency === 'celebration' ? 8000 : 6000);
+    }
+
+    async function checkNotifications() {
+        try {
+            const r = await fetch('/api/notifications/construction');
+            const data = await r.json();
+            const fresh = [];
+            (data.notifications || []).forEach(n => {
+                const id = `${n.type}_${n.date}`;
+                if (!shownIds.has(id)) {
+                    shownIds.add(id);
+                    fresh.push(n);
+                }
+            });
+            if (fresh.length) {
+                localStorage.setItem(SHOWN_KEY, JSON.stringify([...shownIds].slice(-50)));
+                fresh.forEach((n, i) => {
+                    setTimeout(() => {
+                        playSound(n.urgency);
+                        showBrowserNotification(n.title, n.body, n.urgency);
+                    }, i * 1500);
+                });
+            }
+        } catch(e) {}
+    }
+
+    // Первая проверка через 8 сек, затем каждые 5 минут
+    setTimeout(checkNotifications, 8000);
+    setInterval(checkNotifications, 300000);
 })();
 </script>
 <style>
 @keyframes slideIn {
-    from { transform: translateY(20px); opacity: 0; }
-    to   { transform: translateY(0);    opacity: 1; }
+    from { transform: translateY(-20px); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
 }
 </style>
 </body>
