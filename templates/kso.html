@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+{% block page_title %}КСО — Лента{% endblock %}
+{% block title %}<i class="bi bi-file-earmark-check-fill me-2"></i>КСО — Графики работ{% endblock %}
+
+{% block content %}
+
+{% if msg %}
+<div class="alert alert-success d-flex align-items-center gap-2 mb-3">
+    <i class="bi bi-check-circle-fill"></i><div>{{ msg }}</div>
+</div>
+{% endif %}
+{% if error %}
+<div class="alert alert-danger d-flex align-items-center gap-2 mb-3">
+    <i class="bi bi-exclamation-triangle-fill"></i><div>{{ error }}</div>
+</div>
+{% endif %}
+
+<!-- Вкладки -->
+<div class="d-flex gap-2 mb-4">
+    <a href="/kso?tab=objects{% if filter_manager_id %}&manager_id={{ filter_manager_id }}{% endif %}"
+       class="btn {% if tab == 'objects' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        <i class="bi bi-list-check me-2"></i>Объекты
+        <span class="badge {% if tab == 'objects' %}bg-white text-primary{% else %}bg-primary{% endif %} ms-1">{{ total }}</span>
+    </a>
+    <a href="/kso?tab=schedules"
+       class="btn {% if tab == 'schedules' %}btn-success{% else %}btn-outline-success{% endif %}">
+        <i class="bi bi-calendar-week me-2"></i>Графики
+        <span class="badge {% if tab == 'schedules' %}bg-white text-success{% else %}bg-success{% endif %} ms-1">{{ schedules|length }}</span>
+    </a>
+</div>
+
+<!-- ═══ ВКЛАДКА: ОБЪЕКТЫ ═══ -->
+{% if tab == 'objects' %}
+
+<!-- Прогресс -->
+{% if total > 0 %}
+<div class="data-card mb-3 p-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="fw-bold">Выполнено: {{ done_count }} из {{ total }}</span>
+        <span class="fw-bold text-success">{{ ((done_count / total) * 100)|int }}%</span>
+    </div>
+    <div class="progress" style="height:10px;border-radius:10px">
+        <div class="progress-bar bg-success" style="width:{{ ((done_count / total) * 100)|int }}%"></div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Тулбар -->
+<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalImport">
+        <i class="bi bi-upload me-1"></i>Загрузить список
+    </button>
+    <form method="get" class="d-flex gap-2">
+        <input type="hidden" name="tab" value="objects">
+        <input type="text" name="search" class="form-control form-control-sm" style="width:180px"
+               placeholder="Номер ТК" value="{{ search }}">
+        <select name="manager_id" class="form-select form-select-sm" style="width:180px">
+            <option value="">Все менеджеры</option>
+            {% for m in managers %}
+            <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>{{ m.name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-sm btn-outline-secondary">Применить</button>
+        {% if search or filter_manager_id %}
+        <a href="/kso?tab=objects" class="btn btn-sm btn-outline-secondary">Сбросить</a>
+        {% endif %}
+    </form>
+    <span class="ms-auto text-muted small">{{ objects|length }} объектов</span>
+</div>
+
+<!-- Таблица объектов -->
+<div class="data-card">
+    {% if objects %}
+    <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle small" id="ksoTable">
+        <thead class="table-head">
+            <tr>
+                <th>ТК №</th>
+                <th>Адрес</th>
+                <th>Менеджер</th>
+                <th class="text-center" style="width:140px">Статус</th>
+                <th style="min-width:200px">Комментарий</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for obj in objects %}
+        <tr id="row-{{ obj.id }}" class="{% if obj.done %}kso-done{% endif %}">
+            <td class="fw-semibold">{{ obj.tk_number or '—' }}</td>
+            <td class="text-muted small" style="max-width:200px">
+                <div class="text-truncate" title="{{ obj.address }}">{{ obj.address or '—' }}</div>
+            </td>
+            <td class="small">{{ obj.manager.name if obj.manager else '—' }}</td>
+            <td class="text-center">
+                <button class="btn btn-sm {% if obj.done %}btn-success{% else %}btn-outline-secondary{% endif %} kso-toggle"
+                        data-id="{{ obj.id }}" style="min-width:120px">
+                    {% if obj.done %}
+                    <i class="bi bi-check-circle-fill me-1"></i>Выполнено
+                    {% else %}
+                    <i class="bi bi-circle me-1"></i>Не выполнено
+                    {% endif %}
+                </button>
+            </td>
+            <td>
+                <input type="text" class="form-control form-control-sm kso-comment"
+                       data-id="{{ obj.id }}"
+                       value="{{ obj.comment }}"
+                       placeholder="Добавить комментарий...">
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty-state py-5">
+        <i class="bi bi-list-check" style="font-size:3rem;color:#ccc"></i>
+        <p class="mt-2 text-muted">Список объектов пуст.<br>Загрузите Excel-файл с объектами.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal: Import -->
+<div class="modal fade" id="modalImport" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-upload me-2"></i>Загрузить список КСО</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="/kso/import" enctype="multipart/form-data">
+            <div class="modal-body">
+                <div class="alert alert-info small">
+                    Файл Excel с колонками: <strong>ТК №</strong>, <strong>Адрес</strong>, <strong>Менеджер</strong>
+                </div>
+                <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-upload me-1"></i>Загрузить
+                </button>
+            </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+
+<!-- ═══ ВКЛАДКА: ГРАФИКИ ═══ -->
+{% if tab == 'schedules' %}
+
+<div class="d-flex gap-2 mb-3">
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalUpload">
+        <i class="bi bi-upload me-1"></i>Загрузить график
+    </button>
+</div>
+
+<div class="data-card">
+    {% if schedules %}
+    <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+        <thead class="table-head">
+            <tr>
+                <th>Файл</th>
+                <th>Описание</th>
+                <th>Загрузил</th>
+                <th>Дата</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for s in schedules %}
+        <tr>
+            <td>
+                <a href="/kso/schedules/{{ s.id }}/download" class="text-decoration-none">
+                    <i class="bi bi-file-earmark-arrow-down text-primary me-1"></i>
+                    {{ s.original_name }}
+                </a>
+            </td>
+            <td class="text-muted small">{{ s.description or '—' }}</td>
+            <td class="small">{{ s.uploaded_by or '—' }}</td>
+            <td class="small text-muted">{{ s.uploaded_at.strftime('%d.%m.%Y %H:%M') }}</td>
+            <td>
+                <form method="post" action="/kso/schedules/{{ s.id }}/delete"
+                      onsubmit="return confirm('Удалить файл?')">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty-state py-5">
+        <i class="bi bi-calendar-week" style="font-size:3rem;color:#ccc"></i>
+        <p class="mt-2 text-muted">Графики не загружены</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal: Upload Schedule -->
+<div class="modal fade" id="modalUpload" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-calendar-week me-2"></i>Загрузить график работ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="/kso/schedules/upload" enctype="multipart/form-data">
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Файл</label>
+                    <input type="file" name="file" class="form-control" required>
+                    <div class="form-text">PDF, Excel, Word — любой формат</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Описание (необязательно)</label>
+                    <input type="text" name="description" class="form-control"
+                           placeholder="Например: График на июнь 2026">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-success w-100">
+                    <i class="bi bi-upload me-1"></i>Загрузить
+                </button>
+            </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endif %}
+
+<style>
+.kso-done td { opacity: .65; }
+.kso-done .kso-toggle { pointer-events: auto; opacity: 1; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Переключение статуса Выполнено/Не выполнено
+document.querySelectorAll('.kso-toggle').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const id = this.dataset.id;
+        const r = await fetch(`/kso/objects/${id}/toggle`, {method: 'POST'});
+        const data = await r.json();
+        const row = document.getElementById(`row-${id}`);
+        if (data.done) {
+            this.className = 'btn btn-sm btn-success kso-toggle';
+            this.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Выполнено';
+            row.classList.add('kso-done');
+        } else {
+            this.className = 'btn btn-sm btn-outline-secondary kso-toggle';
+            this.innerHTML = '<i class="bi bi-circle me-1"></i>Не выполнено';
+            row.classList.remove('kso-done');
+        }
+    });
+});
+
+// Автосохранение комментария
+let commentTimers = {};
+document.querySelectorAll('.kso-comment').forEach(input => {
+    input.addEventListener('input', function() {
+        const id = this.dataset.id;
+        clearTimeout(commentTimers[id]);
+        commentTimers[id] = setTimeout(async () => {
+            await fetch(`/api/kso/${id}/comment`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({comment: this.value})
+            });
+            this.style.borderColor = '#16a34a';
+            setTimeout(() => this.style.borderColor = '', 1200);
+        }, 700);
+    });
+});
+</script>
+{% endblock %}

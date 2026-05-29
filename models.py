@@ -98,6 +98,28 @@ class SyncConfig(Base):
     last_status = Column(String(200), default="")
 
 
+class KsoObject(Base):
+    __tablename__ = "kso_objects"
+    id = Column(Integer, primary_key=True)
+    tk_number = Column(String(50), default="")
+    address = Column(Text, default="")
+    manager_id = Column(Integer, ForeignKey("managers.id"), nullable=True)
+    done = Column(Boolean, default=False)
+    comment = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    manager = relationship("Manager")
+
+
+class KsoSchedule(Base):
+    __tablename__ = "kso_schedules"
+    id = Column(Integer, primary_key=True)
+    original_name = Column(String(200), default="")
+    filename = Column(String(200), nullable=False)
+    description = Column(Text, default="")
+    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    uploaded_by = Column(String(100), default="")
+
+
 class Task(Base):
     __tablename__ = "tasks"
     id = Column(Integer, primary_key=True)
