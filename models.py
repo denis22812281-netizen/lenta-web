@@ -56,6 +56,7 @@ class Project(Base):
 
     format_type = Column(String(50), default="")    # Тип формата: SM, HM, Utkonos и т.д.
     open_status = Column(String(100), default="")   # Статус открытия из Excel
+    delay_reason = Column(Text, default="")          # Чья вина при задержке открытия
 
     # Ключевые этапы (из Excel)
     sid_start = Column(Date, nullable=True)       # Сбор исходных данных - начало

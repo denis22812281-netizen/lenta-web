@@ -586,6 +586,7 @@ async def startup():
                     "ALTER TABLE project_stages ALTER COLUMN name TYPE TEXT",
                     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS format_type VARCHAR(50) DEFAULT ''",
                     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS open_status VARCHAR(100) DEFAULT ''",
+                    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS delay_reason TEXT DEFAULT ''",
                     "ALTER TABLE managers ADD COLUMN IF NOT EXISTS photo VARCHAR(200) DEFAULT ''",
                 ]:
                     try:
@@ -1356,62 +1357,88 @@ async def stats_page(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse("/login", status_code=302)
     today = date.today()
     managers = db.query(models.Manager).all()
-    projects = db.query(models.Project).all()
+
+    # Только Констракшн
+    projects = db.query(models.Project).filter(
+        models.Project.project_type == "Констракшн"
+    ).all()
+
+    def opening_color(p):
+        """Зелёный=раньше срока, белый=вовремя/нет плана, красный=опоздание."""
+        if not p.opening_date:
+            return "active"
+        if not p.end_date:
+            return "on-time"          # нет плановой → считаем вовремя
+        if p.opening_date < p.end_date:
+            return "early"            # раньше срока
+        if p.opening_date == p.end_date:
+            return "on-time"
+        return "late"                 # позже срока
 
     manager_stats = []
     for m in managers:
-        m_projects = [p for p in projects if p.manager_id == m.id]
-        active  = sum(1 for p in m_projects if p.status == "Активный" and not (p.opening_date and p.opening_date < today))
-        opened  = sum(1 for p in m_projects if p.opening_date and p.opening_date < today)
-        on_time = sum(1 for p in m_projects if p.opening_date and p.opening_date < today
-                      and p.end_date and p.opening_date <= p.end_date)
-        late    = sum(1 for p in m_projects if p.opening_date and p.opening_date < today
-                      and p.end_date and p.opening_date > p.end_date)
-        overdue = sum(1 for p in m_projects if p.status == "Активный"
-                      and p.end_date and p.end_date < today
-                      and not (p.opening_date and p.opening_date < today))
-        if m_projects:
-            manager_stats.append({"name": m.name, "active": active, "opened": opened,
-                                   "on_time": on_time, "late": late, "overdue": overdue})
-
-    # Per-project detail
-    projects_with_stats = []
-    for p in sorted(projects, key=lambda x: (x.manager_id or 0, x.end_date or date.max)):
-        is_opened = p.opening_date and p.opening_date < today
-        has_deadline = bool(p.end_date)
-        days_left = (p.end_date - today).days if p.end_date and not is_opened else None
-        delta = (p.opening_date - p.end_date).days if is_opened and p.end_date else None
-
-        if is_opened and p.end_date:
-            sc = "opened-on-time" if p.opening_date <= p.end_date else "opened-late"
-        elif p.end_date and p.end_date < today and not is_opened:
-            sc = "overdue"
-        elif p.status == "Активный":
-            sc = "active"
-        else:
-            sc = ""
-
-        projects_with_stats.append({
-            "id": p.id, "tk_number": p.tk_number,
-            "manager_name": p.manager.name if p.manager else "—",
-            "end_date": p.end_date, "opening_date": p.opening_date,
-            "status_class": sc, "delta_days": delta, "days_left": days_left,
+        m_proj = [p for p in projects if p.manager_id == m.id]
+        if not m_proj:
+            continue
+        early   = sum(1 for p in m_proj if opening_color(p) == "early")
+        on_time = sum(1 for p in m_proj if opening_color(p) == "on-time")
+        late    = sum(1 for p in m_proj if opening_color(p) == "late")
+        active  = sum(1 for p in m_proj if opening_color(p) == "active")
+        manager_stats.append({
+            "name": m.name, "early": early, "on_time": on_time,
+            "late": late, "active": active, "total": len(m_proj),
         })
 
-    total_active  = sum(s["active"]  for s in manager_stats)
-    total_opened  = sum(s["opened"]  for s in manager_stats)
+    projects_with_stats = []
+    for p in sorted(projects, key=lambda x: (x.manager_id or 0, x.end_date or date.max)):
+        color = opening_color(p)
+        delta = None
+        if p.opening_date and p.end_date:
+            delta = (p.opening_date - p.end_date).days
+        days_left = (p.end_date - today).days if p.end_date and not p.opening_date else None
+
+        projects_with_stats.append({
+            "id": p.id,
+            "tk_number": p.tk_number,
+            "address": p.address or p.city or "—",
+            "format_type": p.format_type or "",
+            "manager_name": p.manager.name if p.manager else "—",
+            "end_date": p.end_date,
+            "opening_date": p.opening_date,
+            "color": color,
+            "delta_days": delta,
+            "days_left": days_left,
+            "delay_reason": p.delay_reason or "",
+        })
+
+    total_early   = sum(s["early"]   for s in manager_stats)
     total_on_time = sum(s["on_time"] for s in manager_stats)
     total_late    = sum(s["late"]    for s in manager_stats)
-    total_overdue = sum(s["overdue"] for s in manager_stats)
+    total_active  = sum(s["active"]  for s in manager_stats)
 
     return templates.TemplateResponse("stats.html", {
         "request": request, "user": user,
         "manager_stats": manager_stats,
         "projects_with_stats": projects_with_stats,
-        "total_active": total_active, "total_opened": total_opened,
-        "total_on_time": total_on_time, "total_late": total_late,
-        "total_overdue": total_overdue, "today": today,
+        "total_early": total_early, "total_on_time": total_on_time,
+        "total_late": total_late, "total_active": total_active,
+        "today": today,
     })
+
+
+@app.post("/api/projects/{project_id}/delay-reason")
+async def save_delay_reason(project_id: int, request: Request,
+                             db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user:
+        return {"error": "Не авторизован"}
+    data = await request.json()
+    p = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not p:
+        raise HTTPException(status_code=404)
+    p.delay_reason = data.get("reason", "")
+    db.commit()
+    return {"ok": True}
 
 
 @app.post("/stats/upload")
