@@ -553,7 +553,12 @@ async def auto_sync_loop():
                         if path.exists() and path.suffix in ('.xlsx', '.xls', '.xlsm'):
                             try:
                                 content = path.read_bytes()
-                                result = parse_excel_file(content, cfg.project_type, None, db)
+                                if cfg.project_type == "Реконструкция":
+                                    result = import_reconstruct_excel(content, db)
+                                elif cfg.project_type == "Констракшн":
+                                    result = import_construction_excel(content, db)
+                                else:
+                                    result = parse_excel_file(content, cfg.project_type, None, db)
                                 cfg.last_synced = datetime.utcnow()
                                 cfg.last_status = f"OK: создано {result['created']}, обновлено {result['updated']}"
                             except Exception as e:
