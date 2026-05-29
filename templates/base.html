@@ -74,6 +74,9 @@
         <button id="btn-notif" class="sidebar-notif-btn" title="Включить уведомления">
             <i class="bi bi-bell-fill"></i> Уведомления
         </button>
+        <button onclick="testNotification()" class="sidebar-notif-btn" style="background:rgba(255,255,255,.1);margin-top:4px" title="Тест уведомлений">
+            <i class="bi bi-play-circle-fill"></i> Тест уведомлений
+        </button>
         {% if user %}
         <div class="sidebar-user">
             <i class="bi bi-person-circle"></i>
@@ -273,6 +276,23 @@
     // Первая проверка через 10 сек, затем каждую минуту (чтобы не пропустить окно)
     setTimeout(checkNotifications, 10000);
     setInterval(checkNotifications, 60000);
+
+    // Глобальная функция для кнопки теста
+    window.testNotification = function() {
+        const samples = [
+            { type: 'smr',     title: 'ТК L870 — Выход на СМР через 2 дн.',    body: 'Студеникин С: выход на СМР 31.05.2026',   urgency: 'high'        },
+            { type: 'vpk',     title: 'ТК L538 — ВПК1 через 1 дн.',            body: 'Митько Р: ВПК1 01.06.2026',               urgency: 'high'        },
+            { type: 'opening', title: 'Поздравляю с открытием! 🎉',             body: 'Месмер Денис, поздравляю с открытием ТК L553!!!', urgency: 'celebration' },
+            { type: 'sid',     title: 'ТК 651 — СИД начинается через 3 дн.',   body: 'Хачатурова Ж: начало СИД 01.06.2026',     urgency: 'high'        },
+            { type: 'zoning',  title: 'ТК 720 — Зонирование начинается завтра!', body: 'Шевченко Н: начало зонирования 30.05.2026', urgency: 'high'     },
+        ];
+        samples.forEach((n, i) => {
+            setTimeout(() => {
+                playSound(n.urgency);
+                showBrowserNotification(n.title, n.body, n.urgency);
+            }, i * 2000);
+        });
+    };
 })();
 </script>
 <style>
