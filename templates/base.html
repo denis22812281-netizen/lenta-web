@@ -213,26 +213,26 @@
     function showBrowserNotification(title, body, urgency) {
         if ('Notification' in window && Notification.permission === 'granted') {
             const icon = '/static/img/raccoon.png';
-            new Notification(title, { body, icon });
+            try { new Notification(title, { body, icon }); } catch(e) {}
         }
-        showToast(title, body, urgency);
+        showNotifToast(title, body, urgency);
     }
 
-    // Контейнер для стека уведомлений
-    let toastContainer = null;
-    function getToastContainer() {
-        if (!toastContainer || !document.body.contains(toastContainer)) {
-            toastContainer = document.createElement('div');
-            toastContainer.style.cssText = `
+    // Контейнер для стека уведомлений (z-index выше сайдбара)
+    let notifContainer = null;
+    function getNotifContainer() {
+        if (!notifContainer || !document.body.contains(notifContainer)) {
+            notifContainer = document.createElement('div');
+            notifContainer.style.cssText = `
                 position:fixed;bottom:80px;right:12px;left:12px;
-                z-index:10000;display:flex;flex-direction:column;
+                z-index:99999;display:flex;flex-direction:column;
                 gap:8px;align-items:flex-end;pointer-events:none`;
-            document.body.appendChild(toastContainer);
+            document.body.appendChild(notifContainer);
         }
-        return toastContainer;
+        return notifContainer;
     }
 
-    function showToast(title, body, urgency) {
+    function showNotifToast(title, body, urgency) {
         const colors = {
             celebration: 'linear-gradient(135deg,#16a34a,#22c55e)',
             high:        'linear-gradient(135deg,#dc2626,#ef4444)',
@@ -258,7 +258,7 @@
             </div>
             <div style="opacity:.92;font-size:13px">${body}</div>`;
         toast.onclick = () => toast.remove();
-        getToastContainer().appendChild(toast);
+        getNotifContainer().appendChild(toast);
         const delay = urgency === 'celebration' ? 10000 : 7000;
         setTimeout(() => { toast.style.opacity='0'; toast.style.transition='opacity .4s'; setTimeout(()=>toast.remove(),400); }, delay);
     }
@@ -300,6 +300,9 @@
 
     // Глобальная функция для кнопки теста
     window.testNotification = function() {
+        // Закрываем боковое меню чтобы видеть уведомления
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) sidebar.classList.remove('open');
         const samples = [
             { type: 'smr',     title: 'На ТК L870 через 2 дня выход на СМР',        body: 'Дата: 31.05.2026',                                urgency: 'high'        },
             { type: 'vpk',     title: 'Через 2 дня на ТК L538 ВПК1',                body: 'Дата: 01.06.2026',                                urgency: 'high'        },
