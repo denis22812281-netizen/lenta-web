@@ -388,20 +388,32 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
     today = date.today()
     created = updated = 0
 
-    # Собираем листы 2026 и 2027
-    target_sheets = [ws for ws in wb.worksheets if ws.title.strip() in ('2026', '2027')]
+    # Собираем листы 2026 и 2027 (гибкий поиск)
+    target_sheets = [ws for ws in wb.worksheets
+                     if ws.title.strip() in ('2026', '2027')
+                     or '2026' in ws.title or '2027' in ws.title]
+    # Убираем дубли если есть
+    seen = set()
+    target_sheets = [ws for ws in target_sheets
+                     if ws.title not in seen and not seen.add(ws.title)]
     if not target_sheets:
-        # fallback — берём последний лист
         target_sheets = [wb.worksheets[-1]]
 
+    skipped_fmt = 0
+    skipped_mgr = 0
+
     for ws in target_sheets:
-        # Найти строку заголовков (ищем "Номер ТК" или "Адрес" в первых 10 строках)
+        # Найти строку заголовков — правильный break из обоих циклов
         header_row = 4
+        found_hdr = False
         for r in range(1, 11):
+            if found_hdr:
+                break
             for c in range(1, 15):
                 v = str(ws.cell(r, c).value or '')
                 if 'Номер' in v or 'Адрес' in v:
                     header_row = r
+                    found_hdr = True
                     break
 
         # Определяем позиции колонок по заголовкам
@@ -478,12 +490,15 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
             mgr_val = str(ws.cell(row_idx, col['mgr_os']).value or '').strip()
             manager_id = _match_manager(mgr_val, managers)
 
-            # Только форматы SM и Utkonos
-            if fmt_type and fmt_type not in ('SM', 'Utkonos'):
+            # Только форматы SM и Utkonos (регистронезависимо)
+            fmt_upper = fmt_type.upper()
+            if fmt_type and fmt_upper not in ('SM', 'UTKONOS'):
+                skipped_fmt += 1
                 continue
 
             # Только проекты наших менеджеров
             if not manager_id:
+                skipped_mgr += 1
                 continue
 
             opening = open_fact or open_plan
@@ -528,7 +543,14 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
                 created += 1
 
     db.commit()
-    return {"created": created, "updated": updated}
+    sheets_info = ", ".join(ws.title for ws in target_sheets)
+    return {
+        "created": created,
+        "updated": updated,
+        "sheets": sheets_info,
+        "skipped_fmt": skipped_fmt,
+        "skipped_mgr": skipped_mgr,
+    }
 
 
 async def auto_sync_loop():
@@ -1796,9 +1818,11 @@ async def do_import_construction(request: Request, db: Session = Depends(get_db)
     content = await file.read()
     try:
         result = import_construction_excel(content, db)
-        return RedirectResponse(
-            f"/import-construction?msg=Импорт завершён: создано {result['created']}, обновлено {result['updated']} проектов",
-            status_code=303)
+        msg = (f"Создано: {result['created']}, обновлено: {result['updated']}. "
+               f"Листы: {result.get('sheets','?')}. "
+               f"Пропущено (формат): {result.get('skipped_fmt',0)}, "
+               f"пропущено (менеджер): {result.get('skipped_mgr',0)}")
+        return RedirectResponse(f"/import-construction?msg={msg}", status_code=303)
     except Exception as e:
         return RedirectResponse(f"/import-construction?error={str(e)[:120]}", status_code=303)
 
