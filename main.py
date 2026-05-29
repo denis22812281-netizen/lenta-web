@@ -1479,43 +1479,109 @@ async def stats_upload(request: Request, db: Session = Depends(get_db),
 
 
 @app.get("/stats/export")
-async def stats_export(db: Session = Depends(get_db)):
-    """Export statistics to Excel."""
-    today = date.today()
+async def stats_export(request: Request, db: Session = Depends(get_db)):
+    """Export opened Construction projects to Excel with color coding."""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+
+    projects = db.query(models.Project).filter(
+        models.Project.project_type == "Констракшн",
+        models.Project.opening_date != None,
+    ).order_by(models.Project.manager_id, models.Project.opening_date).all()
+
     wb = Workbook()
     ws = wb.active
-    ws.title = "Статистика"
+    ws.title = "Статистика открытий"
 
-    hfill = PatternFill(start_color="2A8436", end_color="2A8436", fill_type="solid")
-    hfont = Font(color="FFFFFF", bold=True)
+    # Стили заголовка
+    hfill = PatternFill(start_color="1A5C22", end_color="1A5C22", fill_type="solid")
+    hfont = Font(color="FFFFFF", bold=True, size=11)
+    center = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-    headers = ["Менеджер", "В работе", "Открыто СМ", "В срок", "С опозданием", "Просрочено", "% в срок"]
-    for col, h in enumerate(headers, 1):
+    # Цвета строк
+    fill_early   = PatternFill(start_color="DCFCE7", end_color="DCFCE7", fill_type="solid")
+    fill_on_time = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+    fill_late    = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
+
+    headers = ["№", "ТК №", "Адрес", "Формат", "Менеджер",
+               "План открытия", "Факт открытия", "Отклонение (дн)", "Результат", "Комментарий"]
+    col_widths = [5, 12, 40, 10, 20, 16, 16, 16, 18, 35]
+
+    for col, (h, w) in enumerate(zip(headers, col_widths), 1):
         c = ws.cell(row=1, column=col, value=h)
-        c.fill = hfill; c.font = hfont
+        c.fill = hfill
+        c.font = hfont
+        c.alignment = center
+        ws.column_dimensions[c.column_letter].width = w
 
-    managers = db.query(models.Manager).all()
-    row_num = 2
-    for m in managers:
-        projs = db.query(models.Project).filter(models.Project.manager_id == m.id).all()
-        if not projs:
-            continue
-        active  = sum(1 for p in projs if p.status == "Активный" and not (p.opening_date and p.opening_date < today))
-        opened  = sum(1 for p in projs if p.opening_date and p.opening_date < today)
-        on_time = sum(1 for p in projs if p.opening_date and p.opening_date < today and p.end_date and p.opening_date <= p.end_date)
-        late    = sum(1 for p in projs if p.opening_date and p.opening_date < today and p.end_date and p.opening_date > p.end_date)
-        overdue = sum(1 for p in projs if p.status == "Активный" and p.end_date and p.end_date < today and not (p.opening_date and p.opening_date < today))
-        pct = f"{int(on_time/opened*100)}%" if opened > 0 else "—"
-        row_data = [m.name, active, opened, on_time, late, overdue, pct]
+    ws.row_dimensions[1].height = 30
+
+    for i, p in enumerate(projects, 1):
+        # Определяем результат
+        if p.end_date:
+            if p.opening_date < p.end_date:
+                result = "Раньше срока"
+                row_fill = fill_early
+                delta = (p.opening_date - p.end_date).days
+            elif p.opening_date == p.end_date:
+                result = "Вовремя"
+                row_fill = fill_on_time
+                delta = 0
+            else:
+                result = "С опозданием"
+                row_fill = fill_late
+                delta = (p.opening_date - p.end_date).days
+        else:
+            result = "Вовремя"
+            row_fill = fill_on_time
+            delta = None
+
+        row_data = [
+            i,
+            p.tk_number or "",
+            p.address or p.city or "",
+            p.format_type or "",
+            p.manager.name if p.manager else "—",
+            p.end_date.strftime("%d.%m.%Y") if p.end_date else "—",
+            p.opening_date.strftime("%d.%m.%Y"),
+            delta if delta is not None else "—",
+            result,
+            p.delay_reason or "",
+        ]
+
+        row_num = i + 1
         for col, val in enumerate(row_data, 1):
-            ws.cell(row=row_num, column=col, value=val)
-        row_num += 1
+            c = ws.cell(row=row_num, column=col, value=val)
+            c.fill = row_fill
+            if col in (6, 7):
+                c.alignment = Alignment(horizontal="center")
+            if col == 8 and isinstance(val, int):
+                c.alignment = Alignment(horizontal="center")
+                if val < 0:
+                    c.font = Font(color="16A34A", bold=True)
+                elif val > 0:
+                    c.font = Font(color="DC2626", bold=True)
+
+    # Итоговая строка
+    total_row = len(projects) + 2
+    early_count  = sum(1 for p in projects if p.end_date and p.opening_date < p.end_date)
+    ontime_count = sum(1 for p in projects if not p.end_date or p.opening_date == p.end_date)
+    late_count   = sum(1 for p in projects if p.end_date and p.opening_date > p.end_date)
+
+    ws.cell(row=total_row, column=1, value="ИТОГО").font = Font(bold=True)
+    ws.cell(row=total_row, column=2, value=len(projects)).font = Font(bold=True)
+    ws.cell(row=total_row, column=9,
+            value=f"Раньше: {early_count} | Вовремя: {ontime_count} | Опозд.: {late_count}"
+            ).font = Font(bold=True)
 
     output = io.BytesIO()
-    wb.save(output); output.seek(0)
+    wb.save(output)
+    output.seek(0)
+    today_str = date.today().strftime("%d.%m.%Y")
     return StreamingResponse(output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=lenta_stats.xlsx"})
+        headers={"Content-Disposition": f"attachment; filename=construction_stats_{today_str}.xlsx"})
 
 
 # ─── ADMIN: WHITELIST & USERS ────────────────────────────────────────────────
