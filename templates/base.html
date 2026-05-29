@@ -151,9 +151,11 @@
 
     // Расписание: тип → [час, минута, окно_минут]
     const SCHEDULE = {
-        smr:      [10,  0, 10],   // 10:00 ± 10 мин
-        vpk:      [13,  0, 10],   // 13:00 ± 10 мин
-        opening:  [ 9, 30, 10],   // 09:30 ± 10 мин
+        smr:      [10,  0, 10],   // 10:00 ± 10 мин — Констракшн: выход на СМР
+        vpk:      [13,  0, 10],   // 13:00 ± 10 мин — Констракшн: ВПК1
+        opening:  [ 9, 30, 10],   // 09:30 ± 10 мин — Констракшн: открытие
+        sid:      [10,  0, 10],   // 10:00 ± 10 мин — Реконструкция: СИД
+        zoning:   [10,  0, 10],   // 10:00 ± 10 мин — Реконструкция: Зонирование
     };
 
     function isInTimeWindow(type) {
@@ -239,8 +241,14 @@
 
     async function checkNotifications() {
         try {
-            const r = await fetch('/api/notifications/construction');
-            const data = await r.json();
+            const [r1, r2] = await Promise.all([
+                fetch('/api/notifications/construction'),
+                fetch('/api/notifications/reconstruct'),
+            ]);
+            const d1 = await r1.json();
+            const d2 = await r2.json();
+            const allNotifs = [...(d1.notifications || []), ...(d2.notifications || [])];
+            const data = { notifications: allNotifs };
             const fresh = [];
             (data.notifications || []).forEach(n => {
                 const id = `${n.type}_${n.date}`;

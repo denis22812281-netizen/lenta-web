@@ -1432,6 +1432,67 @@ async def construction_notifications(request: Request, db: Session = Depends(get
     return {"notifications": notifications, "manager": manager.name if manager else "Все"}
 
 
+@app.get("/api/notifications/reconstruct")
+async def reconstruct_notifications(request: Request, db: Session = Depends(get_db)):
+    """Returns upcoming Reconstruction deadline notifications for the current user's manager."""
+    user = get_current_user(request)
+    if not user:
+        return {"notifications": []}
+
+    today = date.today()
+    display_name = user.get("display_name", "")
+
+    managers = db.query(models.Manager).all()
+    manager = None
+    if display_name:
+        name_part = display_name.split()[0].lower()
+        for m in managers:
+            if m.name.lower().startswith(name_part) or name_part in m.name.lower():
+                manager = m
+                break
+
+    is_leader = user.get("is_admin") or (manager and manager.is_leader)
+
+    q = db.query(models.Project).filter(models.Project.project_type == "Реконструкция")
+    if not is_leader and manager:
+        q = q.filter(models.Project.manager_id == manager.id)
+    elif not is_leader:
+        return {"notifications": []}
+
+    projects = q.all()
+    notifications = []
+
+    for p in projects:
+        tk = p.tk_number or str(p.id)
+        mgr_name = p.manager.name if p.manager else ""
+
+        # За 3 дня до окончания СИД
+        if p.sid_end:
+            days = (p.sid_end - today).days
+            if days in (1, 2, 3):
+                notifications.append({
+                    "type": "sid",
+                    "title": f"ТК {tk} — СИД заканчивается через {days} дн.",
+                    "body": f"{mgr_name}: окончание СИД {p.sid_end.strftime('%d.%m.%Y')}",
+                    "urgency": "high",
+                    "date": str(p.sid_end),
+                })
+
+        # За 1 день до окончания Зонирования
+        if p.zoning_end:
+            days = (p.zoning_end - today).days
+            if days == 1:
+                notifications.append({
+                    "type": "zoning",
+                    "title": f"ТК {tk} — Зонирование заканчивается завтра!",
+                    "body": f"{mgr_name}: окончание зонирования {p.zoning_end.strftime('%d.%m.%Y')}",
+                    "urgency": "high",
+                    "date": str(p.zoning_end),
+                })
+
+    return {"notifications": notifications, "manager": manager.name if manager else "Все"}
+
+
 @app.get("/api/data-version")
 async def data_version(db: Session = Depends(get_db)):
     """Returns timestamp of latest project change — used by clients for polling."""
