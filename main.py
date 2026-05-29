@@ -419,9 +419,9 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
                     found_hdr = True
                     break
 
-        # Определяем позиции колонок по заголовкам
+        # Определяем позиции колонок по заголовкам (ищем во всех строках до data_start)
         col = {}
-        for r in range(1, header_row + 2):
+        for r in range(1, min(header_row + 3, 15)):
             for c in range(1, 60):
                 v = str(ws.cell(r, c).value or '').strip()
                 vl = v.lower()
@@ -432,6 +432,8 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
                 elif 'адрес' in vl and 'addr' not in col and len(v) < 30:
                     col['addr'] = c
                 elif 'тип формата' in vl and 'fmt' not in col:
+                    col['fmt'] = c
+                elif ('формат' in vl and len(v) < 20) and 'fmt' not in col:
                     col['fmt'] = c
                 elif ('регион' in vl or 'город' in vl) and 'city' not in col:
                     col['city'] = c
@@ -452,10 +454,11 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
                 elif 'менеджер' in vl and 'ос' in vl and 'mgr_os' not in col:
                     col['mgr_os'] = c
 
+        fmt_from_header = 'fmt' in col  # флаг: найден ли формат через заголовок
+
         # Жёсткие fallback по реальной структуре файла
         col.setdefault('tk', 2)           # B: Номер ТК
         col.setdefault('addr', 3)         # C: Адрес
-        col.setdefault('fmt', 4)          # D: Тип формата
         col.setdefault('reception', 14)   # N: Приёмка помещения
         col.setdefault('cmp', 16)         # P: Выход на СМР
         col.setdefault('vpk', 19)         # S: ВПК 1
@@ -499,9 +502,9 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
             mgr_val = mgr_raw
             manager_id = _match_manager(mgr_val, managers)
 
-            # Только форматы SM и Utkonos (регистронезависимо)
+            # Фильтр по формату только если колонка найдена через заголовок
             fmt_upper = fmt_type.upper()
-            if fmt_type and fmt_upper not in ('SM', 'UTKONOS'):
+            if fmt_from_header and fmt_type and fmt_upper not in ('SM', 'UTKONOS'):
                 skipped_fmt += 1
                 continue
 
