@@ -161,7 +161,6 @@ async function checkDeadlines(force = false) {
         if (data.urgent_projects.length > 0) {
             const msg = `🏗️ Проектов завершается в ближайшие 7 дней: ${data.urgent_projects.length}. ${data.urgent_projects.slice(0,2).map(p=>`«${p.name}» — ${p.days_left} д.`).join('; ')}`;
             showToast(msg, 'info', 8000);
-            if (notifEnabled) sendBrowserNotif('Дедлайны проектов', `${data.urgent_projects.length} проектов завершаются скоро`);
         }
 
     } catch (_) {}
