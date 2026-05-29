@@ -419,9 +419,9 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
                     found_hdr = True
                     break
 
-        # Определяем позиции колонок по заголовкам (ищем во всех строках до data_start)
+        # Определяем позиции колонок — только в строке заголовка (не в баннерах сверху)
         col = {}
-        for r in range(1, min(header_row + 3, 15)):
+        for r in range(max(1, header_row - 1), header_row + 2):
             for c in range(1, 60):
                 v = str(ws.cell(r, c).value or '').strip()
                 vl = v.lower()
