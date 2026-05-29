@@ -31,6 +31,7 @@ class Manager(Base):
     email = Column(String(200), default="")
     telegram_id = Column(String(50), default="")
     is_leader = Column(Boolean, default=False)  # Руководитель проектов
+    photo = Column(String(200), default="")     # путь к фото relative to static/
     projects = relationship("Project", back_populates="manager")
     tasks = relationship("Task", back_populates="assignee")
 

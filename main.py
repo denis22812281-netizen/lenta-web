@@ -581,6 +581,7 @@ async def startup():
                     "ALTER TABLE project_stages ALTER COLUMN name TYPE TEXT",
                     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS format_type VARCHAR(50) DEFAULT ''",
                     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS open_status VARCHAR(100) DEFAULT ''",
+                    "ALTER TABLE managers ADD COLUMN IF NOT EXISTS photo VARCHAR(200) DEFAULT ''",
                 ]:
                     try:
                         conn.exec_driver_sql(sql)
@@ -1082,6 +1083,34 @@ async def managers_view(request: Request, db: Session = Depends(get_db)):
         "request": request, "user": user,
         "manager_stats": stats, "leader_stat": leader_stat, "today": today,
     })
+
+
+@app.post("/managers/{manager_id}/photo")
+async def upload_manager_photo(manager_id: int, request: Request,
+                                file: UploadFile = File(...),
+                                db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    mgr = db.query(models.Manager).filter(models.Manager.id == manager_id).first()
+    if not mgr:
+        raise HTTPException(status_code=404)
+
+    ext = Path(file.filename).suffix.lower() if file.filename else ".jpg"
+    if ext not in ('.jpg', '.jpeg', '.png', '.webp'):
+        ext = '.jpg'
+
+    save_dir = Path("static/img/managers")
+    save_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"{manager_id}{ext}"
+    filepath = save_dir / filename
+
+    content = await file.read()
+    filepath.write_bytes(content)
+
+    mgr.photo = f"img/managers/{filename}"
+    db.commit()
+    return RedirectResponse("/managers", status_code=303)
 
 
 # ─── TASKS ───────────────────────────────────────────────────────────────────
