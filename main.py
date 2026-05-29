@@ -1466,28 +1466,28 @@ async def reconstruct_notifications(request: Request, db: Session = Depends(get_
         tk = p.tk_number or str(p.id)
         mgr_name = p.manager.name if p.manager else ""
 
-        # За 3 дня до окончания СИД
-        if p.sid_end:
-            days = (p.sid_end - today).days
+        # За 3 дня до начала СИД
+        if p.sid_start:
+            days = (p.sid_start - today).days
             if days in (1, 2, 3):
                 notifications.append({
                     "type": "sid",
-                    "title": f"ТК {tk} — СИД заканчивается через {days} дн.",
-                    "body": f"{mgr_name}: окончание СИД {p.sid_end.strftime('%d.%m.%Y')}",
+                    "title": f"ТК {tk} — СИД начинается через {days} дн.",
+                    "body": f"{mgr_name}: начало СИД {p.sid_start.strftime('%d.%m.%Y')}",
                     "urgency": "high",
-                    "date": str(p.sid_end),
+                    "date": str(p.sid_start),
                 })
 
-        # За 1 день до окончания Зонирования
-        if p.zoning_end:
-            days = (p.zoning_end - today).days
+        # За 1 день до начала Зонирования
+        if p.zoning_start:
+            days = (p.zoning_start - today).days
             if days == 1:
                 notifications.append({
                     "type": "zoning",
-                    "title": f"ТК {tk} — Зонирование заканчивается завтра!",
-                    "body": f"{mgr_name}: окончание зонирования {p.zoning_end.strftime('%d.%m.%Y')}",
+                    "title": f"ТК {tk} — Зонирование начинается завтра!",
+                    "body": f"{mgr_name}: начало зонирования {p.zoning_start.strftime('%d.%m.%Y')}",
                     "urgency": "high",
-                    "date": str(p.zoning_end),
+                    "date": str(p.zoning_start),
                 })
 
     return {"notifications": notifications, "manager": manager.name if manager else "Все"}
