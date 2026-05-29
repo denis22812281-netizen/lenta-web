@@ -48,15 +48,15 @@
         </div>
         <div class="manager-stats">
             <div class="ms-item">
-                <div class="ms-num text-primary">{{ s.active_projects }}</div>
-                <div class="ms-label">Активных</div>
+                <div class="ms-num text-success">{{ s.recon_projects|length }}</div>
+                <div class="ms-label">Реконстр.</div>
             </div>
             <div class="ms-item">
-                <div class="ms-num text-secondary">{{ s.open_tasks }}</div>
-                <div class="ms-label">Задач</div>
+                <div class="ms-num text-primary">{{ s.constr_projects|length }}</div>
+                <div class="ms-label">Констракшн</div>
             </div>
             <div class="ms-item">
-                <div class="ms-num {% if s.overdue_tasks > 0 %}text-danger{% else %}text-success{% endif %}">
+                <div class="ms-num {% if s.overdue_tasks > 0 %}text-danger{% else %}text-secondary{% endif %}">
                     {{ s.overdue_tasks }}
                 </div>
                 <div class="ms-label">Просрочено</div>
@@ -90,18 +90,26 @@
     <div class="data-card">
         <div class="data-card-header bg-light">
             <span class="fw-bold">
-                <i class="bi bi-building-fill me-2 text-danger"></i>
-                Объекты менеджера: {{ m.name }}
+                <i class="bi bi-person-fill me-2"></i>{{ m.name }}
             </span>
-            <div class="d-flex gap-2">
-                <span class="badge bg-secondary">{{ s.manager.projects|length }} объектов</span>
+            <div class="d-flex gap-2 align-items-center">
+                <span class="badge bg-success">Реконстр: {{ s.recon_projects|length }}</span>
+                <span class="badge bg-primary">Констракшн: {{ s.constr_projects|length }}</span>
                 <button class="btn btn-sm btn-outline-secondary" onclick="toggleProjects('mgr-{{ m.id }}')">
                     <i class="bi bi-x"></i>
                 </button>
             </div>
         </div>
-        {% if s.manager.projects %}
-        <div class="table-responsive">
+
+        <!-- РЕКОНСТРУКЦИИ -->
+        <div class="px-3 pt-3 pb-1">
+            <div class="section-label-recon mb-2">
+                <i class="bi bi-building-fill me-1"></i>Реконструкции
+                <span class="badge bg-success ms-1">{{ s.recon_projects|length }}</span>
+            </div>
+        </div>
+        {% if s.recon_projects %}
+        <div class="table-responsive px-1">
         <table class="table table-hover mb-0 align-middle small">
             <thead class="table-head">
                 <tr>
@@ -110,14 +118,14 @@
                     <th>Статус</th>
                     <th>СИД<br><small class="text-muted fw-normal">Старт → Оконч</small></th>
                     <th>Зонирование<br><small class="text-muted fw-normal">Старт → Оконч</small></th>
-                    <th>Старт<br>закрытие</th>
-                    <th>ВПК1 / ВПК</th>
+                    <th>Старт закрытие</th>
+                    <th>ВПК1</th>
                     <th>Дата открытия</th>
                     <th>Дедлайн</th>
                 </tr>
             </thead>
             <tbody>
-            {% for p in s.manager.projects %}
+            {% for p in s.recon_projects %}
             {% set is_opened = p.opening_date and p.opening_date < today %}
             {% set days_left = (p.end_date - today).days if p.end_date else None %}
             <tr class="{% if is_opened %}table-success{% elif p.status == 'Приостановлен' %}table-secondary{% elif days_left is not none and days_left < 0 %}table-danger{% elif days_left is not none and days_left <= 7 %}table-warning{% endif %}">
@@ -125,13 +133,11 @@
                     <a href="/projects/{{ p.id }}" class="fw-bold text-decoration-none">
                         ТК {{ p.tk_number or p.id }}
                     </a>
-                    {% if is_opened %}
-                    <span class="badge bg-success ms-1" title="Объект открыт"><i class="bi bi-check-lg"></i></span>
-                    {% endif %}
+                    {% if is_opened %}<span class="badge bg-success ms-1"><i class="bi bi-check-lg"></i></span>{% endif %}
                 </td>
                 <td>
                     <div>{{ p.city or '' }}</div>
-                    {% if p.description or p.name != 'ТК ' + (p.tk_number or '') %}
+                    {% if p.name != 'ТК ' + (p.tk_number or '') %}
                     <div class="text-muted" style="font-size:11px">{{ p.name[:35] }}</div>
                     {% endif %}
                 </td>
@@ -141,14 +147,12 @@
                     </span>
                 </td>
                 <td class="text-nowrap">
-                    {% if p.sid_start %}
-                    <span class="text-primary">{{ p.sid_start.strftime('%d.%m.%y') }}</span>
+                    {% if p.sid_start %}<span class="text-primary">{{ p.sid_start.strftime('%d.%m.%y') }}</span>
                     {% if p.sid_end %}→ <span class="text-danger">{{ p.sid_end.strftime('%d.%m.%y') }}</span>{% endif %}
                     {% else %}—{% endif %}
                 </td>
                 <td class="text-nowrap">
-                    {% if p.zoning_start %}
-                    <span class="text-primary">{{ p.zoning_start.strftime('%d.%m.%y') }}</span>
+                    {% if p.zoning_start %}<span class="text-primary">{{ p.zoning_start.strftime('%d.%m.%y') }}</span>
                     {% if p.zoning_end %}→ <span class="text-danger">{{ p.zoning_end.strftime('%d.%m.%y') }}</span>{% endif %}
                     {% else %}—{% endif %}
                 </td>
@@ -170,11 +174,86 @@
         </table>
         </div>
         {% else %}
-        <div class="empty-state py-3">
+        <div class="empty-state py-2 px-3">
             <i class="bi bi-building"></i>
-            <p class="mb-0">Объектов нет</p>
+            <p class="mb-0 small">Реконструкций нет</p>
         </div>
         {% endif %}
+
+        <!-- КОНСТРАКШН -->
+        <div class="px-3 pt-3 pb-1 mt-2" style="border-top:1px solid #e9ecef">
+            <div class="section-label-constr mb-2">
+                <i class="bi bi-hammer me-1"></i>Констракшн
+                <span class="badge bg-primary ms-1">{{ s.constr_projects|length }}</span>
+            </div>
+        </div>
+        {% if s.constr_projects %}
+        <div class="table-responsive px-1">
+        <table class="table table-hover mb-0 align-middle small">
+            <thead class="table-head">
+                <tr>
+                    <th>ТК №</th>
+                    <th>Адрес</th>
+                    <th>Формат</th>
+                    <th>Приёмка помещения</th>
+                    <th>Выход на СМР</th>
+                    <th>ВПК 1</th>
+                    <th>План открытия</th>
+                    <th>Факт открытия</th>
+                    <th>Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for p in s.constr_projects %}
+            {% set is_opened = p.opening_date and p.opening_date < today %}
+            {% set days_left = (p.end_date - today).days if p.end_date else None %}
+            <tr class="{% if is_opened %}table-success{% elif p.status == 'Приостановлен' %}table-secondary{% elif days_left is not none and days_left < 0 %}table-danger{% elif days_left is not none and days_left <= 7 %}table-warning{% endif %}">
+                <td>
+                    <a href="/projects/{{ p.id }}" class="fw-bold text-decoration-none">
+                        ТК {{ p.tk_number or p.id }}
+                    </a>
+                    {% if is_opened %}<span class="badge bg-success ms-1"><i class="bi bi-check-lg"></i></span>{% endif %}
+                </td>
+                <td style="max-width:200px">
+                    <div class="text-truncate" title="{{ p.address }}">{{ p.address or p.city or '—' }}</div>
+                </td>
+                <td>
+                    {% if p.format_type %}
+                    <span class="badge bg-info text-dark">{{ p.format_type }}</span>
+                    {% else %}—{% endif %}
+                </td>
+                <td class="text-nowrap">{{ p.start_date.strftime('%d.%m.%Y') if p.start_date else '—' }}</td>
+                <td class="text-nowrap">{{ p.closure_date.strftime('%d.%m.%Y') if p.closure_date else '—' }}</td>
+                <td class="text-nowrap">{{ p.vpk_date.strftime('%d.%m.%Y') if p.vpk_date else '—' }}</td>
+                <td class="text-nowrap fw-semibold">{{ p.end_date.strftime('%d.%m.%Y') if p.end_date else '—' }}</td>
+                <td class="text-nowrap {% if is_opened %}text-success fw-semibold{% endif %}">
+                    {{ p.opening_date.strftime('%d.%m.%Y') if p.opening_date else '—' }}
+                </td>
+                <td>
+                    {% if p.open_status %}
+                    <span class="badge {% if 'open' in p.open_status.lower() %}bg-success{% else %}bg-secondary{% endif %} text-truncate" style="max-width:90px" title="{{ p.open_status }}">
+                        {{ p.open_status[:15] }}
+                    </span>
+                    {% elif is_opened %}
+                    <span class="badge bg-success">Открыт</span>
+                    {% else %}
+                    <span class="dl-badge {% if days_left is not none and days_left < 0 %}dl-over{% elif days_left is not none and days_left <= 7 %}dl-warn{% else %}dl-ok{% endif %}">
+                        {% if days_left is not none %}{% if days_left < 0 %}{{ days_left }} д{% else %}+{{ days_left }} д{% endif %}{% else %}—{% endif %}
+                    </span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <div class="empty-state py-2 px-3">
+            <i class="bi bi-hammer"></i>
+            <p class="mb-0 small">Проектов Констракшн нет</p>
+        </div>
+        {% endif %}
+
     </div>
 </div>
 {% endfor %}
@@ -187,6 +266,14 @@
     background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px;
     padding: 6px 10px; font-size: 12px; margin-bottom: 10px; margin-top: 8px;
 }
+.section-label-recon {
+    font-size: 13px; font-weight: 700; color: #1A5C22;
+    text-transform: uppercase; letter-spacing: .5px;
+}
+.section-label-constr {
+    font-size: 13px; font-weight: 700; color: #0d6efd;
+    text-transform: uppercase; letter-spacing: .5px;
+}
 </style>
 {% endblock %}
 
@@ -194,9 +281,7 @@
 <script>
 function toggleProjects(id) {
     const el = document.getElementById(id);
-    const mgrId = id.replace('mgr-', '');
     const chevron = document.getElementById('chevron-' + id);
-
     if (el.classList.contains('d-none')) {
         el.classList.remove('d-none');
         if (chevron) chevron.style.transform = 'rotate(180deg)';

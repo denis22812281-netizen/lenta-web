@@ -1061,6 +1061,8 @@ async def managers_view(request: Request, db: Session = Depends(get_db)):
     stats = []
     leader_stat = None
     for m in managers:
+        recon = [p for p in m.projects if p.project_type == "Реконструкция"]
+        constr = [p for p in m.projects if p.project_type == "Констракшн"]
         active = sum(1 for p in m.projects if p.status == "Активный")
         open_t = sum(1 for t in m.tasks if t.status != "Завершена")
         overdue = sum(1 for t in m.tasks
@@ -1070,7 +1072,8 @@ async def managers_view(request: Request, db: Session = Depends(get_db)):
                     and 0 <= (p.end_date - today).days <= 14]
         stat = {"manager": m, "active_projects": active,
                 "open_tasks": open_t, "overdue_tasks": overdue,
-                "urgent_projects": urgent_p}
+                "urgent_projects": urgent_p,
+                "recon_projects": recon, "constr_projects": constr}
         if m.is_leader:
             leader_stat = stat
         else:
