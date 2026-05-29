@@ -111,5 +111,56 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/static/js/app.js"></script>
 {% block scripts %}{% endblock %}
+
+<script>
+// Авто-обновление данных: каждые 30 сек проверяем версию данных на сервере
+(function() {
+    let currentVersion = null;
+    let notifyShown = false;
+
+    async function checkVersion() {
+        try {
+            const r = await fetch('/api/data-version');
+            const data = await r.json();
+            if (currentVersion === null) {
+                currentVersion = data.version;
+                return;
+            }
+            if (data.version !== currentVersion) {
+                currentVersion = data.version;
+                showUpdateNotice();
+            }
+        } catch(e) {}
+    }
+
+    function showUpdateNotice() {
+        if (notifyShown) return;
+        notifyShown = true;
+        const notice = document.createElement('div');
+        notice.id = 'update-notice';
+        notice.innerHTML = `
+            <div style="position:fixed;bottom:20px;right:20px;z-index:9999;
+                background:#1A5C22;color:#fff;border-radius:12px;
+                padding:12px 18px;box-shadow:0 4px 20px rgba(0,0,0,.3);
+                display:flex;align-items:center;gap:10px;cursor:pointer;
+                font-size:14px;font-weight:600;animation:slideIn .3s ease">
+                <i class="bi bi-arrow-clockwise fs-5"></i>
+                Данные обновлены — нажмите чтобы обновить страницу
+            </div>`;
+        notice.onclick = () => location.reload();
+        document.body.appendChild(notice);
+    }
+
+    // Первая проверка через 5 сек, далее каждые 30 сек
+    setTimeout(checkVersion, 5000);
+    setInterval(checkVersion, 30000);
+})();
+</script>
+<style>
+@keyframes slideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+</style>
 </body>
 </html>

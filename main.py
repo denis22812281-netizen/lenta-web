@@ -624,6 +624,7 @@ async def startup():
                     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS format_type VARCHAR(50) DEFAULT ''",
                     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS open_status VARCHAR(100) DEFAULT ''",
                     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS delay_reason TEXT DEFAULT ''",
+                    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()",
                     "ALTER TABLE managers ADD COLUMN IF NOT EXISTS photo VARCHAR(200) DEFAULT ''",
                 ]:
                     try:
@@ -1356,6 +1357,15 @@ async def export_excel(db: Session = Depends(get_db), type: str = None):
 
 # ─── API ─────────────────────────────────────────────────────────────────────
 
+@app.get("/api/data-version")
+async def data_version(db: Session = Depends(get_db)):
+    """Returns timestamp of latest project change — used by clients for polling."""
+    from sqlalchemy import func
+    result = db.query(func.max(models.Project.updated_at)).scalar()
+    ts = result.isoformat() if result else "0"
+    return {"version": ts}
+
+
 @app.get("/api/deadlines/check")
 async def check_deadlines(request: Request, db: Session = Depends(get_db)):
     if not get_current_user(request):
@@ -1474,6 +1484,7 @@ async def save_delay_reason(project_id: int, request: Request,
     if not p:
         raise HTTPException(status_code=404)
     p.delay_reason = data.get("reason", "")
+    p.updated_at = datetime.utcnow()
     db.commit()
     return {"ok": True}
 

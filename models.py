@@ -68,6 +68,7 @@ class Project(Base):
     opening_date = Column(Date, nullable=True)    # Дата открытия
 
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     manager = relationship("Manager", back_populates="projects")
     tasks = relationship("Task", back_populates="project", cascade="all, delete-orphan")
     stages = relationship("ProjectStage", back_populates="project", cascade="all, delete-orphan",
