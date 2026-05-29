@@ -53,6 +53,9 @@ class Project(Base):
     area = Column(Float, nullable=True)           # Площадь, м²
     pjf_code = Column(String(50), default="")     # Код PJF
 
+    format_type = Column(String(50), default="")    # Тип формата: SM, HM, Utkonos и т.д.
+    open_status = Column(String(100), default="")   # Статус открытия из Excel
+
     # Ключевые этапы (из Excel)
     sid_start = Column(Date, nullable=True)       # Сбор исходных данных - начало
     sid_end = Column(Date, nullable=True)         # Сбор исходных данных - окончание

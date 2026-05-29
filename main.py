@@ -382,148 +382,150 @@ def _sync_stages(ws, project_id: int, db: Session):
 
 
 def import_construction_excel(content: bytes, db: Session) -> dict:
-    """Import Лента Констракшн Excel — лист 2026."""
+    """Import Лента Констракшн Excel — листы 2026 и 2027."""
     wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
     managers = db.query(models.Manager).all()
     today = date.today()
     created = updated = 0
 
-    # Найти лист 2026
-    ws = None
-    for sheet in wb.worksheets:
-        if '2026' in sheet.title:
-            ws = sheet
-            break
-    if not ws:
-        ws = wb.worksheets[0]
+    # Собираем листы 2026 и 2027
+    target_sheets = [ws for ws in wb.worksheets if ws.title.strip() in ('2026', '2027')]
+    if not target_sheets:
+        # fallback — берём последний лист
+        target_sheets = [wb.worksheets[-1]]
 
-    # Найти строку заголовков (ищем "Номер" или "Адрес" в первых 10 строках)
-    header_row = 4
-    for r in range(1, 11):
-        for c in range(1, 15):
-            v = str(ws.cell(r, c).value or '')
-            if 'Номер' in v or 'Адрес' in v:
-                header_row = r
-                break
-
-    # Сопоставить заголовки с колонками (поиск по всем строкам шапки 1..header_row+1)
-    col = {}
-    for r in range(1, header_row + 2):
-        for c in range(1, 60):
-            v = str(ws.cell(r, c).value or '').strip()
-            vl = v.lower()
-            if not v:
-                continue
-            if ('номер тк' in vl or vl == 'тк') and 'tk' not in col:
-                col['tk'] = c
-            elif 'адрес' in vl and 'addr' not in col and len(v) < 30:
-                col['addr'] = c
-            elif ('регион' in vl or 'город' in vl) and 'city' not in col:
-                col['city'] = c
-            elif 'площадь' in vl and 'тз' in vl and 'area' not in col:
-                col['area'] = c
-            elif ('приёмка' in vl or 'приемка' in vl) and 'reception' not in col:
-                col['reception'] = c
-            elif 'выход на смр' in vl and 'cmp' not in col:
-                col['cmp'] = c
-            elif vl.startswith('впк') and 'vpk' not in col:
-                col['vpk'] = c
-            elif 'первоначальная' in vl and 'open_plan' not in col:
-                col['open_plan'] = c
-            elif 'фактическая' in vl and 'open_fact' not in col:
-                col['open_fact'] = c
-            elif 'менеджер' in vl and 'ос' in vl and 'mgr_os' not in col:
-                col['mgr_os'] = c
-            elif 'менеджер' in vl and 'развит' in vl and 'mgr_dev' not in col:
-                col['mgr_dev'] = c
-            elif 'менеджер' in vl and 'строит' in vl and 'mgr_build' not in col:
-                col['mgr_build'] = c
-
-    # Жёсткие fallback на основе структуры файла из скриншота
-    col.setdefault('tk', 2)       # B: Номер ТК
-    col.setdefault('addr', 3)     # C: Адрес
-    col.setdefault('city', 9)     # I: Регион/Город
-    col.setdefault('area', 7)     # G: Площадь ТЗ
-    col.setdefault('reception', 14)  # N: Приёмка помещений
-    col.setdefault('cmp', 16)     # P: Выход на СМР
-    col.setdefault('vpk', 19)     # S: ВПК 1
-    col.setdefault('open_plan', 20)  # T: Плановая дата открытия
-    col.setdefault('open_fact', 21)  # U: Фактическая дата открытия
-    col.setdefault('mgr_os', 38)     # AL: Менеджер ОС
-    col.setdefault('mgr_dev', 36)    # AJ: Менеджер отдел развития
-
-    data_start = header_row + 1
-
-    for row_idx in range(data_start, ws.max_row + 1):
-        tk_val = ws.cell(row_idx, col['tk']).value
-        if not tk_val:
-            continue
-        tk_num = str(tk_val).strip()
-        if not tk_num or tk_num in ('None', 'Номер ТК', 'ТК'):
-            continue
-        # Пропускаем строки где ТК не выглядит как номер/L-номер
-        if len(tk_num) > 20:
-            continue
-
-        address = str(ws.cell(row_idx, col['addr']).value or '').strip()
-        city = str(ws.cell(row_idx, col['city']).value or '').strip()
-        area_val = ws.cell(row_idx, col['area']).value
-        area = float(area_val) if isinstance(area_val, (int, float)) else None
-
-        reception = _safe_date(ws.cell(row_idx, col['reception']).value)
-        cmp_date  = _safe_date(ws.cell(row_idx, col['cmp']).value)
-        vpk_date  = _safe_date(ws.cell(row_idx, col['vpk']).value)
-        open_plan = _safe_date(ws.cell(row_idx, col['open_plan']).value)
-        open_fact = _safe_date(ws.cell(row_idx, col['open_fact']).value)
-
-        # Менеджер
-        manager_id = None
-        for key in ('mgr_os', 'mgr_dev', 'mgr_build'):
-            if col.get(key):
-                mgr_val = str(ws.cell(row_idx, col[key]).value or '')
-                manager_id = _match_manager(mgr_val, managers)
-                if manager_id:
+    for ws in target_sheets:
+        # Найти строку заголовков (ищем "Номер ТК" или "Адрес" в первых 10 строках)
+        header_row = 4
+        for r in range(1, 11):
+            for c in range(1, 15):
+                v = str(ws.cell(r, c).value or '')
+                if 'Номер' in v or 'Адрес' in v:
+                    header_row = r
                     break
 
-        opening = open_fact or open_plan
+        # Определяем позиции колонок по заголовкам
+        col = {}
+        for r in range(1, header_row + 2):
+            for c in range(1, 60):
+                v = str(ws.cell(r, c).value or '').strip()
+                vl = v.lower()
+                if not v:
+                    continue
+                if ('номер тк' in vl or vl == 'тк') and 'tk' not in col:
+                    col['tk'] = c
+                elif 'адрес' in vl and 'addr' not in col and len(v) < 30:
+                    col['addr'] = c
+                elif 'тип формата' in vl and 'fmt' not in col:
+                    col['fmt'] = c
+                elif ('регион' in vl or 'город' in vl) and 'city' not in col:
+                    col['city'] = c
+                elif 'площадь' in vl and 'тз' in vl and 'area' not in col:
+                    col['area'] = c
+                elif ('приёмка' in vl or 'приемка' in vl) and 'reception' not in col:
+                    col['reception'] = c
+                elif 'выход на смр' in vl and 'cmp' not in col:
+                    col['cmp'] = c
+                elif vl.startswith('впк') and 'vpk' not in col:
+                    col['vpk'] = c
+                elif 'первоначальная' in vl and 'open_plan' not in col:
+                    col['open_plan'] = c
+                elif 'фактическая' in vl and 'open_fact' not in col:
+                    col['open_fact'] = c
+                elif 'статус' in vl and ('откр' in vl or 'open' in vl) and 'open_status' not in col:
+                    col['open_status'] = c
+                elif 'менеджер' in vl and 'ос' in vl and 'mgr_os' not in col:
+                    col['mgr_os'] = c
 
-        # Только проекты с нашими менеджерами
-        if not manager_id:
-            continue
+        # Жёсткие fallback по реальной структуре файла
+        col.setdefault('tk', 2)           # B: Номер ТК
+        col.setdefault('addr', 3)         # C: Адрес
+        col.setdefault('fmt', 4)          # D: Тип формата
+        col.setdefault('reception', 14)   # N: Приёмка помещения
+        col.setdefault('cmp', 16)         # P: Выход на СМР
+        col.setdefault('vpk', 19)         # S: ВПК 1
+        col.setdefault('open_plan', 20)   # T: Первоначальная дата открытия
+        col.setdefault('open_fact', 21)   # U: Фактическая дата открытия
+        col.setdefault('open_status', 22) # V: Статус открытия
+        col.setdefault('mgr_os', 38)      # AL: Менеджер проектов ОС
 
-        # Только 2026 год
-        ref_date = open_plan or open_fact or reception or cmp_date
-        if ref_date and ref_date.year != 2026:
-            continue
+        data_start = header_row + 1
 
-        status = "Завершён" if (opening and opening < today) else "Активный"
+        for row_idx in range(data_start, ws.max_row + 1):
+            tk_val = ws.cell(row_idx, col['tk']).value
+            if not tk_val:
+                continue
+            tk_num = str(tk_val).strip()
+            if not tk_num or tk_num in ('None', 'Номер ТК', 'ТК'):
+                continue
+            if len(tk_num) > 20:
+                continue
 
-        proj_name = f"ТК {tk_num}"
-        if city:
-            proj_name += f" {city}"
+            address = str(ws.cell(row_idx, col['addr']).value or '').strip()
+            fmt_type = str(ws.cell(row_idx, col['fmt']).value or '').strip()
+            city = str(ws.cell(row_idx, col.get('city', 0)).value or '').strip() if col.get('city') else ''
+            area_val = ws.cell(row_idx, col.get('area', 0)).value if col.get('area') else None
+            area = float(area_val) if isinstance(area_val, (int, float)) else None
 
-        existing = db.query(models.Project).filter(models.Project.tk_number == tk_num).first()
-        if existing:
-            existing.project_type = "Констракшн"
-            existing.city = city or existing.city
-            existing.address = address or existing.address
-            existing.area = area or existing.area
-            existing.start_date = reception or cmp_date or existing.start_date
-            existing.end_date = open_plan or existing.end_date
-            existing.opening_date = open_fact or existing.opening_date
-            existing.vpk_date = vpk_date or existing.vpk_date
-            existing.status = status
-            if manager_id and not existing.manager_id:
+            reception = _safe_date(ws.cell(row_idx, col['reception']).value)
+            cmp_date  = _safe_date(ws.cell(row_idx, col['cmp']).value)
+            vpk_date  = _safe_date(ws.cell(row_idx, col['vpk']).value)
+            open_plan = _safe_date(ws.cell(row_idx, col['open_plan']).value)
+            open_fact = _safe_date(ws.cell(row_idx, col['open_fact']).value)
+            open_st   = str(ws.cell(row_idx, col['open_status']).value or '').strip()
+
+            # Менеджер проектов ОС (колонка AL)
+            mgr_val = str(ws.cell(row_idx, col['mgr_os']).value or '').strip()
+            manager_id = _match_manager(mgr_val, managers)
+
+            # Только форматы SM и Utkonos
+            if fmt_type and fmt_type not in ('SM', 'Utkonos'):
+                continue
+
+            # Только проекты наших менеджеров
+            if not manager_id:
+                continue
+
+            opening = open_fact or open_plan
+            status = "Завершён" if (opening and opening < today) else "Активный"
+
+            proj_name = f"ТК {tk_num}"
+            if city:
+                proj_name += f" {city}"
+
+            existing = db.query(models.Project).filter(
+                models.Project.tk_number == tk_num,
+                models.Project.project_type == "Констракшн"
+            ).first()
+            if existing:
+                existing.address = address or existing.address
+                existing.city = city or existing.city
+                existing.area = area or existing.area
+                existing.format_type = fmt_type or existing.format_type
+                existing.open_status = open_st or existing.open_status
+                existing.start_date = reception or existing.start_date
+                existing.closure_date = cmp_date or existing.closure_date
+                existing.vpk_date = vpk_date or existing.vpk_date
+                existing.end_date = open_plan or existing.end_date
+                existing.opening_date = open_fact or existing.opening_date
+                existing.status = status
                 existing.manager_id = manager_id
-            updated += 1
-        else:
-            db.add(models.Project(
-                name=proj_name, tk_number=tk_num, city=city, address=address,
-                project_type="Констракшн", manager_id=manager_id, status=status,
-                start_date=reception or cmp_date, end_date=open_plan,
-                opening_date=open_fact, vpk_date=vpk_date, area=area,
-            ))
-            created += 1
+                updated += 1
+            else:
+                db.add(models.Project(
+                    name=proj_name, tk_number=tk_num,
+                    city=city, address=address,
+                    project_type="Констракшн",
+                    manager_id=manager_id, status=status,
+                    format_type=fmt_type, open_status=open_st,
+                    start_date=reception,
+                    closure_date=cmp_date,
+                    vpk_date=vpk_date,
+                    end_date=open_plan,
+                    opening_date=open_fact,
+                    area=area,
+                ))
+                created += 1
 
     db.commit()
     return {"created": created, "updated": updated}
@@ -548,7 +550,7 @@ async def auto_sync_loop():
 
                     if should_sync:
                         path = Path(cfg.file_path)
-                        if path.exists() and path.suffix in ('.xlsx', '.xls'):
+                        if path.exists() and path.suffix in ('.xlsx', '.xls', '.xlsm'):
                             try:
                                 content = path.read_bytes()
                                 result = parse_excel_file(content, cfg.project_type, None, db)
@@ -577,6 +579,8 @@ async def startup():
                     "ALTER TABLE projects ALTER COLUMN city TYPE TEXT",
                     "ALTER TABLE projects ALTER COLUMN stage TYPE TEXT",
                     "ALTER TABLE project_stages ALTER COLUMN name TYPE TEXT",
+                    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS format_type VARCHAR(50) DEFAULT ''",
+                    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS open_status VARCHAR(100) DEFAULT ''",
                 ]:
                     try:
                         conn.exec_driver_sql(sql)
