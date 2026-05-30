@@ -54,6 +54,11 @@ STAGE_NAMES = [
 ]
 
 
+# Онлайн-пользователи: display_name -> datetime последнего пинга
+ONLINE_USERS: dict = {}
+ONLINE_TIMEOUT = 90  # секунд без пинга = оффлайн
+
+
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
@@ -2829,11 +2834,39 @@ async def chat_page(request: Request, db: Session = Depends(get_db),
     for m in unread_msgs:
         unread_by[m.sender_name] = unread_by.get(m.sender_name, 0) + 1
 
+    now = datetime.utcnow()
+    online_set = {
+        name for name, ts in ONLINE_USERS.items()
+        if (now - ts).total_seconds() < ONLINE_TIMEOUT
+    }
+
     return templates.TemplateResponse("chat.html", {
         "request": request, "user": user,
         "managers": managers, "partner": partner,
         "my_name": my_name, "unread_by": unread_by,
+        "online_set": online_set,
     })
+
+
+@app.post("/api/ping")
+async def ping(request: Request):
+    user = get_current_user(request)
+    if user:
+        ONLINE_USERS[user.get("display_name", "")] = datetime.utcnow()
+    return {"ok": True}
+
+
+@app.get("/api/online")
+async def get_online(request: Request):
+    user = get_current_user(request)
+    if not user:
+        return {"online": []}
+    now = datetime.utcnow()
+    online = [
+        name for name, ts in ONLINE_USERS.items()
+        if (now - ts).total_seconds() < ONLINE_TIMEOUT
+    ]
+    return {"online": online}
 
 
 @app.get("/api/chat/messages")
