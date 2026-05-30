@@ -2604,6 +2604,17 @@ async def reports_page(request: Request, db: Session = Depends(get_db),
     })
 
 
+@app.post("/reports/clear-all")
+async def clear_all_reports(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user or not user.get("is_admin"):
+        return RedirectResponse("/reports", status_code=302)
+    db.query(models.VpkReportItem).delete()
+    db.query(models.VpkReport).delete()
+    db.commit()
+    return RedirectResponse("/reports", status_code=303)
+
+
 # ─── ЧАТ ─────────────────────────────────────────────────────────────────────
 
 @app.get("/chat", response_class=HTMLResponse)

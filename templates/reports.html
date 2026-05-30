@@ -4,6 +4,17 @@
 
 {% block content %}
 
+{% if user and user.is_admin %}
+<div class="mb-3 d-flex justify-content-end">
+    <form method="post" action="/reports/clear-all"
+          onsubmit="return confirm('Удалить ВСЕ отчёты ВПК? Это действие нельзя отменить.')">
+        <button type="submit" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-trash me-1"></i>Очистить все отчёты
+        </button>
+    </form>
+</div>
+{% endif %}
+
 <!-- Фильтры -->
 <div class="filter-bar mb-3">
     <form method="get" class="d-flex flex-wrap gap-2 align-items-center">
