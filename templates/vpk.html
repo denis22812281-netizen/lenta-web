@@ -32,7 +32,7 @@
 {% set criteria = criteria1 if tab == 'vpk1' else criteria2 %}
 {% set accent = 'danger' if tab == 'vpk1' else 'primary' %}
 
-<form method="post" action="/vpk/submit" id="vpkForm">
+<form method="post" action="/vpk/submit" id="vpkForm" enctype="multipart/form-data">
     <input type="hidden" name="vpk_type" value="{{ vpk_num }}">
 
     <!-- Выбор ТК -->
@@ -91,7 +91,18 @@
         {% for c in criteria %}
         <div class="vpk-criterion-row" id="row-{{ c.id }}">
             <div class="vpk-num text-{{ accent }}">{{ loop.index }}.{{ vpk_num if vpk_num > 1 else '' }}</div>
-            <div class="vpk-text">{{ c.name }}</div>
+            <div class="vpk-body" style="flex:1;min-width:0">
+                <div class="vpk-text">{{ c.name }}</div>
+                <div class="vpk-comment-box" id="cbox-{{ c.id }}" style="display:none;margin-top:8px">
+                    <textarea name="comment_{{ c.id }}" class="form-control form-control-sm"
+                              rows="2" placeholder="Что конкретно не выполнено?"></textarea>
+                    <label class="form-label small text-muted mt-1 mb-0">
+                        <i class="bi bi-camera me-1"></i>Прикрепить фото (необязательно)
+                    </label>
+                    <input type="file" name="photo_{{ c.id }}" class="form-control form-control-sm"
+                           accept="image/*" capture="environment">
+                </div>
+            </div>
             <div class="vpk-toggle">
                 <input type="checkbox" name="criterion_{{ c.id }}" id="c_{{ c.id }}"
                        class="vpk-check" onchange="updateRow({{ c.id }}, this.checked)">
@@ -164,7 +175,19 @@
         {% for item in r.items %}
         <div class="vpk-item-row {% if item.done %}vpk-item-ok{% else %}vpk-item-no{% endif %}">
             <span>{% if item.done %}✓{% else %}✗{% endif %}</span>
-            <span>{{ item.criterion_name[:80] }}{% if item.criterion_name|length > 80 %}…{% endif %}</span>
+            <div>
+                <span>{{ item.criterion_name[:80] }}{% if item.criterion_name|length > 80 %}…{% endif %}</span>
+                {% if not item.done and item.comment %}
+                <div class="vpk-item-comment"><i class="bi bi-chat-left-text me-1"></i>{{ item.comment }}</div>
+                {% endif %}
+                {% if not item.done and item.photo_path %}
+                <div class="mt-1">
+                    <a href="/static/{{ item.photo_path }}" target="_blank">
+                        <img src="/static/{{ item.photo_path }}" class="vpk-item-photo" alt="фото">
+                    </a>
+                </div>
+                {% endif %}
+            </div>
         </div>
         {% endfor %}
         </div>
@@ -211,6 +234,8 @@
 }
 .vpk-item-ok { color:#16a34a; }
 .vpk-item-no { color:#dc2626; }
+.vpk-item-comment { font-size:11px; color:#6b7280; margin-top:2px; font-style:italic; }
+.vpk-item-photo { max-width:120px; max-height:90px; border-radius:6px; border:1px solid #e5e7eb; margin-top:4px; cursor:pointer; }
 </style>
 {% endblock %}
 
@@ -225,6 +250,7 @@ const PROJECTS = JSON.parse(document.getElementById('projectsData')?.textContent
 function updateRow(id, checked) {
     const row = document.getElementById('row-' + id);
     const lbl = document.getElementById('lbl-' + id);
+    const cbox = document.getElementById('cbox-' + id);
     if (checked) {
         row.classList.add('done');
         checkedCount++;
@@ -233,6 +259,7 @@ function updateRow(id, checked) {
             lbl.querySelector('.vpk-yes').style.display = 'inline';
             lbl.classList.add('vpk-label-done');
         }
+        if (cbox) cbox.style.display = 'none';
     } else {
         row.classList.remove('done');
         checkedCount--;
@@ -241,6 +268,7 @@ function updateRow(id, checked) {
             lbl.querySelector('.vpk-yes').style.display = 'none';
             lbl.classList.remove('vpk-label-done');
         }
+        if (cbox) cbox.style.display = 'block';
     }
     updateProgress();
 }

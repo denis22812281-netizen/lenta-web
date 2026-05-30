@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block page_title %}Чат — Лента{% endblock %}
+{% block title %}<i class="bi bi-chat-dots-fill me-2"></i>Чат{% endblock %}
+
+{% block content %}
+<div class="chat-wrap">
+
+    <!-- Левая панель: список диалогов -->
+    <div class="chat-sidebar">
+        <a href="/chat?partner=" class="chat-contact {% if partner == '' %}active{% endif %}">
+            <div class="chat-avatar chat-avatar-general">
+                <i class="bi bi-people-fill"></i>
+            </div>
+            <div class="chat-contact-info">
+                <div class="fw-bold">Общий чат</div>
+                <div class="small text-muted">Вся команда</div>
+            </div>
+        </a>
+
+        <div class="chat-section-label">Личные сообщения</div>
+
+        {% for m in managers %}
+        {% if m.name != my_name %}
+        <a href="/chat?partner={{ m.name|urlencode }}"
+           class="chat-contact {% if partner == m.name %}active{% endif %}">
+            <div class="chat-avatar">
+                {% if m.photo %}
+                <img src="/static/{{ m.photo }}" alt="{{ m.name }}">
+                {% else %}
+                {{ m.name[0] }}
+                {% endif %}
+            </div>
+            <div class="chat-contact-info">
+                <div class="fw-semibold">{{ m.name }}</div>
+                {% if m.is_leader %}<div class="small text-muted">Руководитель</div>{% endif %}
+            </div>
+            {% if unread_by.get(m.name, 0) > 0 %}
+            <span class="chat-unread-badge">{{ unread_by[m.name] }}</span>
+            {% endif %}
+        </a>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    <!-- Правая панель: сообщения -->
+    <div class="chat-main">
+        <div class="chat-header">
+            {% if partner == '' %}
+            <div class="chat-avatar chat-avatar-general"><i class="bi bi-people-fill"></i></div>
+            <div>
+                <div class="fw-bold">Общий чат</div>
+                <div class="small text-muted">Вся команда</div>
+            </div>
+            {% else %}
+            {% for m in managers %}{% if m.name == partner %}
+            <div class="chat-avatar">
+                {% if m.photo %}<img src="/static/{{ m.photo }}" alt="{{ m.name }}">
+                {% else %}{{ m.name[0] }}{% endif %}
+            </div>
+            <div>
+                <div class="fw-bold">{{ m.name }}</div>
+                {% if m.is_leader %}<div class="small text-muted">Руководитель</div>{% endif %}
+            </div>
+            {% endif %}{% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="text-center text-muted small py-4">Загрузка...</div>
+        </div>
+
+        <div class="chat-input-wrap">
+            <input type="text" id="msgInput" class="form-control chat-input"
+                   placeholder="Написать сообщение..." autocomplete="off"
+                   onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMsg();}">
+            <button class="btn btn-success chat-send-btn" onclick="sendMsg()">
+                <i class="bi bi-send-fill"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+.chat-wrap {
+    display:flex; height:calc(100vh - 130px);
+    background:#fff; border-radius:14px;
+    box-shadow:0 2px 12px rgba(0,0,0,.08); overflow:hidden;
+}
+.chat-sidebar {
+    width:260px; min-width:220px; border-right:1px solid #e9ecef;
+    overflow-y:auto; background:#fafafa;
+}
+.chat-section-label {
+    font-size:11px; font-weight:700; color:#9ca3af; text-transform:uppercase;
+    padding:12px 16px 4px;
+}
+.chat-contact {
+    display:flex; align-items:center; gap:10px;
+    padding:10px 14px; cursor:pointer; text-decoration:none; color:inherit;
+    border-bottom:1px solid #f3f4f6; position:relative;
+    transition:background .15s;
+}
+.chat-contact:hover { background:#f0fdf4; }
+.chat-contact.active { background:#dcfce7; }
+.chat-avatar {
+    width:40px; height:40px; border-radius:50%;
+    background:#16a34a; color:#fff; display:flex;
+    align-items:center; justify-content:center;
+    font-weight:700; font-size:16px; flex-shrink:0; overflow:hidden;
+}
+.chat-avatar img { width:100%; height:100%; object-fit:cover; }
+.chat-avatar-general { background:#2563eb; font-size:18px; }
+.chat-contact-info { flex:1; min-width:0; }
+.chat-unread-badge {
+    background:#dc2626; color:#fff; border-radius:50%;
+    width:20px; height:20px; font-size:11px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.chat-main { flex:1; display:flex; flex-direction:column; min-width:0; }
+.chat-header {
+    display:flex; align-items:center; gap:12px;
+    padding:12px 18px; border-bottom:1px solid #e9ecef;
+    background:#fff;
+}
+.chat-messages {
+    flex:1; overflow-y:auto; padding:16px;
+    display:flex; flex-direction:column; gap:8px;
+}
+.chat-msg { display:flex; flex-direction:column; max-width:70%; }
+.chat-msg.mine { align-self:flex-end; align-items:flex-end; }
+.chat-msg.other { align-self:flex-start; align-items:flex-start; }
+.chat-bubble {
+    padding:8px 12px; border-radius:14px; font-size:14px; line-height:1.4;
+    word-break:break-word;
+}
+.chat-msg.mine .chat-bubble { background:#16a34a; color:#fff; border-bottom-right-radius:4px; }
+.chat-msg.other .chat-bubble { background:#f3f4f6; color:#111; border-bottom-left-radius:4px; }
+.chat-meta { font-size:11px; color:#9ca3af; margin-top:2px; padding:0 4px; }
+.chat-sender { font-size:11px; color:#6b7280; font-weight:600; margin-bottom:2px; padding:0 4px; }
+.chat-input-wrap {
+    display:flex; gap:8px; padding:12px 16px;
+    border-top:1px solid #e9ecef; background:#fff;
+}
+.chat-input { flex:1; border-radius:20px; padding:8px 16px; }
+.chat-send-btn { border-radius:50%; width:40px; height:40px; padding:0; flex-shrink:0; }
+.chat-date-sep {
+    text-align:center; font-size:11px; color:#9ca3af;
+    margin:8px 0; position:relative;
+}
+.chat-date-sep::before, .chat-date-sep::after {
+    content:''; position:absolute; top:50%; width:40%;
+    height:1px; background:#e5e7eb;
+}
+.chat-date-sep::before { left:0; }
+.chat-date-sep::after { right:0; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const PARTNER = {{ partner|tojson }};
+const MY_NAME = {{ my_name|tojson }};
+let lastId = 0;
+let polling = null;
+
+async function loadMessages() {
+    try {
+        const r = await fetch(`/api/chat/messages?partner=${encodeURIComponent(PARTNER)}&since_id=0`);
+        const data = await r.json();
+        lastId = 0;
+        renderMessages(data.messages, true);
+    } catch(e) {}
+}
+
+async function pollMessages() {
+    try {
+        const r = await fetch(`/api/chat/messages?partner=${encodeURIComponent(PARTNER)}&since_id=${lastId}`);
+        const data = await r.json();
+        if (data.messages && data.messages.length) {
+            renderMessages(data.messages, false);
+        }
+    } catch(e) {}
+}
+
+function renderMessages(msgs, clear) {
+    const box = document.getElementById('chatMessages');
+    if (clear) box.innerHTML = '';
+    if (!msgs.length && clear) {
+        box.innerHTML = '<div class="text-center text-muted small py-5"><i class="bi bi-chat-dots" style="font-size:2.5rem;display:block;margin-bottom:8px;opacity:.3"></i>Сообщений пока нет</div>';
+        return;
+    }
+    msgs.forEach(m => {
+        if (m.id > lastId) lastId = m.id;
+        const div = document.createElement('div');
+        div.className = 'chat-msg ' + (m.mine ? 'mine' : 'other');
+        const senderHtml = (!m.mine && PARTNER === '')
+            ? `<div class="chat-sender">${escHtml(m.sender)}</div>` : '';
+        div.innerHTML = senderHtml +
+            `<div class="chat-bubble">${escHtml(m.text)}</div>` +
+            `<div class="chat-meta">${m.time}</div>`;
+        box.appendChild(div);
+    });
+    box.scrollTop = box.scrollHeight;
+}
+
+function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/\n/g,'<br>');
+}
+
+async function sendMsg() {
+    const inp = document.getElementById('msgInput');
+    const text = inp.value.trim();
+    if (!text) return;
+    inp.value = '';
+    try {
+        const r = await fetch('/api/chat/send', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({text, partner: PARTNER}),
+        });
+        const data = await r.json();
+        if (data.id) {
+            renderMessages([{id: data.id, sender: MY_NAME, text, time: data.time, mine: true}], false);
+        }
+    } catch(e) {}
+}
+
+loadMessages();
+polling = setInterval(pollMessages, 3000);
+</script>
+{% endblock %}

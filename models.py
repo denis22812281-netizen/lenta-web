@@ -127,8 +127,20 @@ class VpkReportItem(Base):
     criterion_id = Column(Integer, ForeignKey("vpk_criteria.id"), nullable=True)
     criterion_name = Column(String(300), default="")
     done = Column(Boolean, default=False)
+    comment = Column(Text, default="")
+    photo_path = Column(String(300), default="")
     report = relationship("VpkReport", back_populates="items")
     criterion = relationship("VpkCriterion")
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    id = Column(Integer, primary_key=True)
+    sender_name = Column(String(100), nullable=False)
+    receiver_name = Column(String(100), default="")  # "" = общий чат
+    text = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    is_read = Column(Boolean, default=False)
 
 
 class KsoObject(Base):

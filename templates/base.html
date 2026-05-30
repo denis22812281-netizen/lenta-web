@@ -54,6 +54,10 @@
         <a href="/stats" class="nav-item {% if '/stats' in request.url.path %}active{% endif %}">
             <i class="bi bi-bar-chart-fill"></i><span>Статистика</span>
         </a>
+        <a href="/chat" class="nav-item {% if '/chat' in request.url.path %}active{% endif %}" style="position:relative">
+            <i class="bi bi-chat-dots-fill"></i><span>Чат</span>
+            <span id="chat-badge" class="d-none" style="position:absolute;top:6px;right:8px;background:#dc2626;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700"></span>
+        </a>
         <a href="/vpk" class="nav-item {% if '/vpk' in request.url.path %}active{% endif %}" style="position:relative">
             <i class="bi bi-clipboard2-check-fill"></i><span>ВПК 1 / 2</span>
             <span id="vpk-badge" class="d-none" style="position:absolute;top:6px;right:8px;background:#dc2626;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700"></span>
@@ -319,6 +323,26 @@
     }
     setTimeout(checkVpkReports, 6000);
     setInterval(checkVpkReports, 60000);
+
+    // Непрочитанные сообщения чата
+    async function checkChatUnread() {
+        try {
+            const r = await fetch('/api/chat/unread');
+            const data = await r.json();
+            const badge = document.getElementById('chat-badge');
+            if (!badge) return;
+            if (data.total > 0) {
+                badge.textContent = data.total;
+                badge.classList.remove('d-none');
+                badge.style.display = 'flex';
+            } else {
+                badge.classList.add('d-none');
+                badge.style.display = 'none';
+            }
+        } catch(e) {}
+    }
+    setTimeout(checkChatUnread, 8000);
+    setInterval(checkChatUnread, 15000);
 
     // Глобальная функция для кнопки теста
     window.testNotification = function() {

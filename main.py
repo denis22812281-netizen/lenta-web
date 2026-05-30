@@ -626,6 +626,8 @@ async def startup():
                     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS delay_reason TEXT DEFAULT ''",
                     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()",
                     "ALTER TABLE managers ADD COLUMN IF NOT EXISTS photo VARCHAR(200) DEFAULT ''",
+                    "ALTER TABLE vpk_report_items ADD COLUMN IF NOT EXISTS comment TEXT DEFAULT ''",
+                    "ALTER TABLE vpk_report_items ADD COLUMN IF NOT EXISTS photo_path VARCHAR(300) DEFAULT ''",
                 ]:
                     try:
                         conn.exec_driver_sql(sql)
@@ -1600,11 +1602,25 @@ async def vpk_submit(request: Request, db: Session = Depends(get_db)):
         models.VpkCriterion.vpk_type == vpk_type
     ).order_by(models.VpkCriterion.order).all()
 
+    photo_dir = Path("static/uploads/vpk")
+    photo_dir.mkdir(parents=True, exist_ok=True)
+
     for c in criteria:
         done = form.get(f"criterion_{c.id}") == "on"
+        comment = str(form.get(f"comment_{c.id}", "") or "").strip()
+
+        photo_path = ""
+        photo_file = form.get(f"photo_{c.id}")
+        if photo_file and hasattr(photo_file, "filename") and photo_file.filename:
+            ext = Path(photo_file.filename).suffix.lower() or ".jpg"
+            fname = f"{report.id}_{c.id}{ext}"
+            (photo_dir / fname).write_bytes(await photo_file.read())
+            photo_path = f"uploads/vpk/{fname}"
+
         db.add(models.VpkReportItem(
             report_id=report.id, criterion_id=c.id,
             criterion_name=c.name, done=done,
+            comment=comment, photo_path=photo_path,
         ))
     db.commit()
 
@@ -2526,3 +2542,108 @@ async def ai_check_excel(request: Request, db: Session = Depends(get_db),
         report = f"Ошибка ИИ: {str(e)[:200]}"
 
     return {"report": report, "formulas_found": len(issues)}
+
+
+# ─── ЧАТ ─────────────────────────────────────────────────────────────────────
+
+@app.get("/chat", response_class=HTMLResponse)
+async def chat_page(request: Request, db: Session = Depends(get_db),
+                    partner: str = ""):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    managers = db.query(models.Manager).order_by(models.Manager.is_leader.desc(), models.Manager.name).all()
+    my_name = user.get("display_name", "")
+
+    # Непрочитанные по каждому собеседнику
+    unread_by = {}
+    unread_msgs = db.query(models.ChatMessage).filter(
+        models.ChatMessage.receiver_name == my_name,
+        models.ChatMessage.is_read == False,
+    ).all()
+    for m in unread_msgs:
+        unread_by[m.sender_name] = unread_by.get(m.sender_name, 0) + 1
+
+    return templates.TemplateResponse("chat.html", {
+        "request": request, "user": user,
+        "managers": managers, "partner": partner,
+        "my_name": my_name, "unread_by": unread_by,
+    })
+
+
+@app.get("/api/chat/messages")
+async def chat_messages(request: Request, db: Session = Depends(get_db),
+                        partner: str = "", since_id: int = 0):
+    user = get_current_user(request)
+    if not user:
+        return {"messages": []}
+    my_name = user.get("display_name", "")
+
+    if partner == "":
+        # Общий чат
+        q = db.query(models.ChatMessage).filter(
+            models.ChatMessage.receiver_name == "",
+            models.ChatMessage.id > since_id,
+        )
+    else:
+        # Личные — между мной и партнёром
+        from sqlalchemy import or_, and_
+        q = db.query(models.ChatMessage).filter(
+            models.ChatMessage.id > since_id,
+            or_(
+                and_(models.ChatMessage.sender_name == my_name,
+                     models.ChatMessage.receiver_name == partner),
+                and_(models.ChatMessage.sender_name == partner,
+                     models.ChatMessage.receiver_name == my_name),
+            )
+        )
+        # Помечаем прочитанными входящие
+        db.query(models.ChatMessage).filter(
+            models.ChatMessage.sender_name == partner,
+            models.ChatMessage.receiver_name == my_name,
+            models.ChatMessage.is_read == False,
+        ).update({"is_read": True})
+        db.commit()
+
+    msgs = q.order_by(models.ChatMessage.id).limit(200).all()
+    return {"messages": [
+        {"id": m.id, "sender": m.sender_name,
+         "text": m.text,
+         "time": m.created_at.strftime("%H:%M"),
+         "mine": m.sender_name == my_name}
+        for m in msgs
+    ]}
+
+
+@app.post("/api/chat/send")
+async def chat_send(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user:
+        return {"error": "Не авторизован"}
+    data = await request.json()
+    text = data.get("text", "").strip()
+    if not text:
+        return {"error": "Пустое сообщение"}
+    partner = data.get("partner", "")
+    msg = models.ChatMessage(
+        sender_name=user.get("display_name", ""),
+        receiver_name=partner,
+        text=text,
+    )
+    db.add(msg)
+    db.commit()
+    db.refresh(msg)
+    return {"id": msg.id, "time": msg.created_at.strftime("%H:%M")}
+
+
+@app.get("/api/chat/unread")
+async def chat_unread(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user:
+        return {"total": 0}
+    my_name = user.get("display_name", "")
+    total = db.query(models.ChatMessage).filter(
+        models.ChatMessage.receiver_name == my_name,
+        models.ChatMessage.is_read == False,
+    ).count()
+    return {"total": total}
