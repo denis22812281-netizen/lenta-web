@@ -12,15 +12,22 @@
 </div>
 {% endif %}
 
-<!-- Руководитель -->
-{% if leader_stat %}
-{% set lm = leader_stat.manager %}
-<div class="data-card mb-4" style="border-left:4px solid #FFD200">
+<!-- Руководители -->
+{% for ls in leader_stats %}
+{% set lm = ls.manager %}
+<div class="data-card mb-3" style="border-left:4px solid #FFD200">
     <div class="p-3 d-flex align-items-center gap-3 flex-wrap">
-        <img src="/static/img/raccoon_boss.jpg" style="width:48px;height:48px;object-fit:cover;border-radius:12px;flex-shrink:0" alt="руководитель">
+        {% if lm.photo %}
+        <img src="/static/{{ lm.photo }}" style="width:52px;height:52px;object-fit:cover;border-radius:12px;flex-shrink:0" alt="{{ lm.name }}">
+        {% else %}
+        <img src="/static/img/raccoon_boss.jpg" style="width:52px;height:52px;object-fit:cover;border-radius:12px;flex-shrink:0" alt="руководитель">
+        {% endif %}
         <div>
             <div class="fw-bold fs-5">{{ lm.name }}</div>
-            <div class="text-muted small"><i class="bi bi-star-fill text-warning me-1"></i>Руководитель проектов — видит все объекты</div>
+            <div class="text-muted small">
+                <i class="bi bi-star-fill text-warning me-1"></i>
+                {{ lm.position if lm.position else "Руководитель проектов" }} — видит все объекты
+            </div>
         </div>
         <div class="ms-auto d-flex gap-2 flex-wrap">
             <a href="/deadlines" class="btn btn-sm btn-outline-warning"><i class="bi bi-clock me-1"></i>Дедлайны</a>
@@ -29,7 +36,7 @@
         </div>
     </div>
 </div>
-{% endif %}
+{% endfor %}
 
 <!-- Карточки менеджеров -->
 <div class="row g-3">
@@ -40,7 +47,9 @@
 
         <!-- Имя -->
         <div class="mgr-name-row">
-            {% if 'Месмер' in m.name %}
+            {% if m.photo %}
+            <img src="/static/{{ m.photo }}" class="mgr-raccoon" alt="{{ m.name }}">
+            {% elif 'Месмер' in m.name %}
             <img src="/static/img/raccoon_mesmer.jpg" class="mgr-raccoon" alt="{{ m.name }}">
             {% else %}
             <img src="/static/img/raccoon.png" class="mgr-raccoon" alt="менеджер">

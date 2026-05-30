@@ -626,6 +626,7 @@ async def startup():
                     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS delay_reason TEXT DEFAULT ''",
                     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()",
                     "ALTER TABLE managers ADD COLUMN IF NOT EXISTS photo VARCHAR(200) DEFAULT ''",
+                    "ALTER TABLE managers ADD COLUMN IF NOT EXISTS position VARCHAR(150) DEFAULT ''",
                     "ALTER TABLE vpk_report_items ADD COLUMN IF NOT EXISTS comment TEXT DEFAULT ''",
                     "ALTER TABLE vpk_report_items ADD COLUMN IF NOT EXISTS photo_path VARCHAR(300) DEFAULT ''",
                     "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS photo_path VARCHAR(300) DEFAULT ''",
@@ -669,18 +670,22 @@ async def startup():
                 db.add(models.PhoneWhitelist(phone=phone, display_name=name, is_admin=is_admin))
         db.commit()
 
-        # Гаврин Игорь — обновить фото
+        # Гаврин Игорь — руководитель проектов
         gavrin = db.query(models.Manager).filter(models.Manager.name == "Гаврин Игорь").first()
         if gavrin:
             gavrin.photo = "img/managers/gavrin.png"
+            gavrin.position = "Руководитель проектов"
         db.commit()
 
         # Комаров Алексей — директор, видит все проекты
         komarov = db.query(models.Manager).filter(models.Manager.name == "Комаров Алексей").first()
         if not komarov:
-            db.add(models.Manager(name="Комаров Алексей", is_leader=True, photo="img/managers/komarov.png"))
-        elif not komarov.photo:
+            db.add(models.Manager(name="Комаров Алексей", is_leader=True,
+                                  photo="img/managers/komarov.png",
+                                  position="Директор по эксплуатации и реконструкции"))
+        else:
             komarov.photo = "img/managers/komarov.png"
+            komarov.position = "Директор по эксплуатации и реконструкции"
         db.commit()
 
         # Seed VPK criteria
@@ -1315,7 +1320,7 @@ async def managers_view(request: Request, db: Session = Depends(get_db)):
     today = date.today()
     managers = db.query(models.Manager).all()
     stats = []
-    leader_stat = None
+    leader_stats = []
     for m in managers:
         recon = [p for p in m.projects if p.project_type == "Реконструкция"]
         constr = [p for p in m.projects if p.project_type == "Констракшн"]
@@ -1331,12 +1336,12 @@ async def managers_view(request: Request, db: Session = Depends(get_db)):
                 "urgent_projects": urgent_p,
                 "recon_projects": recon, "constr_projects": constr}
         if m.is_leader:
-            leader_stat = stat
+            leader_stats.append(stat)
         else:
             stats.append(stat)
     return templates.TemplateResponse("managers.html", {
         "request": request, "user": user,
-        "manager_stats": stats, "leader_stat": leader_stat, "today": today,
+        "manager_stats": stats, "leader_stats": leader_stats, "today": today,
     })
 
 
