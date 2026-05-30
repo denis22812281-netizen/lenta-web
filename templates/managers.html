@@ -47,13 +47,16 @@
 
         <!-- Имя -->
         <div class="mgr-name-row">
-            {% if m.photo %}
-            <img src="/static/{{ m.photo }}" class="mgr-raccoon" alt="{{ m.name }}">
-            {% elif 'Месмер' in m.name %}
-            <img src="/static/img/raccoon_mesmer.jpg" class="mgr-raccoon" alt="{{ m.name }}">
-            {% else %}
-            <img src="/static/img/raccoon.png" class="mgr-raccoon" alt="менеджер">
-            {% endif %}
+            <div style="position:relative;flex-shrink:0">
+                {% if m.photo %}
+                <img src="/static/{{ m.photo }}" class="mgr-raccoon" alt="{{ m.name }}">
+                {% elif 'Месмер' in m.name %}
+                <img src="/static/img/raccoon_mesmer.jpg" class="mgr-raccoon" alt="{{ m.name }}">
+                {% else %}
+                <img src="/static/img/raccoon.png" class="mgr-raccoon" alt="менеджер">
+                {% endif %}
+                <span class="mgr-online-dot {% if m.name in online_set %}mgr-online{% endif %}" data-name="{{ m.name }}"></span>
+            </div>
             <div>
                 <div class="fw-bold fs-6">{{ m.name }}</div>
                 <div class="text-muted" style="font-size:12px">
@@ -337,7 +340,14 @@
     object-fit: contain;
     border-radius: 10px;
     flex-shrink: 0;
+    display: block;
 }
+.mgr-online-dot {
+    position: absolute; bottom: 1px; right: 1px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #9ca3af; border: 2px solid #fff;
+}
+.mgr-online-dot.mgr-online { background: #16a34a; }
 </style>
 <!-- Модал: добавить менеджера -->
 {% if user and user.is_admin %}
@@ -382,6 +392,20 @@
 
 {% block scripts %}
 <script>
+async function updateManagersOnline() {
+    try {
+        const r = await fetch('/api/online');
+        const data = await r.json();
+        const online = new Set(data.online);
+        document.querySelectorAll('.mgr-online-dot').forEach(dot => {
+            const name = dot.dataset.name;
+            if (online.has(name)) dot.classList.add('mgr-online');
+            else dot.classList.remove('mgr-online');
+        });
+    } catch(e) {}
+}
+setInterval(updateManagersOnline, 15000);
+
 function showMgrTab(mgrId, tab) {
     const reconPanel = document.getElementById('tab-' + mgrId + '-recon');
     const constrPanel = document.getElementById('tab-' + mgrId + '-constr');

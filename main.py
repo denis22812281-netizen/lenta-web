@@ -1359,9 +1359,15 @@ async def managers_view(request: Request, db: Session = Depends(get_db)):
         else:
             stats.append(stat)
     leader_stats.sort(key=lambda s: 0 if "Комаров" in s["manager"].name else 1)
+    now = datetime.utcnow()
+    online_set = {
+        name for name, ts in ONLINE_USERS.items()
+        if (now - ts).total_seconds() < ONLINE_TIMEOUT
+    }
     return templates.TemplateResponse("managers.html", {
         "request": request, "user": user,
-        "manager_stats": stats, "leader_stats": leader_stats, "today": today,
+        "manager_stats": stats, "leader_stats": leader_stats,
+        "today": today, "online_set": online_set,
     })
 
 
