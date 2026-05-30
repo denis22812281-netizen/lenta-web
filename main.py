@@ -2033,18 +2033,30 @@ async def stats_upload(request: Request, db: Session = Depends(get_db),
 
 
 @app.get("/stats/export")
-async def stats_export(request: Request, db: Session = Depends(get_db)):
+async def stats_export(request: Request, db: Session = Depends(get_db),
+                       date_from: str = "", date_to: str = ""):
     """Export opened Construction projects to Excel with color coding."""
     user = get_current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=302)
 
     today_date = date.today()
-    projects = db.query(models.Project).filter(
+    q = db.query(models.Project).filter(
         models.Project.project_type == "Констракшн",
         models.Project.opening_date != None,
         models.Project.opening_date <= today_date,
-    ).order_by(models.Project.manager_id, models.Project.opening_date).all()
+    )
+    if date_from:
+        try:
+            q = q.filter(models.Project.opening_date >= datetime.strptime(date_from, "%Y-%m-%d").date())
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            q = q.filter(models.Project.opening_date <= datetime.strptime(date_to, "%Y-%m-%d").date())
+        except ValueError:
+            pass
+    projects = q.order_by(models.Project.manager_id, models.Project.opening_date).all()
 
     wb = Workbook()
     ws = wb.active
@@ -2134,10 +2146,11 @@ async def stats_export(request: Request, db: Session = Depends(get_db)):
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
-    today_str = date.today().strftime("%d.%m.%Y")
+    period = f"{date_from or 'начало'}_{date_to or date.today().strftime('%Y-%m-%d')}"
+    filename = f"construction_stats_{period}.xlsx"
     return StreamingResponse(output,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename=construction_stats_{today_str}.xlsx"})
+        headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 
 # ─── ADMIN: WHITELIST & USERS ────────────────────────────────────────────────
