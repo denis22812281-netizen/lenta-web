@@ -2468,7 +2468,7 @@ async def ai_chat(request: Request, db: Session = Depends(get_db)):
     if not user_message:
         return {"error": "Пустое сообщение"}
 
-    provider = body.get("provider", "claude")
+    provider = body.get("provider", "groq")
     history = body.get("history", [])  # [{role, content}, ...]
 
     # ── Богатый контекст из БД ────────────────────────────────────────────────
