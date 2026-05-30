@@ -670,9 +670,12 @@ async def startup():
         db.commit()
 
         # Комаров Алексей — директор, видит все проекты
-        if not db.query(models.Manager).filter(models.Manager.name == "Комаров Алексей").first():
-            db.add(models.Manager(name="Комаров Алексей", is_leader=True))
-            db.commit()
+        komarov = db.query(models.Manager).filter(models.Manager.name == "Комаров Алексей").first()
+        if not komarov:
+            db.add(models.Manager(name="Комаров Алексей", is_leader=True, photo="img/managers/komarov.png"))
+        elif not komarov.photo:
+            komarov.photo = "img/managers/komarov.png"
+        db.commit()
 
         # Seed VPK criteria
         if db.query(models.VpkCriterion).count() == 0:
