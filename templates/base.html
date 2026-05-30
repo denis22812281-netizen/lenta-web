@@ -54,6 +54,9 @@
         <a href="/stats" class="nav-item {% if '/stats' in request.url.path %}active{% endif %}">
             <i class="bi bi-bar-chart-fill"></i><span>Статистика</span>
         </a>
+        <a href="/reports" class="nav-item {% if '/reports' in request.url.path %}active{% endif %}">
+            <i class="bi bi-file-earmark-text-fill"></i><span>Отчёты ВПК</span>
+        </a>
         <a href="/chat" class="nav-item {% if '/chat' in request.url.path %}active{% endif %}" style="position:relative">
             <i class="bi bi-chat-dots-fill"></i><span>Чат</span>
             <span id="chat-badge" class="d-none" style="position:absolute;top:6px;right:8px;background:#dc2626;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700"></span>

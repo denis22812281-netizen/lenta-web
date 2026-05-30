@@ -2577,6 +2577,33 @@ async def ai_check_excel(request: Request, db: Session = Depends(get_db),
     return {"report": report, "formulas_found": len(issues)}
 
 
+# ─── ОТЧЁТЫ ВПК ──────────────────────────────────────────────────────────────
+
+@app.get("/reports", response_class=HTMLResponse)
+async def reports_page(request: Request, db: Session = Depends(get_db),
+                       vpk_type: str = "", manager_name: str = ""):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+
+    q = db.query(models.VpkReport).order_by(models.VpkReport.submitted_at.desc())
+    if vpk_type in ("1", "2"):
+        q = q.filter(models.VpkReport.vpk_type == int(vpk_type))
+    if manager_name:
+        q = q.filter(models.VpkReport.submitted_by == manager_name)
+    reports = q.limit(100).all()
+
+    # Список авторов для фильтра
+    authors = db.query(models.VpkReport.submitted_by).distinct().all()
+    authors = sorted({a[0] for a in authors if a[0]})
+
+    return templates.TemplateResponse("reports.html", {
+        "request": request, "user": user,
+        "reports": reports, "authors": authors,
+        "filter_vpk_type": vpk_type, "filter_manager": manager_name,
+    })
+
+
 # ─── ЧАТ ─────────────────────────────────────────────────────────────────────
 
 @app.get("/chat", response_class=HTMLResponse)

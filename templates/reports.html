@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block page_title %}Отчёты ВПК — Лента.PM{% endblock %}
+{% block title %}<i class="bi bi-file-earmark-text-fill me-2"></i>Отчёты ВПК{% endblock %}
+
+{% block content %}
+
+<!-- Фильтры -->
+<div class="filter-bar mb-3">
+    <form method="get" class="d-flex flex-wrap gap-2 align-items-center">
+        <select name="vpk_type" class="form-select form-select-sm" style="width:150px">
+            <option value="" {% if not filter_vpk_type %}selected{% endif %}>Все типы</option>
+            <option value="1" {% if filter_vpk_type == '1' %}selected{% endif %}>ВПК 1</option>
+            <option value="2" {% if filter_vpk_type == '2' %}selected{% endif %}>ВПК 2</option>
+        </select>
+        <select name="manager_name" class="form-select form-select-sm" style="width:200px">
+            <option value="">Все менеджеры</option>
+            {% for a in authors %}
+            <option value="{{ a }}" {% if filter_manager == a %}selected{% endif %}>{{ a }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-sm btn-primary">Применить</button>
+        {% if filter_vpk_type or filter_manager %}
+        <a href="/reports" class="btn btn-sm btn-outline-secondary">Сбросить</a>
+        {% endif %}
+        <span class="ms-auto text-muted small">{{ reports|length }} отчётов</span>
+    </form>
+</div>
+
+{% if reports %}
+<div class="row g-3">
+{% for r in reports %}
+{% set done_count = r.items|selectattr('done')|list|length %}
+{% set total = r.items|length %}
+{% set pct = ((done_count / total * 100)|int) if total > 0 else 0 %}
+{% set failed = r.items|rejectattr('done')|list %}
+{% set failed_with_comment = failed|selectattr('comment')|list %}
+{% set failed_with_photo = failed|selectattr('photo_path')|list %}
+
+<div class="col-12">
+<div class="report-card">
+    <!-- Шапка отчёта -->
+    <div class="report-header">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <span class="badge {% if r.vpk_type == 1 %}bg-danger{% else %}bg-primary{% endif %} fs-6 px-3 py-2">
+                ВПК {{ r.vpk_type }}
+            </span>
+            <div>
+                <div class="fw-bold fs-5">
+                    ТК {{ r.project.tk_number if r.project else '—' }}
+                    {% if r.project and r.project.address %}
+                    <span class="text-muted fw-normal fs-6 ms-1">{{ r.project.address[:50] }}</span>
+                    {% endif %}
+                </div>
+                <div class="small text-muted">
+                    <i class="bi bi-person me-1"></i>{{ r.submitted_by }}
+                    <span class="mx-2">·</span>
+                    <i class="bi bi-clock me-1"></i>{{ r.submitted_at.strftime('%d.%m.%Y %H:%M') }}
+                </div>
+            </div>
+        </div>
+        <!-- Прогресс -->
+        <div class="report-score">
+            <div class="score-circle {% if pct == 100 %}score-ok{% elif pct >= 50 %}score-warn{% else %}score-bad{% endif %}">
+                {{ pct }}%
+            </div>
+            <div class="small text-muted text-center mt-1">{{ done_count }}/{{ total }}</div>
+        </div>
+    </div>
+
+    <!-- Прогресс-бар -->
+    <div class="px-3 pb-2">
+        <div class="progress" style="height:8px;border-radius:6px">
+            <div class="progress-bar {% if pct == 100 %}bg-success{% elif pct >= 50 %}bg-warning{% else %}bg-danger{% endif %}"
+                 style="width:{{ pct }}%"></div>
+        </div>
+    </div>
+
+    {% if failed %}
+    <!-- Невыполненные критерии -->
+    <div class="report-failed-section">
+        <div class="report-failed-title">
+            <i class="bi bi-x-circle-fill text-danger me-2"></i>
+            Не выполнено: {{ failed|length }} из {{ total }}
+        </div>
+        <div class="report-items">
+        {% for item in failed %}
+        <div class="report-item">
+            <div class="report-item-num">{{ loop.index }}</div>
+            <div class="report-item-body">
+                <div class="report-item-text">{{ item.criterion_name }}</div>
+                {% if item.comment %}
+                <div class="report-item-comment">
+                    <i class="bi bi-chat-left-text me-1 text-muted"></i>{{ item.comment }}
+                </div>
+                {% endif %}
+                {% if item.photo_path %}
+                <div class="mt-2">
+                    <img src="/static/{{ item.photo_path }}"
+                         class="report-photo" alt="фото"
+                         onclick="openPhoto('/static/{{ item.photo_path }}')">
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="px-3 pb-3">
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+            <i class="bi bi-check-circle-fill me-1"></i>Все критерии выполнены
+        </span>
+    </div>
+    {% endif %}
+</div>
+</div>
+{% endfor %}
+</div>
+
+{% else %}
+<div class="data-card">
+    <div class="empty-state py-5">
+        <i class="bi bi-file-earmark-text" style="font-size:3rem;color:#ccc"></i>
+        <p class="mt-2 text-muted">Отчётов пока нет</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Лайтбокс -->
+<div id="lightbox" onclick="this.style.display='none'"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99999;align-items:center;justify-content:center;cursor:pointer">
+    <img id="lightboxImg" src="" style="max-width:92vw;max-height:88vh;border-radius:10px">
+</div>
+
+<style>
+.report-card {
+    background:#fff; border-radius:14px;
+    box-shadow:0 2px 12px rgba(0,0,0,.07);
+    overflow:hidden; margin-bottom:0;
+}
+.report-header {
+    display:flex; align-items:flex-start;
+    justify-content:space-between; gap:16px;
+    padding:16px 20px 12px;
+}
+.score-circle {
+    width:56px; height:56px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:14px; flex-shrink:0;
+}
+.score-ok  { background:#dcfce7; color:#16a34a; }
+.score-warn { background:#fef9c3; color:#ca8a04; }
+.score-bad  { background:#fee2e2; color:#dc2626; }
+.report-failed-section {
+    border-top:1px solid #fee2e2; background:#fff5f5;
+    padding:12px 20px 16px;
+}
+.report-failed-title {
+    font-weight:600; font-size:13px; color:#dc2626; margin-bottom:10px;
+}
+.report-items { display:flex; flex-direction:column; gap:10px; }
+.report-item {
+    display:flex; gap:10px; align-items:flex-start;
+    background:#fff; border-radius:8px; padding:10px 12px;
+    border:1px solid #fecaca;
+}
+.report-item-num {
+    min-width:24px; height:24px; border-radius:50%;
+    background:#fee2e2; color:#dc2626; font-weight:700;
+    font-size:12px; display:flex; align-items:center;
+    justify-content:center; flex-shrink:0;
+}
+.report-item-body { flex:1; min-width:0; }
+.report-item-text { font-size:13px; color:#374151; line-height:1.4; }
+.report-item-comment {
+    font-size:12px; color:#6b7280; margin-top:5px;
+    font-style:italic; background:#f9fafb;
+    border-radius:6px; padding:5px 8px;
+}
+.report-photo {
+    max-width:160px; max-height:120px; border-radius:8px;
+    border:1px solid #fecaca; cursor:pointer;
+    transition:transform .15s;
+}
+.report-photo:hover { transform:scale(1.03); }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openPhoto(src) {
+    document.getElementById('lightboxImg').src = src;
+    document.getElementById('lightbox').style.display = 'flex';
+}
+</script>
+{% endblock %}
