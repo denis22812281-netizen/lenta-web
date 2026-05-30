@@ -3,7 +3,7 @@
 {% block title %}<i class="bi bi-chat-dots-fill me-2"></i>Чат{% endblock %}
 
 {% block content %}
-<div class="chat-wrap">
+<div class="chat-wrap {% if partner != '' %}in-conversation{% endif %}">
 
     <!-- Левая панель -->
     <div class="chat-sidebar">
@@ -36,6 +36,9 @@
     <!-- Правая панель -->
     <div class="chat-main">
         <div class="chat-header">
+            <a href="/chat" class="btn btn-sm btn-outline-secondary d-lg-none me-1">
+                <i class="bi bi-arrow-left"></i>
+            </a>
             {% if partner == '' %}
             <div class="chat-avatar chat-avatar-general"><i class="bi bi-people-fill"></i></div>
             <div><div class="fw-bold">Общий чат</div><div class="small text-muted">Вся команда</div></div>
@@ -135,6 +138,21 @@
 /* Photo preview */
 .photo-preview-bar { display:flex;align-items:center;padding:8px 14px;background:#f0fdf4;border-top:1px solid #bbf7d0; }
 .photo-preview-bar img { height:48px;width:48px;object-fit:cover;border-radius:8px;border:1px solid #86efac; }
+
+/* ── Мобильная адаптация ─────────────────────────────────────── */
+@media (max-width: 768px) {
+    .chat-wrap { height:calc(100vh - 110px); border-radius:10px; }
+    /* Показываем только список если нет открытого чата */
+    .chat-sidebar { width:100%; min-width:0; border-right:none; }
+    .chat-main { display:none; }
+    /* Если открыт чат — скрываем список, показываем чат */
+    .in-conversation .chat-sidebar { display:none; }
+    .in-conversation .chat-main { display:flex; width:100%; }
+    /* Поле ввода на мобиле */
+    .chat-input { font-size:16px; } /* 16px чтобы iOS не зумировал */
+    .emoji-picker { width:calc(100vw - 30px); left:8px; }
+    .chat-msg { max-width:88%; }
+}
 </style>
 {% endblock %}
 
