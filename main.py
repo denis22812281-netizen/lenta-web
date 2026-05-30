@@ -56,7 +56,7 @@ STAGE_NAMES = [
 
 # Онлайн-пользователи: display_name -> datetime последнего пинга
 ONLINE_USERS: dict = {}
-ONLINE_TIMEOUT = 90  # секунд без пинга = оффлайн
+ONLINE_TIMEOUT = 120  # секунд без пинга = оффлайн
 
 
 def hash_password(password: str) -> str:

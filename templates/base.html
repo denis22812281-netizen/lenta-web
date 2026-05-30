@@ -344,13 +344,6 @@
     setTimeout(checkChatUnread, 8000);
     setInterval(checkChatUnread, 15000);
 
-    // Пинг присутствия — обновляет статус "онлайн" на всех страницах
-    async function pingPresence() {
-        try { await fetch('/api/ping', { method: 'POST' }); } catch(e) {}
-    }
-    pingPresence();
-    setInterval(pingPresence, 30000);
-
     // Глобальная функция для кнопки теста
     window.testNotification = function() {
         // Закрываем боковое меню чтобы видеть уведомления
@@ -378,5 +371,24 @@
     to   { opacity: 1; }
 }
 </style>
+
+<script>
+/* ── Присутствие: пинг каждые 25 сек + при любой активности ── */
+(function() {
+    var _lastPing = 0;
+    function sendPing() {
+        var now = Date.now();
+        if (now - _lastPing < 10000) return; // не чаще раза в 10 сек
+        _lastPing = now;
+        fetch('/api/ping', { method: 'POST', credentials: 'same-origin' }).catch(function(){});
+    }
+    sendPing();
+    setInterval(sendPing, 25000);
+    // Пинг при любом движении/нажатии
+    ['mousemove','mousedown','keydown','touchstart','scroll'].forEach(function(ev) {
+        document.addEventListener(ev, sendPing, { passive: true });
+    });
+})();
+</script>
 </body>
 </html>
