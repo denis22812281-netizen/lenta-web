@@ -1328,7 +1328,16 @@ async def managers_view(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse("/login", status_code=302)
     today = date.today()
+    _mgr_order = [
+        "Месмер Денис", "Митько Роберт", "Ловчиков Александр",
+        "Валеев Борис", "Косило Сергей", "Студеникин Сергей",
+        "Хачатурова Жанна", "Шевченко Наталья",
+    ]
     managers = db.query(models.Manager).all()
+    managers.sort(key=lambda m: (
+        0 if m.is_leader else 1,
+        _mgr_order.index(m.name) if m.name in _mgr_order else 99
+    ))
     stats = []
     leader_stats = []
     for m in managers:
@@ -2822,7 +2831,16 @@ async def chat_page(request: Request, db: Session = Depends(get_db),
     user = get_current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=302)
-    managers = db.query(models.Manager).order_by(models.Manager.is_leader.desc(), models.Manager.name).all()
+    _chat_order = [
+        "Месмер Денис", "Митько Роберт", "Ловчиков Александр",
+        "Валеев Борис", "Косило Сергей", "Студеникин Сергей",
+        "Хачатурова Жанна", "Шевченко Наталья",
+    ]
+    managers = db.query(models.Manager).all()
+    managers.sort(key=lambda m: (
+        0 if m.is_leader else 1,
+        _chat_order.index(m.name) if m.name in _chat_order else 99
+    ))
     my_name = user.get("display_name", "")
 
     # Непрочитанные по каждому собеседнику
