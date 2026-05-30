@@ -660,6 +660,7 @@ async def startup():
             ("+79265096687", "Хачатурова Жанна",      False),
             ("+79231290722", "Студеникин Сергей",     False),
             ("+79227450486", "Косило Сергей",          False),
+            ("+79032014579", "Комаров Алексей",       False),
         ]
         for phone, name, is_admin in new_users:
             exists = db.query(models.PhoneWhitelist).filter(
@@ -667,6 +668,11 @@ async def startup():
             if not exists:
                 db.add(models.PhoneWhitelist(phone=phone, display_name=name, is_admin=is_admin))
         db.commit()
+
+        # Комаров Алексей — директор, видит все проекты
+        if not db.query(models.Manager).filter(models.Manager.name == "Комаров Алексей").first():
+            db.add(models.Manager(name="Комаров Алексей", is_leader=True))
+            db.commit()
 
         # Seed VPK criteria
         if db.query(models.VpkCriterion).count() == 0:
