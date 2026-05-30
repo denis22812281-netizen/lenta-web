@@ -675,6 +675,11 @@ async def startup():
         if gavrin:
             gavrin.photo = "img/managers/gavrin.png"
             gavrin.position = "Руководитель проектов"
+
+        # Месмер Денис — своя аватарка
+        mesmer = db.query(models.Manager).filter(models.Manager.name == "Месмер Денис").first()
+        if mesmer:
+            mesmer.photo = "img/raccoon_mesmer.jpg"
         db.commit()
 
         # Комаров Алексей — директор, видит все проекты
