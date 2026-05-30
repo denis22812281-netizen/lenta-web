@@ -30,19 +30,22 @@
     </div>
 
     <nav class="sidebar-nav">
-        <a href="/ai" class="nav-item nav-ai {% if '/ai' in request.url.path %}active{% endif %}">
-            <i class="bi bi-robot"></i><span>ИИ Ассистент</span>
-            <span class="nav-ai-badge">AI</span>
-        </a>
-        <div style="height:1px;background:rgba(255,255,255,.08);margin:8px 0"></div>
         <a href="/" class="nav-item {% if request.url.path == '/' %}active{% endif %}">
             <i class="bi bi-speedometer2"></i><span>Дашборд</span>
         </a>
         <a href="/deadlines" class="nav-item {% if '/deadlines' in request.url.path %}active{% endif %}">
             <i class="bi bi-clock-history"></i><span>Дедлайны</span>
         </a>
+        <div class="nav-section-label">КОМАНДА</div>
         <a href="/managers" class="nav-item {% if '/managers' in request.url.path %}active{% endif %}">
             <i class="bi bi-people-fill"></i><span>Менеджеры проектов</span>
+        </a>
+        <a href="/tasks" class="nav-item {% if '/tasks' in request.url.path %}active{% endif %}">
+            <i class="bi bi-plus-circle-fill"></i><span>Поставить задачу</span>
+        </a>
+        <a href="/chat" class="nav-item {% if '/chat' in request.url.path %}active{% endif %}" style="position:relative">
+            <i class="bi bi-chat-dots-fill"></i><span>Чат</span>
+            <span id="chat-badge" class="d-none" style="position:absolute;top:6px;right:8px;background:#dc2626;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700"></span>
         </a>
         <div class="nav-section-label">ПРОЕКТЫ</div>
         <a href="/reconstruct" class="nav-item {% if '/reconstruct' in request.url.path %}active{% endif %}">
@@ -54,25 +57,22 @@
         <a href="/kso" class="nav-item {% if '/kso' in request.url.path %}active{% endif %}">
             <i class="bi bi-file-earmark-check-fill"></i><span>КСО</span>
         </a>
+        <a href="/vpk" class="nav-item {% if '/vpk' in request.url.path %}active{% endif %}" style="position:relative">
+            <i class="bi bi-clipboard2-check-fill"></i><span>ВПК 1 / 2</span>
+            <span id="vpk-badge" class="d-none" style="position:absolute;top:6px;right:8px;background:#dc2626;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700"></span>
+        </a>
+        <div class="nav-section-label">АНАЛИТИКА</div>
         <a href="/stats" class="nav-item {% if '/stats' in request.url.path %}active{% endif %}">
             <i class="bi bi-bar-chart-fill"></i><span>Статистика</span>
         </a>
         <a href="/reports" class="nav-item {% if '/reports' in request.url.path %}active{% endif %}">
             <i class="bi bi-file-earmark-text-fill"></i><span>Отчёты ВПК</span>
         </a>
-        <a href="/chat" class="nav-item {% if '/chat' in request.url.path %}active{% endif %}" style="position:relative">
-            <i class="bi bi-chat-dots-fill"></i><span>Чат</span>
-            <span id="chat-badge" class="d-none" style="position:absolute;top:6px;right:8px;background:#dc2626;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700"></span>
+        <a href="/ai" class="nav-item nav-ai {% if '/ai' in request.url.path %}active{% endif %}">
+            <i class="bi bi-robot"></i><span>ИИ Ассистент</span>
+            <span class="nav-ai-badge">AI</span>
         </a>
-        <a href="/vpk" class="nav-item {% if '/vpk' in request.url.path %}active{% endif %}" style="position:relative">
-            <i class="bi bi-clipboard2-check-fill"></i><span>ВПК 1 / 2</span>
-            <span id="vpk-badge" class="d-none" style="position:absolute;top:6px;right:8px;background:#dc2626;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700"></span>
-        </a>
-        <div class="nav-section-label">КОМАНДА</div>
-        <a href="/tasks" class="nav-item {% if '/tasks' in request.url.path %}active{% endif %}">
-            <i class="bi bi-plus-circle-fill"></i><span>Поставить задачу</span>
-        </a>
-        <div style="height:1px;background:rgba(255,255,255,.08);margin:8px 0"></div>
+        <div class="nav-section-label">ИМПОРТ</div>
         <a href="/import-reconstruct" class="nav-item {% if '/import-reconstruct' in request.url.path %}active{% endif %}">
             <i class="bi bi-file-earmark-arrow-up"></i><span>Загрузить Реконструкции</span>
         </a>
