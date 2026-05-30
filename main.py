@@ -653,6 +653,11 @@ async def startup():
         new_users = [
             ("+79150511700", "Гаврин Игорь",        True),
             ("+79112744420", "Ловчиков Александр",   False),
+            ("+79236255705", "Митько Роберт",         False),
+            ("+79261476125", "Шевченко Наталья",      False),
+            ("+79091152729", "Валеев Борис",          False),
+            ("+79265096687", "Хачатурова Жанна",      False),
+            ("+79231290722", "Студеникин Сергей",     False),
         ]
         for phone, name, is_admin in new_users:
             exists = db.query(models.PhoneWhitelist).filter(
