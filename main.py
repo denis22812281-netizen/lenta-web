@@ -2703,6 +2703,75 @@ async def reports_page(request: Request, db: Session = Depends(get_db),
     })
 
 
+@app.get("/reports/export")
+async def reports_export(request: Request, db: Session = Depends(get_db),
+                         date_from: str = "", date_to: str = "",
+                         vpk_type: str = ""):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+
+    q = db.query(models.VpkReport).order_by(models.VpkReport.submitted_at.desc())
+    if vpk_type in ("1", "2"):
+        q = q.filter(models.VpkReport.vpk_type == int(vpk_type))
+    if date_from:
+        try:
+            q = q.filter(models.VpkReport.submitted_at >=
+                         datetime.strptime(date_from, "%Y-%m-%d"))
+        except ValueError:
+            pass
+    if date_to:
+        try:
+            q = q.filter(models.VpkReport.submitted_at <
+                         datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1))
+        except ValueError:
+            pass
+    reports = q.all()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Отчёты ВПК"
+
+    hfill  = PatternFill(start_color="1A5C22", end_color="1A5C22", fill_type="solid")
+    hfont  = Font(color="FFFFFF", bold=True, size=12)
+    center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    wrap   = Alignment(vertical="center", wrap_text=True)
+
+    headers    = ["Менеджер", "Номер ТК", "Критерий ВПК", "Комментарий"]
+    col_widths = [25, 12, 60, 50]
+
+    for col, (h, w) in enumerate(zip(headers, col_widths), 1):
+        c = ws.cell(row=1, column=col, value=h)
+        c.fill = hfill; c.font = hfont; c.alignment = center
+        ws.column_dimensions[c.column_letter].width = w
+    ws.row_dimensions[1].height = 26
+    ws.freeze_panes = "A2"
+
+    row_num = 2
+    for r in reports:
+        tk  = r.project.tk_number if r.project else "—"
+        mgr = r.project.manager.name if (r.project and r.project.manager) else "—"
+
+        for item in r.items:
+            ws.cell(row=row_num, column=1, value=mgr).alignment = wrap
+            ws.cell(row=row_num, column=2, value=tk).alignment  = center
+            ws.cell(row=row_num, column=3, value=item.criterion_name).alignment = wrap
+            ws.cell(row=row_num, column=4, value=item.comment or "").alignment  = wrap
+            ws.row_dimensions[row_num].height = 18
+            row_num += 1
+
+        row_num += 1  # пустая строка между отчётами
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    period = f"{date_from or 'all'}_{date_to or 'now'}"
+    fname = f"vpk_reports_{period}.xlsx"
+    return StreamingResponse(output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={fname}"})
+
+
 @app.post("/reports/clear-all")
 async def clear_all_reports(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request)
