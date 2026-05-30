@@ -1339,6 +1339,7 @@ async def managers_view(request: Request, db: Session = Depends(get_db)):
             leader_stats.append(stat)
         else:
             stats.append(stat)
+    leader_stats.sort(key=lambda s: 0 if "Комаров" in s["manager"].name else 1)
     return templates.TemplateResponse("managers.html", {
         "request": request, "user": user,
         "manager_stats": stats, "leader_stats": leader_stats, "today": today,
