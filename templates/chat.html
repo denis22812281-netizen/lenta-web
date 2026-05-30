@@ -254,11 +254,34 @@ async function loadMessages() {
     } catch(e) {}
 }
 
+function playChatSound() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        // Два коротких тона — мягкий «дин-дон»
+        [[660, 0, 0.12], [880, 0.13, 0.12]].forEach(([freq, delay, dur]) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+            gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + delay + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + dur);
+            osc.start(ctx.currentTime + delay);
+            osc.stop(ctx.currentTime + delay + dur);
+        });
+    } catch(e) {}
+}
+
 async function pollMessages() {
     try {
         const r = await fetch(`/api/chat/messages?partner=${encodeURIComponent(PARTNER)}&since_id=${lastId}`);
         const data = await r.json();
-        if (data.messages && data.messages.length) renderMessages(data.messages, false);
+        if (data.messages && data.messages.length) {
+            const hasIncoming = data.messages.some(m => m.sender !== MY_NAME);
+            renderMessages(data.messages, false);
+            if (hasIncoming) playChatSound();
+        }
     } catch(e) {}
 }
 
