@@ -4,6 +4,14 @@
 
 {% block content %}
 
+{% if user and user.is_admin %}
+<div class="d-flex justify-content-end mb-3">
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAddManager">
+        <i class="bi bi-person-plus-fill me-2"></i>Добавить менеджера
+    </button>
+</div>
+{% endif %}
+
 <!-- Руководитель -->
 {% if leader_stat %}
 {% set lm = leader_stat.manager %}
@@ -73,6 +81,14 @@
             <a href="/tasks?manager_id={{ m.id }}" class="btn btn-xs btn-outline-secondary">
                 <i class="bi bi-clipboard2 me-1"></i>Задачи
             </a>
+            {% if user and user.is_admin %}
+            <form method="post" action="/managers/{{ m.id }}/delete" class="d-inline"
+                  onsubmit="return confirm('Удалить {{ m.name }}? Его проекты останутся без менеджера.')">
+                <button type="submit" class="btn btn-xs btn-outline-danger">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -314,6 +330,45 @@
     flex-shrink: 0;
 }
 </style>
+<!-- Модал: добавить менеджера -->
+{% if user and user.is_admin %}
+<div class="modal fade" id="modalAddManager" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-person-plus-fill me-2"></i>Добавить менеджера</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="/managers/add">
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Имя и фамилия *</label>
+                    <input type="text" name="name" class="form-control" required
+                           placeholder="Например: Иванов Иван">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Телефон (для входа на сайт)</label>
+                    <input type="text" name="phone" class="form-control"
+                           placeholder="+79991234567">
+                    <div class="form-text">Если указан — менеджер сможет войти на сайт</div>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="is_leader" id="chkLeader">
+                    <label class="form-check-label" for="chkLeader">Руководитель проектов</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-person-plus-fill me-1"></i>Добавить
+                </button>
+            </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block scripts %}

@@ -1323,6 +1323,45 @@ async def managers_view(request: Request, db: Session = Depends(get_db)):
     })
 
 
+@app.post("/managers/add")
+async def add_manager(request: Request, db: Session = Depends(get_db),
+                      name: str = Form(...), phone: str = Form(""),
+                      is_leader: str = Form("")):
+    user = get_current_user(request)
+    if not user or not user.get("is_admin"):
+        return RedirectResponse("/managers", status_code=302)
+    mgr = models.Manager(name=name.strip(), is_leader=bool(is_leader))
+    db.add(mgr)
+    db.flush()
+    if phone.strip():
+        normalized = normalize_phone(phone.strip())
+        exists = db.query(models.PhoneWhitelist).filter(
+            models.PhoneWhitelist.phone == normalized).first()
+        if not exists:
+            db.add(models.PhoneWhitelist(
+                phone=normalized, display_name=name.strip(), is_admin=False))
+    db.commit()
+    return RedirectResponse("/managers", status_code=303)
+
+
+@app.post("/managers/{manager_id}/delete")
+async def delete_manager(manager_id: int, request: Request,
+                         db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user or not user.get("is_admin"):
+        return RedirectResponse("/managers", status_code=302)
+    mgr = db.query(models.Manager).filter(models.Manager.id == manager_id).first()
+    if mgr:
+        # Обнуляем manager_id у проектов и задач
+        for p in mgr.projects:
+            p.manager_id = None
+        for t in mgr.tasks:
+            t.assignee_id = None
+        db.delete(mgr)
+        db.commit()
+    return RedirectResponse("/managers", status_code=303)
+
+
 @app.post("/managers/{manager_id}/photo")
 async def upload_manager_photo(manager_id: int, request: Request,
                                 file: UploadFile = File(...),
