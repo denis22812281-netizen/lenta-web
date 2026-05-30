@@ -2423,77 +2423,109 @@ async def ai_chat(request: Request, db: Session = Depends(get_db)):
     if not user_message:
         return {"error": "Пустое сообщение"}
 
-    provider = body.get("provider", "groq")
+    provider = body.get("provider", "claude")
+    history = body.get("history", [])  # [{role, content}, ...]
 
-    # Build context about current projects
+    # ── Богатый контекст из БД ────────────────────────────────────────────────
     today = date.today()
-    projects = db.query(models.Project).filter(models.Project.status == "Активный").limit(20).all()
+    all_projects = db.query(models.Project).all()
+    active = [p for p in all_projects if p.status == "Активный"]
+    done   = [p for p in all_projects if p.status == "Завершён"]
+
+    urgent = [p for p in active if p.end_date and 0 <= (p.end_date - today).days <= 7
+              and not (p.opening_date and p.opening_date <= today)]
+    overdue_p = [p for p in active if p.end_date and p.end_date < today
+                 and not (p.opening_date and p.opening_date <= today)]
+
     overdue_tasks = db.query(models.Task).filter(
         models.Task.status != "Завершена",
         models.Task.deadline != None,
-        models.Task.deadline < today).limit(10).all()
+        models.Task.deadline < today).limit(15).all()
+    open_tasks = db.query(models.Task).filter(
+        models.Task.status != "Завершена").count()
+    managers = db.query(models.Manager).all()
 
-    context = f"Сегодня: {today.strftime('%d.%m.%Y')}\nАктивных проектов: {len(projects)}\n"
-    if projects:
-        context += "Проекты:\n" + "\n".join(
-            f"- {p.name} | Менеджер: {p.manager.name if p.manager else 'нет'} | "
-            f"Дедлайн: {p.end_date.strftime('%d.%m.%Y') if p.end_date else 'нет'} | "
-            f"Статус: {p.status}"
-            for p in projects[:12]
-        )
-    if overdue_tasks:
-        context += f"\n\nПросроченные задачи:\n" + "\n".join(
-            f"- {t.title} | {t.assignee.name if t.assignee else 'нет'} | "
-            f"просрочено на {(today - t.deadline).days} дней"
-            for t in overdue_tasks[:5]
-        )
+    ctx = f"""Сегодня: {today.strftime('%d.%m.%Y')}
+
+ПРОЕКТЫ:
+- Всего: {len(all_projects)} | Активных: {len(active)} | Завершённых: {len(done)}
+- Реконструкции активных: {sum(1 for p in active if p.project_type=='Реконструкция')}
+- Констракшн активных: {sum(1 for p in active if p.project_type=='Констракшн')}
+
+СРОЧНЫЕ (дедлайн ≤7 дней): {len(urgent)} объектов
+{chr(10).join(f'  • {p.name} | {p.manager.name if p.manager else "—"} | {p.end_date.strftime("%d.%m.%Y")}' for p in urgent[:8])}
+
+ПРОСРОЧЕННЫЕ проекты: {len(overdue_p)}
+{chr(10).join(f'  • {p.name} | {p.manager.name if p.manager else "—"} | просрочено на {(today-p.end_date).days} дн' for p in overdue_p[:5])}
+
+ЗАДАЧИ: открытых {open_tasks}, просроченных {len(overdue_tasks)}
+{chr(10).join(f'  • {t.title} | {t.assignee.name if t.assignee else "—"} | -{(today-t.deadline).days} дн' for t in overdue_tasks[:5])}
+
+МЕНЕДЖЕРЫ ({len(managers)} чел):
+{chr(10).join(f'  • {m.name}{"  [руководитель]" if m.is_leader else ""}: активных проектов {sum(1 for p in m.projects if p.status=="Активный")}' for m in managers)}
+"""
 
     system_prompt = (
         "Ты — ИИ-ассистент системы управления проектами компании ЛЕНТА (сеть гипермаркетов России). "
-        "Помогаешь менеджерам и руководителю проектов: анализируешь статусы, выявляешь риски по дедлайнам, "
-        "даёшь рекомендации по управлению строительными и реконструкционными проектами магазинов. "
-        "Отвечай чётко, структурированно, на русском языке. "
-        f"\n\nТекущие данные системы:\n{context}"
+        "Помогаешь команде из 9 человек: руководитель Гаврин Игорь + 8 менеджеров. "
+        "Работаешь с двумя типами проектов: Реконструкции магазинов и Констракшн (новое строительство). "
+        "Анализируешь статусы, дедлайны, риски. Даёшь конкретные рекомендации. "
+        "Отвечай чётко, структурированно, на русском языке. Используй markdown: **жирный**, списки, заголовки. "
+        f"\n\n=== ТЕКУЩИЕ ДАННЫЕ СИСТЕМЫ ===\n{ctx}"
     )
 
+    # ── Собираем историю сообщений ────────────────────────────────────────────
+    msg_history = []
+    for h in history[:-1]:
+        role = h.get("role", "user")
+        if role in ("user", "assistant"):
+            msg_history.append({"role": role, "content": h.get("content", "")})
+    msg_history.append({"role": "user", "content": user_message})
+
+    reply = ""
     try:
-        from openai import OpenAI
-
-        if provider == "groq":
-            api_key = os.getenv("GROQ_API_KEY", "")
-            if not api_key:
-                return {"reply": "Groq API-ключ не задан. Добавьте GROQ_API_KEY в Variables на Railway.\n\nПолучить бесплатно: https://console.groq.com"}
-            client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
-            model = "llama-3.3-70b-versatile"
-
-        elif provider == "deepseek":
-            api_key = os.getenv("DEEPSEEK_API_KEY", "")
-            if not api_key:
-                return {"reply": "DeepSeek API-ключ не задан. Добавьте DEEPSEEK_API_KEY в Variables на Railway.\n\nПолучить: https://platform.deepseek.com"}
-            client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
-            model = "deepseek-chat"
-
-        else:  # anthropic via openai-compatible
+        if provider == "claude":
+            import anthropic as ant
             api_key = os.getenv("ANTHROPIC_API_KEY", "")
             if not api_key:
-                return {"reply": "Anthropic API-ключ не задан. Добавьте ANTHROPIC_API_KEY в Variables на Railway."}
-            client = OpenAI(api_key=api_key, base_url="https://api.anthropic.com/v1/")
-            model = "claude-sonnet-4-6"
+                return {"reply": "⚠️ ANTHROPIC_API_KEY не задан в Railway Variables."}
+            client_ant = ant.Anthropic(api_key=api_key)
+            resp = client_ant.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=2048,
+                system=system_prompt,
+                messages=msg_history,
+            )
+            reply = resp.content[0].text
 
-        response = client.chat.completions.create(
-            model=model,
-            max_tokens=1024,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message},
-            ],
-        )
-        reply = response.choices[0].message.content
+        elif provider == "groq":
+            from openai import OpenAI
+            api_key = os.getenv("GROQ_API_KEY", "")
+            if not api_key:
+                return {"reply": "⚠️ GROQ_API_KEY не задан. Получить бесплатно: console.groq.com"}
+            client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
+            resp = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                max_tokens=2048,
+                messages=[{"role": "system", "content": system_prompt}] + msg_history,
+            )
+            reply = resp.choices[0].message.content
 
-    except ImportError:
-        reply = "Библиотека openai не установлена. Добавьте 'openai' в requirements.txt."
+        elif provider == "deepseek":
+            from openai import OpenAI
+            api_key = os.getenv("DEEPSEEK_API_KEY", "")
+            if not api_key:
+                return {"reply": "⚠️ DEEPSEEK_API_KEY не задан в Railway Variables."}
+            client = OpenAI(api_key=api_key, base_url="https://api.deepseek.com")
+            resp = client.chat.completions.create(
+                model="deepseek-chat",
+                max_tokens=2048,
+                messages=[{"role": "system", "content": system_prompt}] + msg_history,
+            )
+            reply = resp.choices[0].message.content
+
     except Exception as e:
-        reply = f"Ошибка ИИ ({provider}): {str(e)[:200]}"
+        reply = f"⚠️ Ошибка ({provider}): {str(e)[:300]}"
 
     return {"reply": reply}
 
