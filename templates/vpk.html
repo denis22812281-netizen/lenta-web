@@ -314,8 +314,27 @@ function updateProgress() {
 
 function checkAll(val) {
     document.querySelectorAll('.vpk-check').forEach(cb => {
-        setCriterion(parseInt(cb.id.replace('c_', '')), val);
+        const id = parseInt(cb.id.replace('c_', ''));
+        if (val) {
+            setCriterion(id, true);
+        } else {
+            resetCriterion(id);
+        }
     });
+}
+
+function resetCriterion(id) {
+    const cb  = document.getElementById('c_' + id);
+    const row = document.getElementById('row-' + id);
+    const cbox = document.getElementById('cbox-' + id);
+    const btnYes = document.getElementById('btn-yes-' + id);
+    const btnNo  = document.getElementById('btn-no-'  + id);
+    if (cb) cb.checked = false;
+    if (row) { row.classList.remove('done'); row.classList.remove('no'); }
+    if (btnYes) btnYes.classList.remove('active');
+    if (btnNo)  btnNo.classList.remove('active');
+    if (cbox)   cbox.style.display = 'none';
+    updateProgress();
 }
 
 // ── TK autocomplete ──────────────────────────────────────────────
