@@ -41,6 +41,9 @@
         <a href="/deadlines" class="nav-item {% if '/deadlines' in request.url.path %}active{% endif %}">
             <i class="bi bi-clock-history"></i><span>Дедлайны</span>
         </a>
+        <a href="/managers" class="nav-item {% if '/managers' in request.url.path %}active{% endif %}">
+            <i class="bi bi-people-fill"></i><span>Менеджеры проектов</span>
+        </a>
         <div class="nav-section-label">ПРОЕКТЫ</div>
         <a href="/reconstruct" class="nav-item {% if '/reconstruct' in request.url.path %}active{% endif %}">
             <i class="bi bi-building-fill"></i><span>Реконструкции</span>
@@ -66,9 +69,6 @@
             <span id="vpk-badge" class="d-none" style="position:absolute;top:6px;right:8px;background:#dc2626;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700"></span>
         </a>
         <div class="nav-section-label">КОМАНДА</div>
-        <a href="/managers" class="nav-item {% if '/managers' in request.url.path %}active{% endif %}">
-            <i class="bi bi-people-fill"></i><span>Менеджеры проектов</span>
-        </a>
         <a href="/tasks" class="nav-item {% if '/tasks' in request.url.path %}active{% endif %}">
             <i class="bi bi-plus-circle-fill"></i><span>Поставить задачу</span>
         </a>
