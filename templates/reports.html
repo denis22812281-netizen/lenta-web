@@ -44,8 +44,6 @@
 {% set total = r.items|length %}
 {% set pct = ((done_count / total * 100)|int) if total > 0 else 0 %}
 {% set failed = r.items|rejectattr('done')|list %}
-{% set failed_with_comment = failed|selectattr('comment')|list %}
-{% set failed_with_photo = failed|selectattr('photo_path')|list %}
 
 <div class="col-12">
 <div class="report-card">
