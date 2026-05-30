@@ -20,7 +20,7 @@
            class="chat-contact {% if partner == m.name %}active{% endif %}">
             <div class="chat-avatar">
                 {% if m.photo %}<img src="/static/{{ m.photo }}" alt="{{ m.name }}">
-                {% else %}{{ m.name[0] }}{% endif %}
+                {% else %}<img src="/static/img/raccoon.png" alt="{{ m.name }}">{% endif %}
             </div>
             <div class="chat-contact-info">
                 <div class="fw-semibold">{{ m.name }}</div>
@@ -46,7 +46,7 @@
             {% for m in managers %}{% if m.name == partner %}
             <div class="chat-avatar">
                 {% if m.photo %}<img src="/static/{{ m.photo }}" alt="{{ m.name }}">
-                {% else %}{{ m.name[0] }}{% endif %}
+                {% else %}<img src="/static/img/raccoon.png" alt="{{ m.name }}">{% endif %}
             </div>
             <div>
                 <div class="fw-bold">{{ m.name }}</div>
