@@ -628,6 +628,7 @@ async def startup():
                     "ALTER TABLE managers ADD COLUMN IF NOT EXISTS photo VARCHAR(200) DEFAULT ''",
                     "ALTER TABLE vpk_report_items ADD COLUMN IF NOT EXISTS comment TEXT DEFAULT ''",
                     "ALTER TABLE vpk_report_items ADD COLUMN IF NOT EXISTS photo_path VARCHAR(300) DEFAULT ''",
+                    "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS photo_path VARCHAR(300) DEFAULT ''",
                 ]:
                     try:
                         conn.exec_driver_sql(sql)
@@ -2609,6 +2610,7 @@ async def chat_messages(request: Request, db: Session = Depends(get_db),
     return {"messages": [
         {"id": m.id, "sender": m.sender_name,
          "text": m.text,
+         "photo": m.photo_path or "",
          "time": m.created_at.strftime("%H:%M"),
          "mine": m.sender_name == my_name}
         for m in msgs
@@ -2634,6 +2636,34 @@ async def chat_send(request: Request, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(msg)
     return {"id": msg.id, "time": msg.created_at.strftime("%H:%M")}
+
+
+@app.post("/api/chat/send-photo")
+async def chat_send_photo(request: Request, db: Session = Depends(get_db),
+                          file: UploadFile = File(...),
+                          partner: str = Form(""),
+                          text: str = Form("")):
+    user = get_current_user(request)
+    if not user:
+        return {"error": "Не авторизован"}
+    photo_dir = Path("static/uploads/chat")
+    photo_dir.mkdir(parents=True, exist_ok=True)
+    ext = Path(file.filename).suffix.lower() if file.filename else ".jpg"
+    if ext not in ('.jpg', '.jpeg', '.png', '.webp', '.gif'):
+        ext = '.jpg'
+    fname = f"{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{user.get('display_name','u').replace(' ','_')}{ext}"
+    (photo_dir / fname).write_bytes(await file.read())
+    msg = models.ChatMessage(
+        sender_name=user.get("display_name", ""),
+        receiver_name=partner,
+        text=text or "",
+        photo_path=f"uploads/chat/{fname}",
+    )
+    db.add(msg)
+    db.commit()
+    db.refresh(msg)
+    return {"id": msg.id, "time": msg.created_at.strftime("%H:%M"),
+            "photo": msg.photo_path}
 
 
 @app.get("/api/chat/unread")

@@ -5,30 +5,22 @@
 {% block content %}
 <div class="chat-wrap">
 
-    <!-- Левая панель: список диалогов -->
+    <!-- Левая панель -->
     <div class="chat-sidebar">
         <a href="/chat?partner=" class="chat-contact {% if partner == '' %}active{% endif %}">
-            <div class="chat-avatar chat-avatar-general">
-                <i class="bi bi-people-fill"></i>
-            </div>
+            <div class="chat-avatar chat-avatar-general"><i class="bi bi-people-fill"></i></div>
             <div class="chat-contact-info">
                 <div class="fw-bold">Общий чат</div>
                 <div class="small text-muted">Вся команда</div>
             </div>
         </a>
-
         <div class="chat-section-label">Личные сообщения</div>
-
-        {% for m in managers %}
-        {% if m.name != my_name %}
+        {% for m in managers %}{% if m.name != my_name %}
         <a href="/chat?partner={{ m.name|urlencode }}"
            class="chat-contact {% if partner == m.name %}active{% endif %}">
             <div class="chat-avatar">
-                {% if m.photo %}
-                <img src="/static/{{ m.photo }}" alt="{{ m.name }}">
-                {% else %}
-                {{ m.name[0] }}
-                {% endif %}
+                {% if m.photo %}<img src="/static/{{ m.photo }}" alt="{{ m.name }}">
+                {% else %}{{ m.name[0] }}{% endif %}
             </div>
             <div class="chat-contact-info">
                 <div class="fw-semibold">{{ m.name }}</div>
@@ -38,19 +30,15 @@
             <span class="chat-unread-badge">{{ unread_by[m.name] }}</span>
             {% endif %}
         </a>
-        {% endif %}
-        {% endfor %}
+        {% endif %}{% endfor %}
     </div>
 
-    <!-- Правая панель: сообщения -->
+    <!-- Правая панель -->
     <div class="chat-main">
         <div class="chat-header">
             {% if partner == '' %}
             <div class="chat-avatar chat-avatar-general"><i class="bi bi-people-fill"></i></div>
-            <div>
-                <div class="fw-bold">Общий чат</div>
-                <div class="small text-muted">Вся команда</div>
-            </div>
+            <div><div class="fw-bold">Общий чат</div><div class="small text-muted">Вся команда</div></div>
             {% else %}
             {% for m in managers %}{% if m.name == partner %}
             <div class="chat-avatar">
@@ -69,90 +57,84 @@
             <div class="text-center text-muted small py-4">Загрузка...</div>
         </div>
 
+        <!-- Emoji picker -->
+        <div id="emojiPicker" class="emoji-picker" style="display:none">
+            <div class="emoji-grid" id="emojiGrid"></div>
+        </div>
+
+        <!-- Предпросмотр фото -->
+        <div id="photoPreview" class="photo-preview-bar" style="display:none">
+            <img id="photoPreviewImg" src="" alt="">
+            <span id="photoPreviewName" class="small text-muted ms-2"></span>
+            <button type="button" class="btn btn-sm btn-outline-danger ms-auto" onclick="clearPhoto()">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+
         <div class="chat-input-wrap">
+            <!-- Смайлики -->
+            <button type="button" class="chat-tool-btn" id="btnEmoji" onclick="toggleEmoji()" title="Смайлики">
+                <i class="bi bi-emoji-smile"></i>
+            </button>
+            <!-- Фото -->
+            <button type="button" class="chat-tool-btn" onclick="document.getElementById('photoInput').click()" title="Прикрепить фото">
+                <i class="bi bi-image"></i>
+            </button>
+            <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="onPhotoSelected(this)">
+
             <input type="text" id="msgInput" class="form-control chat-input"
                    placeholder="Написать сообщение..." autocomplete="off"
-                   onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMsg();}">
-            <button class="btn btn-success chat-send-btn" onclick="sendMsg()">
+                   onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}">
+            <button class="btn btn-success chat-send-btn" onclick="sendMsg()" title="Отправить">
                 <i class="bi bi-send-fill"></i>
             </button>
         </div>
     </div>
 </div>
 
+<!-- Лайтбокс для просмотра фото -->
+<div id="lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:99999;align-items:center;justify-content:center;cursor:pointer" onclick="this.style.display='none'">
+    <img id="lightboxImg" src="" style="max-width:92vw;max-height:88vh;border-radius:8px;box-shadow:0 4px 30px rgba(0,0,0,.5)">
+</div>
+
 <style>
-.chat-wrap {
-    display:flex; height:calc(100vh - 130px);
-    background:#fff; border-radius:14px;
-    box-shadow:0 2px 12px rgba(0,0,0,.08); overflow:hidden;
-}
-.chat-sidebar {
-    width:260px; min-width:220px; border-right:1px solid #e9ecef;
-    overflow-y:auto; background:#fafafa;
-}
-.chat-section-label {
-    font-size:11px; font-weight:700; color:#9ca3af; text-transform:uppercase;
-    padding:12px 16px 4px;
-}
-.chat-contact {
-    display:flex; align-items:center; gap:10px;
-    padding:10px 14px; cursor:pointer; text-decoration:none; color:inherit;
-    border-bottom:1px solid #f3f4f6; position:relative;
-    transition:background .15s;
-}
+.chat-wrap { display:flex; height:calc(100vh - 130px); background:#fff; border-radius:14px; box-shadow:0 2px 12px rgba(0,0,0,.08); overflow:hidden; }
+.chat-sidebar { width:260px;min-width:200px;border-right:1px solid #e9ecef;overflow-y:auto;background:#fafafa; }
+.chat-section-label { font-size:11px;font-weight:700;color:#9ca3af;text-transform:uppercase;padding:12px 16px 4px; }
+.chat-contact { display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;text-decoration:none;color:inherit;border-bottom:1px solid #f3f4f6;position:relative;transition:background .15s; }
 .chat-contact:hover { background:#f0fdf4; }
 .chat-contact.active { background:#dcfce7; }
-.chat-avatar {
-    width:40px; height:40px; border-radius:50%;
-    background:#16a34a; color:#fff; display:flex;
-    align-items:center; justify-content:center;
-    font-weight:700; font-size:16px; flex-shrink:0; overflow:hidden;
-}
-.chat-avatar img { width:100%; height:100%; object-fit:cover; }
-.chat-avatar-general { background:#2563eb; font-size:18px; }
-.chat-contact-info { flex:1; min-width:0; }
-.chat-unread-badge {
-    background:#dc2626; color:#fff; border-radius:50%;
-    width:20px; height:20px; font-size:11px; font-weight:700;
-    display:flex; align-items:center; justify-content:center; flex-shrink:0;
-}
-.chat-main { flex:1; display:flex; flex-direction:column; min-width:0; }
-.chat-header {
-    display:flex; align-items:center; gap:12px;
-    padding:12px 18px; border-bottom:1px solid #e9ecef;
-    background:#fff;
-}
-.chat-messages {
-    flex:1; overflow-y:auto; padding:16px;
-    display:flex; flex-direction:column; gap:8px;
-}
-.chat-msg { display:flex; flex-direction:column; max-width:70%; }
-.chat-msg.mine { align-self:flex-end; align-items:flex-end; }
-.chat-msg.other { align-self:flex-start; align-items:flex-start; }
-.chat-bubble {
-    padding:8px 12px; border-radius:14px; font-size:14px; line-height:1.4;
-    word-break:break-word;
-}
-.chat-msg.mine .chat-bubble { background:#16a34a; color:#fff; border-bottom-right-radius:4px; }
-.chat-msg.other .chat-bubble { background:#f3f4f6; color:#111; border-bottom-left-radius:4px; }
-.chat-meta { font-size:11px; color:#9ca3af; margin-top:2px; padding:0 4px; }
-.chat-sender { font-size:11px; color:#6b7280; font-weight:600; margin-bottom:2px; padding:0 4px; }
-.chat-input-wrap {
-    display:flex; gap:8px; padding:12px 16px;
-    border-top:1px solid #e9ecef; background:#fff;
-}
-.chat-input { flex:1; border-radius:20px; padding:8px 16px; }
-.chat-send-btn { border-radius:50%; width:40px; height:40px; padding:0; flex-shrink:0; }
-.chat-date-sep {
-    text-align:center; font-size:11px; color:#9ca3af;
-    margin:8px 0; position:relative;
-}
-.chat-date-sep::before, .chat-date-sep::after {
-    content:''; position:absolute; top:50%; width:40%;
-    height:1px; background:#e5e7eb;
-}
-.chat-date-sep::before { left:0; }
-.chat-date-sep::after { right:0; }
+.chat-avatar { width:40px;height:40px;border-radius:50%;background:#16a34a;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0;overflow:hidden; }
+.chat-avatar img { width:100%;height:100%;object-fit:cover; }
+.chat-avatar-general { background:#2563eb;font-size:18px; }
+.chat-contact-info { flex:1;min-width:0; }
+.chat-unread-badge { background:#dc2626;color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+.chat-main { flex:1;display:flex;flex-direction:column;min-width:0;position:relative; }
+.chat-header { display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid #e9ecef;background:#fff; }
+.chat-messages { flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px; }
+.chat-msg { display:flex;flex-direction:column;max-width:72%; }
+.chat-msg.mine { align-self:flex-end;align-items:flex-end; }
+.chat-msg.other { align-self:flex-start;align-items:flex-start; }
+.chat-bubble { padding:8px 12px;border-radius:14px;font-size:14px;line-height:1.5;word-break:break-word; }
+.chat-msg.mine .chat-bubble { background:#16a34a;color:#fff;border-bottom-right-radius:4px; }
+.chat-msg.other .chat-bubble { background:#f3f4f6;color:#111;border-bottom-left-radius:4px; }
+.chat-bubble img.chat-photo { max-width:220px;max-height:200px;border-radius:10px;cursor:pointer;display:block;margin-top:4px; }
+.chat-bubble img.chat-photo:first-child { margin-top:0; }
+.chat-meta { font-size:11px;color:#9ca3af;margin-top:2px;padding:0 4px; }
+.chat-sender { font-size:11px;color:#6b7280;font-weight:600;margin-bottom:2px;padding:0 4px; }
+.chat-input-wrap { display:flex;align-items:center;gap:6px;padding:10px 14px;border-top:1px solid #e9ecef;background:#fff; }
+.chat-tool-btn { background:none;border:none;color:#6b7280;font-size:20px;padding:4px 6px;cursor:pointer;border-radius:8px;transition:background .15s;flex-shrink:0; }
+.chat-tool-btn:hover { background:#f0f0f0;color:#16a34a; }
+.chat-input { flex:1;border-radius:20px;padding:8px 16px; }
+.chat-send-btn { border-radius:50%;width:40px;height:40px;padding:0;flex-shrink:0; }
+/* Emoji picker */
+.emoji-picker { position:absolute;bottom:70px;left:14px;background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:100;padding:10px;width:310px; }
+.emoji-grid { display:grid;grid-template-columns:repeat(8,1fr);gap:2px; }
+.emoji-btn { background:none;border:none;font-size:22px;padding:4px;cursor:pointer;border-radius:6px;text-align:center;transition:background .1s; }
+.emoji-btn:hover { background:#f3f4f6; }
+/* Photo preview */
+.photo-preview-bar { display:flex;align-items:center;padding:8px 14px;background:#f0fdf4;border-top:1px solid #bbf7d0; }
+.photo-preview-bar img { height:48px;width:48px;object-fit:cover;border-radius:8px;border:1px solid #86efac; }
 </style>
 {% endblock %}
 
@@ -161,8 +143,108 @@
 const PARTNER = {{ partner|tojson }};
 const MY_NAME = {{ my_name|tojson }};
 let lastId = 0;
-let polling = null;
+let selectedFile = null;
 
+// ── Emojis ────────────────────────────────────────────────────────────────────
+const EMOJIS = [
+    '😀','😁','😂','🤣','😊','😍','🥰','😎',
+    '😅','😉','😋','🤩','🥳','😜','😏','🤔',
+    '😢','😭','😡','🤬','😱','😨','🥺','😔',
+    '👍','👎','👏','🙌','🤝','💪','🙏','👋',
+    '❤️','🔥','⭐','✅','❌','⚠️','🎉','🚀',
+    '📋','📅','📊','💼','🏗️','🔑','📌','🔔',
+];
+
+(function buildEmojiPicker() {
+    const grid = document.getElementById('emojiGrid');
+    EMOJIS.forEach(e => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'emoji-btn';
+        btn.textContent = e;
+        btn.onclick = () => insertEmoji(e);
+        grid.appendChild(btn);
+    });
+})();
+
+function toggleEmoji() {
+    const p = document.getElementById('emojiPicker');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function insertEmoji(e) {
+    const inp = document.getElementById('msgInput');
+    const pos = inp.selectionStart;
+    inp.value = inp.value.slice(0, pos) + e + inp.value.slice(inp.selectionEnd);
+    inp.selectionStart = inp.selectionEnd = pos + e.length;
+    inp.focus();
+    document.getElementById('emojiPicker').style.display = 'none';
+}
+
+document.addEventListener('click', e => {
+    const picker = document.getElementById('emojiPicker');
+    const btn = document.getElementById('btnEmoji');
+    if (!picker.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+        picker.style.display = 'none';
+    }
+});
+
+// ── Photo ─────────────────────────────────────────────────────────────────────
+function onPhotoSelected(input) {
+    const file = input.files[0];
+    if (!file) return;
+    selectedFile = file;
+    const preview = document.getElementById('photoPreview');
+    const img = document.getElementById('photoPreviewImg');
+    const name = document.getElementById('photoPreviewName');
+    img.src = URL.createObjectURL(file);
+    name.textContent = file.name;
+    preview.style.display = 'flex';
+}
+
+function clearPhoto() {
+    selectedFile = null;
+    document.getElementById('photoInput').value = '';
+    document.getElementById('photoPreview').style.display = 'none';
+    document.getElementById('photoPreviewImg').src = '';
+}
+
+// ── Send ──────────────────────────────────────────────────────────────────────
+async function sendMsg() {
+    const inp = document.getElementById('msgInput');
+    const text = inp.value.trim();
+    if (!text && !selectedFile) return;
+    inp.value = '';
+
+    if (selectedFile) {
+        const fd = new FormData();
+        fd.append('file', selectedFile);
+        fd.append('partner', PARTNER);
+        fd.append('text', text);
+        clearPhoto();
+        try {
+            const r = await fetch('/api/chat/send-photo', { method: 'POST', body: fd });
+            const data = await r.json();
+            if (data.id) {
+                renderMessages([{id: data.id, sender: MY_NAME, text, photo: data.photo, time: data.time, mine: true}], false);
+            }
+        } catch(e) {}
+    } else {
+        try {
+            const r = await fetch('/api/chat/send', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({text, partner: PARTNER}),
+            });
+            const data = await r.json();
+            if (data.id) {
+                renderMessages([{id: data.id, sender: MY_NAME, text, photo: '', time: data.time, mine: true}], false);
+            }
+        } catch(e) {}
+    }
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
 async function loadMessages() {
     try {
         const r = await fetch(`/api/chat/messages?partner=${encodeURIComponent(PARTNER)}&since_id=0`);
@@ -176,9 +258,7 @@ async function pollMessages() {
     try {
         const r = await fetch(`/api/chat/messages?partner=${encodeURIComponent(PARTNER)}&since_id=${lastId}`);
         const data = await r.json();
-        if (data.messages && data.messages.length) {
-            renderMessages(data.messages, false);
-        }
+        if (data.messages && data.messages.length) renderMessages(data.messages, false);
     } catch(e) {}
 }
 
@@ -193,10 +273,18 @@ function renderMessages(msgs, clear) {
         if (m.id > lastId) lastId = m.id;
         const div = document.createElement('div');
         div.className = 'chat-msg ' + (m.mine ? 'mine' : 'other');
+
         const senderHtml = (!m.mine && PARTNER === '')
             ? `<div class="chat-sender">${escHtml(m.sender)}</div>` : '';
+
+        let bubbleContent = '';
+        if (m.text) bubbleContent += escHtml(m.text);
+        if (m.photo) {
+            bubbleContent += `<img src="/static/${escHtml(m.photo)}" class="chat-photo" onclick="openLightbox('/static/${escHtml(m.photo)}')" alt="фото">`;
+        }
+
         div.innerHTML = senderHtml +
-            `<div class="chat-bubble">${escHtml(m.text)}</div>` +
+            `<div class="chat-bubble">${bubbleContent}</div>` +
             `<div class="chat-meta">${m.time}</div>`;
         box.appendChild(div);
     });
@@ -204,29 +292,16 @@ function renderMessages(msgs, clear) {
 }
 
 function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-            .replace(/\n/g,'<br>');
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
 }
 
-async function sendMsg() {
-    const inp = document.getElementById('msgInput');
-    const text = inp.value.trim();
-    if (!text) return;
-    inp.value = '';
-    try {
-        const r = await fetch('/api/chat/send', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({text, partner: PARTNER}),
-        });
-        const data = await r.json();
-        if (data.id) {
-            renderMessages([{id: data.id, sender: MY_NAME, text, time: data.time, mine: true}], false);
-        }
-    } catch(e) {}
+function openLightbox(src) {
+    const lb = document.getElementById('lightbox');
+    document.getElementById('lightboxImg').src = src;
+    lb.style.display = 'flex';
 }
 
 loadMessages();
-polling = setInterval(pollMessages, 3000);
+setInterval(pollMessages, 3000);
 </script>
 {% endblock %}

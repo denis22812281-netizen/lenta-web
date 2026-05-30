@@ -139,6 +139,7 @@ class ChatMessage(Base):
     sender_name = Column(String(100), nullable=False)
     receiver_name = Column(String(100), default="")  # "" = общий чат
     text = Column(Text, nullable=False)
+    photo_path = Column(String(300), default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     is_read = Column(Boolean, default=False)
 
