@@ -90,26 +90,40 @@
         <div class="p-0">
         {% for c in criteria %}
         <div class="vpk-criterion-row" id="row-{{ c.id }}">
-            <div class="vpk-num text-{{ accent }}">{{ loop.index }}.{{ vpk_num if vpk_num > 1 else '' }}</div>
-            <div class="vpk-body" style="flex:1;min-width:0">
+            <div class="vpk-num text-{{ accent }}">{{ loop.index }}.</div>
+            <div class="vpk-body">
                 <div class="vpk-text">{{ c.name }}</div>
-                <div class="vpk-comment-box" id="cbox-{{ c.id }}" style="display:none;margin-top:8px">
-                    <textarea name="comment_{{ c.id }}" class="form-control form-control-sm"
+                <div class="vpk-comment-box" id="cbox-{{ c.id }}" style="display:none">
+                    <textarea name="comment_{{ c.id }}" id="ta-{{ c.id }}"
+                              class="form-control form-control-sm mt-2"
                               rows="2" placeholder="Что конкретно не выполнено?"></textarea>
-                    <label class="form-label small text-muted mt-1 mb-0">
-                        <i class="bi bi-camera me-1"></i>Прикрепить фото (необязательно)
-                    </label>
-                    <input type="file" name="photo_{{ c.id }}" class="form-control form-control-sm"
-                           accept="image/*" capture="environment">
+                    <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+                        <input type="file" name="photo_{{ c.id }}" id="photo_{{ c.id }}"
+                               accept="image/*" style="display:none"
+                               onchange="onCriterionPhoto({{ c.id }}, this)">
+                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                onclick="document.getElementById('photo_{{ c.id }}').click()">
+                            <i class="bi bi-camera me-1"></i>Прикрепить фото
+                        </button>
+                        <span id="photo-name-{{ c.id }}" class="small text-muted"></span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-success mt-2"
+                            onclick="saveComment({{ c.id }})">
+                        <i class="bi bi-check-lg me-1"></i>Сохранить
+                    </button>
                 </div>
             </div>
-            <div class="vpk-toggle">
-                <input type="checkbox" name="criterion_{{ c.id }}" id="c_{{ c.id }}"
-                       class="vpk-check" onchange="updateRow({{ c.id }}, this.checked)">
-                <label for="c_{{ c.id }}" class="vpk-label" id="lbl-{{ c.id }}">
-                    <span class="vpk-no">Не выполнено</span>
-                    <span class="vpk-yes">✓ Выполнено</span>
-                </label>
+            <input type="checkbox" name="criterion_{{ c.id }}" id="c_{{ c.id }}"
+                   class="vpk-check" style="display:none">
+            <div class="vpk-actions">
+                <button type="button" class="vpk-btn vpk-btn-yes" id="btn-yes-{{ c.id }}"
+                        onclick="setCriterion({{ c.id }}, true)">
+                    <i class="bi bi-check-lg"></i> Да
+                </button>
+                <button type="button" class="vpk-btn vpk-btn-no" id="btn-no-{{ c.id }}"
+                        onclick="setCriterion({{ c.id }}, false)">
+                    <i class="bi bi-x-lg"></i> Нет
+                </button>
             </div>
         </div>
         {% endfor %}
@@ -206,21 +220,26 @@
 .vpk-criterion-row {
     display:flex; align-items:flex-start; gap:12px;
     padding:12px 16px; border-bottom:1px solid #f0f0f0;
-    transition: background .15s;
+    transition:background .15s;
 }
 .vpk-criterion-row.done { background:#f0faf0; }
-.vpk-num { font-weight:700; font-size:13px; min-width:28px; padding-top:2px; }
-.vpk-text { flex:1; font-size:13px; line-height:1.5; color:#374151; }
-.vpk-toggle { flex-shrink:0; }
-.vpk-check { display:none; }
-.vpk-label {
-    display:inline-flex; align-items:center; cursor:pointer;
-    padding:5px 12px; border-radius:20px; font-size:12px; font-weight:600;
-    border:2px solid #d1d5db; color:#6b7280; background:#f9fafb;
-    transition:all .15s; user-select:none; white-space:nowrap;
+.vpk-criterion-row.no { background:#fff5f5; }
+.vpk-num { font-weight:700; font-size:13px; min-width:24px; padding-top:3px; flex-shrink:0; }
+.vpk-body { flex:1; min-width:0; }
+.vpk-text { font-size:13px; line-height:1.5; color:#374151; }
+.vpk-actions { display:flex; gap:6px; flex-shrink:0; padding-top:2px; }
+.vpk-btn {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:5px 14px; border-radius:8px; font-size:13px; font-weight:600;
+    border:2px solid; cursor:pointer; transition:all .15s; white-space:nowrap;
+    background:transparent;
 }
-.vpk-yes { display:none; }
-.vpk-label-done { background:#dcfce7 !important; border-color:#16a34a !important; color:#15803d !important; }
+.vpk-btn-yes { border-color:#d1d5db; color:#6b7280; }
+.vpk-btn-yes:hover { border-color:#16a34a; color:#16a34a; }
+.vpk-btn-yes.active { background:#16a34a; border-color:#16a34a; color:#fff; }
+.vpk-btn-no { border-color:#d1d5db; color:#6b7280; }
+.vpk-btn-no:hover { border-color:#dc2626; color:#dc2626; }
+.vpk-btn-no.active { background:#dc2626; border-color:#dc2626; color:#fff; }
 
 .vpk-report-card {
     padding:16px; border-bottom:1px solid #e9ecef; cursor:pointer;
@@ -247,45 +266,55 @@ let dropdownIndex = -1;
 
 const PROJECTS = JSON.parse(document.getElementById('projectsData')?.textContent || '[]');
 
-function updateRow(id, checked) {
+function setCriterion(id, isDone) {
+    const cb  = document.getElementById('c_' + id);
     const row = document.getElementById('row-' + id);
-    const lbl = document.getElementById('lbl-' + id);
     const cbox = document.getElementById('cbox-' + id);
-    if (checked) {
-        row.classList.add('done');
-        checkedCount++;
-        if (lbl) {
-            lbl.querySelector('.vpk-no').style.display = 'none';
-            lbl.querySelector('.vpk-yes').style.display = 'inline';
-            lbl.classList.add('vpk-label-done');
-        }
-        if (cbox) cbox.style.display = 'none';
-    } else {
-        row.classList.remove('done');
-        checkedCount--;
-        if (lbl) {
-            lbl.querySelector('.vpk-no').style.display = 'inline';
-            lbl.querySelector('.vpk-yes').style.display = 'none';
-            lbl.classList.remove('vpk-label-done');
-        }
-        if (cbox) cbox.style.display = 'block';
-    }
+    const btnYes = document.getElementById('btn-yes-' + id);
+    const btnNo  = document.getElementById('btn-no-'  + id);
+
+    cb.checked = isDone;
+    row.classList.toggle('done', isDone);
+    row.classList.toggle('no',  !isDone);
+    btnYes.classList.toggle('active',  isDone);
+    btnNo.classList.toggle('active',  !isDone);
+    if (cbox) cbox.style.display = isDone ? 'none' : 'block';
     updateProgress();
 }
 
+function onCriterionPhoto(id, input) {
+    const file = input.files[0];
+    const nameEl = document.getElementById('photo-name-' + id);
+    if (nameEl) nameEl.textContent = file ? file.name : '';
+}
+
+function saveComment(id) {
+    const cbox = document.getElementById('cbox-' + id);
+    const nameEl = document.getElementById('photo-name-' + id);
+    const saved = document.getElementById('saved-' + id);
+    if (!saved) {
+        const tag = document.createElement('span');
+        tag.id = 'saved-' + id;
+        tag.className = 'badge bg-success ms-2 small';
+        tag.textContent = '✓ Сохранено';
+        if (cbox) cbox.appendChild(tag);
+    }
+}
+
 function updateProgress() {
-    const pct = totalCriteria > 0 ? Math.round(checkedCount / totalCriteria * 100) : 0;
+    const count = document.querySelectorAll('.vpk-check:checked').length;
+    const pct = totalCriteria > 0 ? Math.round(count / totalCriteria * 100) : 0;
     const bar = document.getElementById('progressBar');
     const txt = document.getElementById('progressText');
     const pctEl = document.getElementById('progressPct');
     if (bar) bar.style.width = pct + '%';
-    if (txt) txt.textContent = 'Выполнено: ' + checkedCount + ' / ' + totalCriteria;
+    if (txt) txt.textContent = 'Выполнено: ' + count + ' / ' + totalCriteria;
     if (pctEl) pctEl.textContent = pct + '%';
 }
 
 function checkAll(val) {
     document.querySelectorAll('.vpk-check').forEach(cb => {
-        if (cb.checked !== val) { cb.checked = val; cb.dispatchEvent(new Event('change')); }
+        setCriterion(parseInt(cb.id.replace('c_', '')), val);
     });
 }
 
