@@ -1934,7 +1934,8 @@ async def stats_page(request: Request, db: Session = Depends(get_db)):
         early   = sum(1 for p in m_proj if opening_color(p) == "early")
         on_time = sum(1 for p in m_proj if opening_color(p) == "on-time")
         late    = sum(1 for p in m_proj if opening_color(p) == "late")
-        active  = sum(1 for p in m_proj if opening_color(p) == "active")
+        # В работе = не открыты (нет даты открытия) и не завершены
+        active  = sum(1 for p in m_proj if not p.opening_date and p.status != "Завершён")
         manager_stats.append({
             "name": m.name, "early": early, "on_time": on_time,
             "late": late, "active": active, "total": len(m_proj),
