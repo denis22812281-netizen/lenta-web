@@ -669,6 +669,12 @@ async def startup():
                 db.add(models.PhoneWhitelist(phone=phone, display_name=name, is_admin=is_admin))
         db.commit()
 
+        # Гаврин Игорь — обновить фото
+        gavrin = db.query(models.Manager).filter(models.Manager.name == "Гаврин Игорь").first()
+        if gavrin:
+            gavrin.photo = "img/managers/gavrin.png"
+        db.commit()
+
         # Комаров Алексей — директор, видит все проекты
         komarov = db.query(models.Manager).filter(models.Manager.name == "Комаров Алексей").first()
         if not komarov:
