@@ -2291,7 +2291,7 @@ async def clear_all_projects(request: Request, db: Session = Depends(get_db)):
 async def delete_tk_prefix(request: Request, db: Session = Depends(get_db)):
     """Удаляет из Реконструкций проекты где номер ТК начинается с 'ТК' или 'L'."""
     user = get_current_user(request)
-    if not user:
+    if not user or not user.get("is_admin"):
         return RedirectResponse("/login", status_code=302)
     projects = db.query(models.Project).filter(
         models.Project.project_type == "Реконструкция",
@@ -2308,7 +2308,7 @@ async def delete_tk_prefix(request: Request, db: Session = Depends(get_db)):
 async def fix_reconstruct_types(request: Request, db: Session = Depends(get_db)):
     """Перемещает L-номера из Реконструкций в Констракшн."""
     user = get_current_user(request)
-    if not user:
+    if not user or not user.get("is_admin"):
         return RedirectResponse("/login", status_code=302)
     moved = 0
     wrong = db.query(models.Project).filter(
@@ -2325,7 +2325,7 @@ async def fix_reconstruct_types(request: Request, db: Session = Depends(get_db))
 @app.post("/construction/clear-all")
 async def clear_all_construction(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request)
-    if not user:
+    if not user or not user.get("is_admin"):
         return RedirectResponse("/login", status_code=302)
     projects = db.query(models.Project).filter(
         models.Project.project_type == "Констракшн"
@@ -2339,7 +2339,7 @@ async def clear_all_construction(request: Request, db: Session = Depends(get_db)
 @app.post("/construction/delete-non-2026")
 async def delete_construction_non_2026(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request)
-    if not user:
+    if not user or not user.get("is_admin"):
         return RedirectResponse("/login", status_code=302)
     deleted = db.query(models.Project).filter(
         models.Project.project_type == "Констракшн",
