@@ -133,6 +133,16 @@ class VpkReportItem(Base):
     criterion = relationship("VpkCriterion")
 
 
+class AiChatMessage(Base):
+    __tablename__ = "ai_chat_messages"
+    id = Column(Integer, primary_key=True)
+    user_name = Column(String(100), nullable=False)
+    role = Column(String(20), nullable=False)   # "user" или "assistant"
+    text = Column(Text, nullable=False)
+    provider = Column(String(30), default="groq")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
     id = Column(Integer, primary_key=True)

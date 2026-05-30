@@ -629,6 +629,7 @@ async def startup():
                     "ALTER TABLE vpk_report_items ADD COLUMN IF NOT EXISTS comment TEXT DEFAULT ''",
                     "ALTER TABLE vpk_report_items ADD COLUMN IF NOT EXISTS photo_path VARCHAR(300) DEFAULT ''",
                     "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS photo_path VARCHAR(300) DEFAULT ''",
+                    "CREATE TABLE IF NOT EXISTS ai_chat_messages (id SERIAL PRIMARY KEY, user_name VARCHAR(100) NOT NULL, role VARCHAR(20) NOT NULL, text TEXT NOT NULL, provider VARCHAR(30) DEFAULT 'groq', created_at TIMESTAMP DEFAULT NOW())",
                 ]:
                     try:
                         conn.exec_driver_sql(sql)
@@ -2572,7 +2573,45 @@ async def ai_chat(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         reply = f"⚠️ Ошибка ({provider}): {str(e)[:300]}"
 
+    # Сохраняем в БД
+    if reply and not reply.startswith("⚠️"):
+        user_name = user.get("display_name", "")
+        db.add(models.AiChatMessage(user_name=user_name, role="user",
+                                    text=user_message, provider=provider))
+        db.add(models.AiChatMessage(user_name=user_name, role="assistant",
+                                    text=reply, provider=provider))
+        db.commit()
+
     return {"reply": reply}
+
+
+@app.get("/api/ai/history")
+async def ai_history(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user:
+        return {"messages": []}
+    user_name = user.get("display_name", "")
+    msgs = db.query(models.AiChatMessage).filter(
+        models.AiChatMessage.user_name == user_name
+    ).order_by(models.AiChatMessage.id.desc()).limit(100).all()
+    msgs.reverse()
+    return {"messages": [
+        {"role": m.role, "text": m.text,
+         "time": m.created_at.strftime("%H:%M")}
+        for m in msgs
+    ]}
+
+
+@app.post("/api/ai/clear-history")
+async def ai_clear_history(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user:
+        return {"error": "Не авторизован"}
+    user_name = user.get("display_name", "")
+    db.query(models.AiChatMessage).filter(
+        models.AiChatMessage.user_name == user_name).delete()
+    db.commit()
+    return {"ok": True}
 
 
 @app.post("/api/ai/check-excel")

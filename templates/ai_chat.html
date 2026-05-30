@@ -17,7 +17,7 @@
                         <option value="claude">Claude (Anthropic)</option>
                         <option value="deepseek">DeepSeek</option>
                     </select>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="clearChat()" title="Очистить чат">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="clearChat()" title="Очистить историю">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
@@ -114,11 +114,28 @@ function handleKey(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
 
-function clearChat() {
+async function clearChat() {
+    if (!confirm('Очистить всю историю переписки с ИИ?')) return;
+    await fetch('/api/ai/clear-history', { method: 'POST' });
     const msgs = document.getElementById('chat-messages');
     while (msgs.children.length > 1) msgs.removeChild(msgs.lastChild);
     chatHistory = [];
 }
+
+async function loadHistory() {
+    try {
+        const r = await fetch('/api/ai/history');
+        const data = await r.json();
+        if (!data.messages || !data.messages.length) return;
+        data.messages.forEach(m => {
+            addMessage(m.text, m.role, true);
+            chatHistory.push({ role: m.role, content: m.text });
+        });
+    } catch(e) {}
+}
+
+// Загружаем историю при открытии страницы
+window.addEventListener('DOMContentLoaded', loadHistory);
 
 function addMessage(text, role, isMarkdown = false) {
     const msgs = document.getElementById('chat-messages');
