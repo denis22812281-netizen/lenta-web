@@ -244,7 +244,8 @@ def import_reconstruct_excel(content: bytes, db: Session) -> dict:
                 existing.closure_date = clos or existing.closure_date
                 existing.vpk_date = vpk or existing.vpk_date
                 existing.opening_date = opening or existing.opening_date
-                existing.status = status
+                if existing.status != "Приостановлен":
+                    existing.status = status
                 if manager_id and not existing.manager_id:
                     existing.manager_id = manager_id
                 updated += 1
@@ -540,7 +541,8 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
                 existing.vpk_date = vpk_date or existing.vpk_date
                 existing.end_date = open_plan or existing.end_date
                 existing.opening_date = open_fact or existing.opening_date
-                existing.status = status
+                if existing.status != "Приостановлен":
+                    existing.status = status
                 existing.manager_id = manager_id
                 updated += 1
             else:
