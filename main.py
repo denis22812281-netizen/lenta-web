@@ -1415,8 +1415,8 @@ async def upload_manager_photo(manager_id: int, request: Request,
                                 file: UploadFile = File(...),
                                 db: Session = Depends(get_db)):
     user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+    if not user or user.get("display_name") != "Месмер Денис":
+        return RedirectResponse("/managers", status_code=302)
     mgr = db.query(models.Manager).filter(models.Manager.id == manager_id).first()
     if not mgr:
         raise HTTPException(status_code=404)
