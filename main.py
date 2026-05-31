@@ -242,16 +242,18 @@ async def startup():
 
         # Прописать фотографии и должности менеджерам
         MANAGER_DEFAULTS = {
-            "Месмер Денис":    {"photo": "img/raccoon_mesmer.jpg",    "position": "Менеджер проектов"},
-            "Гаврин Игорь":    {"photo": "img/managers/gavrin.png",   "position": "Руководитель проектов"},
-            "Комаров Алексей": {"photo": "img/managers/komarov.png",  "position": "Директор по эксплуатации и реконструкции"},
+            "Гаврин Игорь":    {"photo": "img/managers/gavrin.png",  "position": "Руководитель проектов"},
+            "Комаров Алексей": {"photo": "img/managers/komarov.png", "position": "Директор по эксплуатации и реконструкции"},
+            "Месмер Денис":    {"photo": "img/raccoon_mesmer.jpg",   "position": "Менеджер проектов"},
         }
+        _DEFAULT_POSITION = "Менеджер проектов"
         for mgr in db.query(models.Manager).all():
             defaults = MANAGER_DEFAULTS.get(mgr.name, {})
             if defaults.get("photo") and not mgr.photo:
                 mgr.photo = defaults["photo"]
-            if defaults.get("position") and not mgr.position:
-                mgr.position = defaults["position"]
+            pos = defaults.get("position", _DEFAULT_POSITION)
+            if not mgr.position:
+                mgr.position = pos
         db.commit()
 
         # Прописать email и права менеджерам из переменных окружения
