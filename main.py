@@ -183,46 +183,30 @@ async def startup():
                 db.add(models.Manager(name=name, is_leader=is_leader))
             db.commit()
 
-        admin_phone = os.getenv("ADMIN_PHONE", "+79997303914")
-        if db.query(models.PhoneWhitelist).count() == 0:
-            db.add(models.PhoneWhitelist(phone=admin_phone, display_name="Месмер Денис", is_admin=True))
+        # Первый администратор — из переменной окружения ADMIN_PHONE
+        # Для тестирования: установить ADMIN_PHONE в .env или Railway Variables
+        admin_phone = os.getenv("ADMIN_PHONE", "")
+        admin_name  = os.getenv("ADMIN_NAME", "Администратор")
+        if admin_phone and db.query(models.PhoneWhitelist).count() == 0:
+            db.add(models.PhoneWhitelist(
+                phone=admin_phone, display_name=admin_name, is_admin=True))
             db.commit()
 
-        for phone, name, is_admin in [
-            ("+79150511700", "Гаврин Игорь",        True),
-            ("+79112744420", "Ловчиков Александр",   False),
-            ("+79236255705", "Митько Роберт",         False),
-            ("+79261476125", "Шевченко Наталья",      False),
-            ("+79091152729", "Валеев Борис",          False),
-            ("+79265096687", "Хачатурова Жанна",      False),
-            ("+79231290722", "Студеникин Сергей",     False),
-            ("+79227450486", "Косило Сергей",          False),
-            ("+79032014579", "Комаров Алексей",       False),
-        ]:
-            if not db.query(models.PhoneWhitelist).filter(
-                    models.PhoneWhitelist.phone == phone).first():
-                db.add(models.PhoneWhitelist(phone=phone, display_name=name, is_admin=is_admin))
-        db.commit()
-
-        for name, photo, position in [
-            ("Гаврин Игорь",    "img/managers/gavrin.png",  "Руководитель проектов"),
-            ("Месмер Денис",    "img/raccoon_mesmer.jpg",   None),
-        ]:
-            m = db.query(models.Manager).filter(models.Manager.name == name).first()
-            if m:
-                m.photo = photo
-                if position:
-                    m.position = position
-
-        komarov = db.query(models.Manager).filter(models.Manager.name == "Комаров Алексей").first()
-        if not komarov:
-            db.add(models.Manager(name="Комаров Алексей", is_leader=True,
-                                  photo="img/managers/komarov.png",
-                                  position="Директор по эксплуатации и реконструкции"))
-        else:
-            komarov.photo = "img/managers/komarov.png"
-            komarov.position = "Директор по эксплуатации и реконструкции"
-        db.commit()
+        # Дополнительные пользователи при первом запуске.
+        # Формат в переменной SEED_USERS (опционально):
+        #   +79001112233:Иванов Иван:false,+79003334455:Петров Пётр:true
+        seed_users_env = os.getenv("SEED_USERS", "")
+        if seed_users_env:
+            for entry in seed_users_env.split(","):
+                parts = entry.strip().split(":")
+                if len(parts) >= 2:
+                    ph, nm = parts[0].strip(), parts[1].strip()
+                    adm = len(parts) >= 3 and parts[2].strip().lower() == "true"
+                    if not db.query(models.PhoneWhitelist).filter(
+                            models.PhoneWhitelist.phone == ph).first():
+                        db.add(models.PhoneWhitelist(
+                            phone=ph, display_name=nm, is_admin=adm))
+            db.commit()
 
         if db.query(models.VpkCriterion).count() == 0:
             vpk1 = [

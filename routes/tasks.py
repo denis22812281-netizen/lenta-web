@@ -9,6 +9,7 @@ import models
 from database import get_db
 from deps import templates, get_current_user
 from config import PRIORITIES, TASK_STATUSES
+from services.email_service import notify_task_assigned, notify_task_status_changed
 
 router = APIRouter()
 
@@ -84,6 +85,18 @@ async def create_task(request: Request, db: Session = Depends(get_db),
                 recipient_name=assignee.name, task_id=task.id,
                 message=f"📋 {creator} поставил вам задачу: «{title}»{dl}",
             ))
+            # Email-уведомление (если email настроен у менеджера)
+            if assignee.email:
+                proj = db.query(models.Project).filter(
+                    models.Project.id == task.project_id).first() if task.project_id else None
+                notify_task_assigned(
+                    to_email=assignee.email,
+                    assignee_name=assignee.name,
+                    task_title=title,
+                    creator=creator,
+                    deadline_str=task.deadline.strftime("%d.%m.%Y") if task.deadline else "",
+                    project_name=proj.name if proj else "",
+                )
     db.commit()
     return RedirectResponse("/tasks", status_code=303)
 
@@ -107,6 +120,19 @@ async def update_task_status(task_id: int, request: Request, db: Session = Depen
                 msg += f"\nКомментарий: {completion_comment.strip()}"
             db.add(models.TaskNotification(
                 recipient_name=t.created_by, task_id=t.id, message=msg))
+            # Email постановщику
+            creator_mgr = db.query(models.Manager).filter(
+                models.Manager.name == t.created_by).first()
+            if creator_mgr and creator_mgr.email:
+                assignee_name = t.assignee.name if t.assignee else user.get("display_name", "")
+                notify_task_status_changed(
+                    to_email=creator_mgr.email,
+                    creator_name=t.created_by,
+                    task_title=t.title,
+                    new_status=status,
+                    assignee_name=assignee_name,
+                    comment=completion_comment.strip() if status == "Завершена" else "",
+                )
         db.commit()
     return RedirectResponse("/tasks", status_code=303)
 
