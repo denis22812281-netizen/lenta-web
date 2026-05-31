@@ -224,7 +224,17 @@
         <div class="error-box"><i class="bi bi-exclamation-circle-fill"></i>{{ error }}</div>
         {% endif %}
 
-        <form method="post" action="/login/enter" autocomplete="on">
+        <!-- Кнопка биометрии (показывается если доступна) -->
+        <div id="biometric-section" class="d-none mb-3">
+            <button id="btn-biometric" type="button" class="btn-login"
+                    style="background:#1a1a2e;display:flex;align-items:center;justify-content:center;gap:10px">
+                <i class="bi bi-fingerprint" style="font-size:22px"></i>
+                <span id="bio-label">Войти по Face ID / отпечатку</span>
+            </button>
+            <div class="text-center mt-2 mb-1" style="color:#bbb;font-size:12px">— или войти паролем —</div>
+        </div>
+
+        <form method="post" action="/login/enter" autocomplete="on" id="password-form">
             <input type="hidden" name="phone" value="{{ phone }}">
             <div class="mb-3">
                 <div class="input-group">
@@ -250,6 +260,111 @@
                 <i class="bi bi-arrow-left me-1"></i>Другой номер
             </button>
         </div>
+
+        <script>
+        // Проверяем наличие биометрии для этого телефона
+        (async function() {
+            const phone = '{{ phone }}';
+            try {
+                // Проверяем поддержку платформы
+                if (!window.PublicKeyCredential) return;
+                const available = await PublicKeyCredential
+                    .isUserVerifyingPlatformAuthenticatorAvailable().catch(() => false);
+                if (!available) return;
+
+                // Проверяем есть ли зарегистрированные ключи
+                const resp = await fetch('/webauthn/check', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({phone: phone})
+                });
+                const data = await resp.json();
+                if (data.has_webauthn) {
+                    document.getElementById('biometric-section').classList.remove('d-none');
+                    // Определяем тип биометрии для текста кнопки
+                    const ua = navigator.userAgent;
+                    const label = document.getElementById('bio-label');
+                    if (/iPhone|iPad|Macintosh/.test(ua)) label.textContent = 'Войти по Face ID / Touch ID';
+                    else if (/Android/.test(ua)) label.textContent = 'Войти по отпечатку пальца';
+                    else label.textContent = 'Войти по Windows Hello / биометрии';
+                }
+            } catch(e) {}
+        })();
+
+        // Вспомогательные функции
+        function b64urlToBuffer(b64url) {
+            const b64 = b64url.replace(/-/g,'+').replace(/_/g,'/');
+            const bin = atob(b64.padEnd(b64.length+(4-b64.length%4)%4,'='));
+            return Uint8Array.from(bin, c=>c.charCodeAt(0)).buffer;
+        }
+        function bufferToB64url(buf) {
+            const bytes = new Uint8Array(buf);
+            let bin = '';
+            bytes.forEach(b => bin += String.fromCharCode(b));
+            return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+        }
+
+        document.getElementById('btn-biometric')?.addEventListener('click', async function() {
+            const btn = this;
+            const phone = '{{ phone }}';
+            btn.disabled = true;
+            document.getElementById('bio-label').textContent = 'Ожидание...';
+
+            try {
+                // Шаг 1: получить challenge
+                const r1 = await fetch('/webauthn/auth/begin', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({phone: phone})
+                });
+                if (!r1.ok) throw new Error((await r1.json()).error || 'Ошибка');
+                const options = await r1.json();
+
+                options.challenge = b64urlToBuffer(options.challenge);
+                if (options.allowCredentials) {
+                    options.allowCredentials = options.allowCredentials.map(c => ({
+                        ...c, id: b64urlToBuffer(c.id)
+                    }));
+                }
+
+                // Шаг 2: запросить биометрию
+                const credential = await navigator.credentials.get({publicKey: options});
+
+                // Шаг 3: отправить на сервер
+                const credJSON = {
+                    id:    credential.id,
+                    rawId: bufferToB64url(credential.rawId),
+                    type:  credential.type,
+                    response: {
+                        authenticatorData: bufferToB64url(credential.response.authenticatorData),
+                        clientDataJSON:    bufferToB64url(credential.response.clientDataJSON),
+                        signature:         bufferToB64url(credential.response.signature),
+                        userHandle: credential.response.userHandle
+                            ? bufferToB64url(credential.response.userHandle) : null,
+                    }
+                };
+
+                const r2 = await fetch('/webauthn/auth/complete', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(credJSON)
+                });
+                const result = await r2.json();
+                if (result.ok) {
+                    window.location.href = '/';
+                } else {
+                    throw new Error(result.error || 'Не удалось войти');
+                }
+
+            } catch(e) {
+                btn.disabled = false;
+                document.getElementById('bio-label').textContent = 'Войти по Face ID / отпечатку';
+                if (e.name !== 'NotAllowedError') {
+                    alert('Ошибка биометрии: ' + (e.message || e.name));
+                }
+            }
+        });
+        </script>
 
         <!-- ─── STEP 2b: create password ─────────────────────── -->
         {% elif step == "create_password" %}

@@ -65,6 +65,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # ─── Подключаем роутеры ──────────────────────────────────────────────────────
 from routes.auth      import router as auth_router
+from routes.webauthn  import router as webauthn_router
 from routes.dashboard import router as dashboard_router
 from routes.projects  import router as projects_router
 from routes.sections  import router as sections_router
@@ -80,7 +81,7 @@ from routes.ai        import router as ai_router
 from routes.api       import router as api_router
 from routes.sync      import router as sync_router
 
-for r in [auth_router, dashboard_router, projects_router, sections_router,
+for r in [auth_router, webauthn_router, dashboard_router, projects_router, sections_router,
           kso_router, tasks_router, managers_router, deadlines_router,
           vpk_router, stats_router, admin_router, chat_router,
           ai_router, api_router, sync_router]:
@@ -158,6 +159,15 @@ async def startup():
                     "ALTER TABLE vpk_report_items ADD COLUMN IF NOT EXISTS photo_path VARCHAR(300) DEFAULT ''",
                     "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS photo_path VARCHAR(300) DEFAULT ''",
                     "CREATE TABLE IF NOT EXISTS ai_chat_messages (id SERIAL PRIMARY KEY, user_name VARCHAR(100) NOT NULL, role VARCHAR(20) NOT NULL, text TEXT NOT NULL, provider VARCHAR(30) DEFAULT 'groq', created_at TIMESTAMP DEFAULT NOW())",
+                    """CREATE TABLE IF NOT EXISTS webauthn_credentials (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+                        credential_id TEXT UNIQUE NOT NULL,
+                        public_key TEXT NOT NULL,
+                        sign_count INTEGER DEFAULT 0,
+                        device_name VARCHAR(150) DEFAULT '',
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )""",
                 ]:
                     try:
                         conn.exec_driver_sql(sql)

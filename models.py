@@ -194,6 +194,19 @@ class Task(Base):
     assignee = relationship("Manager", back_populates="tasks")
 
 
+class WebAuthnCredential(Base):
+    """Хранит зарегистрированные биометрические ключи пользователя (Face ID / Touch ID)."""
+    __tablename__ = "webauthn_credentials"
+    id            = Column(Integer, primary_key=True)
+    user_id       = Column(Integer, ForeignKey("users.id"), nullable=False)
+    credential_id = Column(Text, unique=True, nullable=False)  # base64url
+    public_key    = Column(Text, nullable=False)               # base64 COSE
+    sign_count    = Column(Integer, default=0)
+    device_name   = Column(String(150), default="")            # "iPhone 15", "MacBook" и т.д.
+    created_at    = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User")
+
+
 class TaskNotification(Base):
     __tablename__ = "task_notifications"
     id = Column(Integer, primary_key=True)
