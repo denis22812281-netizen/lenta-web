@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, get_current_user
+from deps import templates, get_current_user, limiter
 from utils.passwords import hash_password, verify_password, _is_legacy_hash
 from utils.phone import normalize_phone
 
@@ -19,6 +19,7 @@ async def login_page(request: Request):
 
 
 @router.post("/login/check-phone")
+@limiter.limit("20/minute")
 async def check_phone(request: Request, db: Session = Depends(get_db),
                       phone: str = Form(...)):
     normalized = normalize_phone(phone)
@@ -43,6 +44,7 @@ async def check_phone(request: Request, db: Session = Depends(get_db),
 
 
 @router.post("/login/enter")
+@limiter.limit("5/minute")
 async def login_enter(request: Request, db: Session = Depends(get_db),
                       phone: str = Form(...), password: str = Form(...),
                       remember: str = Form("")):
@@ -63,6 +65,7 @@ async def login_enter(request: Request, db: Session = Depends(get_db),
 
 
 @router.post("/login/create-password")
+@limiter.limit("10/minute")
 async def create_password(request: Request, db: Session = Depends(get_db),
                           phone: str = Form(...), password: str = Form(...),
                           password2: str = Form(...)):

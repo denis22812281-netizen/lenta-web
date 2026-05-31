@@ -1,7 +1,15 @@
 from fastapi import Request, HTTPException
 from fastapi.templating import Jinja2Templates
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+from utils.csrf import get_csrf_token
 
 templates = Jinja2Templates(directory="templates")
+templates.env.globals["csrf_token"] = get_csrf_token
+
+# Rate limiter (shared между роутерами)
+limiter = Limiter(key_func=get_remote_address)
 
 
 def get_current_user(request: Request):

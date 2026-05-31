@@ -4,14 +4,21 @@ import os
 import secrets
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import parse_qs
 
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.requests import Request
 
 import database
 import models
 from config import MANAGERS_SEED
+from deps import limiter
 from services.excel_import import import_reconstruct_excel, import_construction_excel, parse_excel_file
 from services.online import ONLINE_USERS
 
@@ -19,8 +26,41 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Лента — Управление проектами")
 
+
+class CSRFMiddleware(BaseHTTPMiddleware):
+    """Проверяет CSRF-токен для всех POST-форм (кроме API и логина)."""
+    _EXEMPT = ("/api/", "/login/")
+    _SKIP_CONTENT = ("multipart/", "application/json")
+
+    async def dispatch(self, request: Request, call_next):
+        if request.method == "POST":
+            path = request.url.path
+            ct   = request.headers.get("content-type", "")
+            if (not any(path.startswith(e) for e in self._EXEMPT)
+                    and not any(ct.startswith(s) for s in self._SKIP_CONTENT)):
+                body = await request.body()
+                try:
+                    params = parse_qs(body.decode("utf-8"))
+                    submitted = (params.get("csrf_token") or [None])[0]
+                except Exception:
+                    submitted = None
+                expected = request.session.get("csrf_token", "")
+                if not (expected and submitted
+                        and secrets.compare_digest(submitted, expected)):
+                    logger.warning("CSRF fail: path=%s ip=%s",
+                                   path, request.client.host if request.client else "?")
+                    return HTMLResponse(
+                        "<h2>403 Forbidden</h2><p>Неверный CSRF-токен. "
+                        "<a href='javascript:history.back()'>Назад</a></p>",
+                        status_code=403)
+        return await call_next(request)
+
 SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_hex(32))
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=86400 * 7)
+app.add_middleware(CSRFMiddleware)
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=86400 * 7,
+                   same_site="lax", https_only=bool(os.getenv("RAILWAY_ENVIRONMENT")))
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # ─── Подключаем роутеры ──────────────────────────────────────────────────────
