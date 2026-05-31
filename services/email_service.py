@@ -133,31 +133,71 @@ def notify_task_status_changed(to_email: str, creator_name: str,
     )
 
 
+APP_URL = os.getenv("APP_URL", "").rstrip("/")
+
+
 def notify_vpk_report(to_email: str, recipient_name: str,
                       vpk_type: int, tk_number: str, project_name: str,
                       submitted_by: str, done: int, total: int,
-                      submitted_at: str) -> bool:
-    """Уведомление о новом ВПК-отчёте."""
+                      submitted_at: str,
+                      failed_items: list | None = None) -> bool:
+    """Уведомление о новом ВПК-отчёте.
+
+    failed_items: список словарей {"name": str, "comment": str, "photo_path": str}
+    """
     pct   = int(done / total * 100) if total else 0
     color = "#16a34a" if pct >= 80 else "#d97706" if pct >= 50 else "#dc2626"
+
+    failed_block = ""
+    if failed_items:
+        rows = ""
+        for item in failed_items:
+            photo_html = ""
+            if item.get("photo_path") and APP_URL:
+                url = f"{APP_URL}/static/{item['photo_path']}"
+                photo_html = (
+                    f'<br><a href="{url}" target="_blank">'
+                    f'<img src="{url}" style="max-width:260px;max-height:180px;'
+                    f'border-radius:6px;margin-top:6px;border:1px solid #e5e7eb"></a>'
+                )
+            comment_html = (
+                f'<div style="color:#555;font-size:12px;margin-top:4px">'
+                f'{item["comment"]}</div>'
+                if item.get("comment") else ""
+            )
+            rows += (
+                f'<div style="padding:10px 0;border-bottom:1px solid #fee2e2">'
+                f'<span style="color:#dc2626">✗</span> {item["name"]}'
+                f'{comment_html}{photo_html}</div>'
+            )
+        failed_block = f"""
+        <div style="margin-top:16px">
+          <b style="color:#dc2626">Не выполнено ({len(failed_items)}):</b>
+          <div style="background:#fff5f5;border:1px solid #fecaca;
+                      border-radius:8px;padding:8px 12px;margin-top:8px">
+            {rows}
+          </div>
+        </div>"""
+
     content = f"""
         <h2 style="color:#1a2e1c">Новый отчёт ВПК{vpk_type}</h2>
         <p>Привет, <b>{recipient_name}</b>!</p>
-        <p><b>{submitted_by}</b> отправил отчёт ВПК{vpk_type}:</p>
+        <p><b>{submitted_by}</b> отправил отчёт:</p>
         <div style="background:#f4faf5;border-left:4px solid #3CB34A;
                     padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0">
-          <b style="font-size:16px">ТК {tk_number}</b>
+          <b style="font-size:18px">ТК {tk_number}</b>
           {"<br><span style='color:#666;font-size:13px'>" + project_name + "</span>" if project_name else ""}
         </div>
         <p>Выполнено критериев:
-          <span style="background:{color};color:#fff;padding:4px 12px;
-                       border-radius:12px;font-weight:700">{done}/{total} ({pct}%)</span>
+          <span style="background:{color};color:#fff;padding:4px 14px;
+                       border-radius:12px;font-weight:700">{done} / {total} ({pct}%)</span>
         </p>
-        <p style="color:#999;font-size:12px">Отправлено: {submitted_at}</p>
+        {failed_block}
+        <p style="color:#999;font-size:12px;margin-top:16px">Отправлено: {submitted_at}</p>
     """
     return send_email(
         to_email,
-        f"ВПК{vpk_type} отчёт — ТК {tk_number} ({done}/{total} критериев)",
+        f"ВПК{vpk_type} — ТК {tk_number}: {done}/{total} выполнено, {total - done} нарушений",
         _base_template(content)
     )
 

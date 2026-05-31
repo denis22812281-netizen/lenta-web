@@ -88,15 +88,18 @@ async def vpk_submit(request: Request, db: Session = Depends(get_db)):
     proj_name = proj.name if proj else ""
 
     # Email-уведомления — всем кто имеет email: лидеры + менеджер проекта
-    items     = db.query(models.VpkReportItem).filter(
+    items        = db.query(models.VpkReportItem).filter(
         models.VpkReportItem.report_id == report.id).all()
-    done      = sum(1 for i in items if i.done)
-    total     = len(items)
+    done         = sum(1 for i in items if i.done)
+    total        = len(items)
     submitted_at = report.submitted_at.strftime("%d.%m.%Y %H:%M") if report.submitted_at else ""
-    submitter = user.get("display_name", "")
+    submitter    = user.get("display_name", "")
+    failed_items = [
+        {"name": i.criterion_name, "comment": i.comment or "", "photo_path": i.photo_path or ""}
+        for i in items if not i.done
+    ]
 
     recipients = {}
-    # Все лидеры и менеджер проекта получают уведомление
     for mgr in db.query(models.Manager).filter(
             models.Manager.email != "", models.Manager.email.isnot(None)).all():
         if mgr.is_leader or (proj and proj.manager_id == mgr.id):
@@ -107,7 +110,7 @@ async def vpk_submit(request: Request, db: Session = Depends(get_db)):
             to_email=email, recipient_name=name,
             vpk_type=vpk_type, tk_number=tk, project_name=proj_name,
             submitted_by=submitter, done=done, total=total,
-            submitted_at=submitted_at,
+            submitted_at=submitted_at, failed_items=failed_items,
         )
 
     return RedirectResponse(
