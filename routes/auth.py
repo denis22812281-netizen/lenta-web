@@ -1,0 +1,115 @@
+from fastapi import APIRouter, Request, Form, Depends
+from fastapi.responses import HTMLResponse, RedirectResponse
+from sqlalchemy.orm import Session
+
+import models
+from database import get_db
+from deps import templates, get_current_user
+from utils.passwords import hash_password, verify_password, _is_legacy_hash
+from utils.phone import normalize_phone
+
+router = APIRouter()
+
+
+@router.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    if request.session.get("user"):
+        return RedirectResponse("/", status_code=302)
+    return templates.TemplateResponse("login.html", {"request": request})
+
+
+@router.post("/login/check-phone")
+async def check_phone(request: Request, db: Session = Depends(get_db),
+                      phone: str = Form(...)):
+    normalized = normalize_phone(phone)
+    wl = db.query(models.PhoneWhitelist).filter(
+        models.PhoneWhitelist.phone == normalized).first()
+    if not wl:
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": "Доступ закрыт. Этот номер не авторизован.",
+        })
+    user = db.query(models.User).filter(models.User.phone == normalized).first()
+    if user and user.password_hash:
+        return templates.TemplateResponse("login.html", {
+            "request": request, "step": "password",
+            "phone": normalized,
+            "display_name": user.display_name or wl.display_name,
+        })
+    return templates.TemplateResponse("login.html", {
+        "request": request, "step": "create_password",
+        "phone": normalized, "display_name": wl.display_name,
+    })
+
+
+@router.post("/login/enter")
+async def login_enter(request: Request, db: Session = Depends(get_db),
+                      phone: str = Form(...), password: str = Form(...),
+                      remember: str = Form("")):
+    normalized = normalize_phone(phone)
+    user = db.query(models.User).filter(models.User.phone == normalized).first()
+    if not user or not verify_password(password, user.password_hash):
+        return templates.TemplateResponse("login.html", {
+            "request": request, "step": "password",
+            "phone": normalized,
+            "display_name": user.display_name if user else "",
+            "error": "Неверный пароль",
+        })
+    if _is_legacy_hash(user.password_hash):
+        user.password_hash = hash_password(password)
+        db.commit()
+    _set_session(request, user)
+    return RedirectResponse("/", status_code=302)
+
+
+@router.post("/login/create-password")
+async def create_password(request: Request, db: Session = Depends(get_db),
+                          phone: str = Form(...), password: str = Form(...),
+                          password2: str = Form(...)):
+    normalized = normalize_phone(phone)
+    wl = db.query(models.PhoneWhitelist).filter(
+        models.PhoneWhitelist.phone == normalized).first()
+    if not wl:
+        return RedirectResponse("/login", status_code=302)
+    if len(password) < 6:
+        return templates.TemplateResponse("login.html", {
+            "request": request, "step": "create_password",
+            "phone": normalized, "display_name": wl.display_name,
+            "error": "Пароль должен быть не менее 6 символов",
+        })
+    if password != password2:
+        return templates.TemplateResponse("login.html", {
+            "request": request, "step": "create_password",
+            "phone": normalized, "display_name": wl.display_name,
+            "error": "Пароли не совпадают",
+        })
+    user = db.query(models.User).filter(models.User.phone == normalized).first()
+    if user:
+        user.password_hash = hash_password(password)
+    else:
+        user = models.User(
+            phone=normalized, username=normalized,
+            password_hash=hash_password(password),
+            display_name=wl.display_name, is_admin=wl.is_admin,
+        )
+        db.add(user)
+    db.commit()
+    db.refresh(user)
+    _set_session(request, user)
+    return RedirectResponse("/", status_code=302)
+
+
+@router.get("/logout")
+async def logout(request: Request):
+    request.session.clear()
+    return RedirectResponse("/login", status_code=302)
+
+
+def _set_session(request: Request, user: models.User):
+    request.session["user"] = {
+        "id": user.id,
+        "username": user.username,
+        "display_name": user.display_name,
+        "is_admin": user.is_admin,
+        "phone": user.phone,
+    }
