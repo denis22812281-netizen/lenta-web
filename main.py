@@ -233,21 +233,36 @@ async def startup():
 
     db = database.SessionLocal()
     try:
-        if db.query(models.Manager).count() == 0:
-            for name, is_leader in MANAGERS_SEED:
+        # Добавляем менеджеров из MANAGERS_SEED если их нет (upsert по имени)
+        existing_names = {m.name for m in db.query(models.Manager).all()}
+        for name, is_leader in MANAGERS_SEED:
+            if name not in existing_names:
                 db.add(models.Manager(name=name, is_leader=is_leader))
-            db.commit()
+        db.commit()
+
+        # Прописать фотографии менеджерам
+        MANAGER_PHOTOS = {
+            "Месмер Денис":    "img/raccoon_mesmer.jpg",
+            "Гаврин Игорь":    "img/managers/gavrin.png",
+            "Комаров Алексей": "img/managers/komarov.png",
+        }
+        for mgr in db.query(models.Manager).all():
+            if mgr.name in MANAGER_PHOTOS and not mgr.photo:
+                mgr.photo = MANAGER_PHOTOS[mgr.name]
+        db.commit()
 
         # Прописать email и права менеджерам из переменных окружения
-        # MANAGER_EMAIL_Имя_Фамилия=email  |  MANAGER_LEADER_Имя_Фамилия=true
+        # MANAGER_EMAIL_Имя_Фамилия=email  |  MANAGER_LEADER_Имя_Фамилия=true/false
         for mgr in db.query(models.Manager).all():
             key = mgr.name.replace(" ", "_")
             email_val = os.getenv(f"MANAGER_EMAIL_{key}", "").strip().lower()
             if email_val and mgr.email != email_val:
                 mgr.email = email_val
             leader_val = os.getenv(f"MANAGER_LEADER_{key}", "").strip().lower()
-            if leader_val in ("true", "1", "yes") and not mgr.is_leader:
+            if leader_val in ("true", "1", "yes"):
                 mgr.is_leader = True
+            elif leader_val in ("false", "0", "no"):
+                mgr.is_leader = False
         db.commit()
 
         # Первый администратор — из переменной окружения ADMIN_PHONE
