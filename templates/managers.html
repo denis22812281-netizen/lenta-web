@@ -47,7 +47,7 @@
 
         <!-- Имя -->
         <div class="mgr-name-row">
-            <div style="position:relative;flex-shrink:0">
+            <div class="mgr-raccoon-wrap" style="position:relative;flex-shrink:0">
                 {% if m.photo %}
                 <img src="/static/{{ m.photo }}" class="mgr-raccoon" alt="{{ m.name }}">
                 {% elif 'Месмер' in m.name %}
@@ -377,8 +377,12 @@
 }
 [data-bs-theme="dark"] .mgr-tab-recon.active .mgr-tab-count { background: #3CB34A; color: #fff; }
 [data-bs-theme="dark"] .mgr-tab-constr.active .mgr-tab-count { background: #3b82f6; color: #fff; }
+[data-bs-theme="dark"] .mgr-raccoon-wrap {
+    background: #d1fae5;
+    border-radius: 10px;
+}
 [data-bs-theme="dark"] .mgr-raccoon {
-    background: #1e293b;
+    mix-blend-mode: multiply;
 }
 [data-bs-theme="dark"] .mgr-online-dot { border-color: #1e293b; }
 </style>
