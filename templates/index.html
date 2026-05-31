@@ -123,7 +123,7 @@
                 </thead>
                 <tbody>
                 {% for t in recent_tasks %}
-                <tr>
+                <tr style="cursor:pointer" onclick="window.location='/tasks'">
                     <td class="fw-semibold small">{{ t.title[:28] }}{% if t.title|length > 28 %}…{% endif %}</td>
                     <td class="text-muted small">{{ t.assignee.name if t.assignee else '—' }}</td>
                     <td class="small">

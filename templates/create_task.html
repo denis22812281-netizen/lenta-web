@@ -98,7 +98,16 @@
                 <tbody>
                 {% for t in tasks %}
                 {% if t.deadline %}{% set days = (t.deadline - today).days %}{% else %}{% set days = None %}{% endif %}
-                <tr class="{% if days is not none and days < 0 and t.status != 'Завершена' %}table-danger{% elif days is not none and days <= 3 and t.status != 'Завершена' %}table-warning{% endif %}">
+                <tr class="task-row {% if days is not none and days < 0 and t.status != 'Завершена' %}table-danger{% elif days is not none and days <= 3 and t.status != 'Завершена' %}table-warning{% endif %}"
+                    style="cursor:pointer"
+                    data-title="{{ t.title|e }}"
+                    data-description="{{ t.description|e }}"
+                    data-assignee="{{ t.assignee.name if t.assignee else '—' }}"
+                    data-created-by="{{ t.created_by or '—' }}"
+                    data-project="{{ t.project.name if t.project else '—' }}"
+                    data-deadline="{{ t.deadline.strftime('%d.%m.%Y') if t.deadline else '—' }}"
+                    data-priority="{{ t.priority }}"
+                    data-status="{{ t.status }}">
                     <td>
                         <div class="fw-semibold">{{ t.title }}</div>
                         {% if t.description %}<div class="text-muted small">{{ t.description[:50] }}{% if t.description|length > 50 %}…{% endif %}</div>{% endif %}
@@ -151,6 +160,32 @@
 
 {% endblock %}
 
+<!-- Модал: детали задачи -->
+<div class="modal fade" id="taskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="modalTitle"></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-borderless mb-0 small">
+                    <tr><td class="text-muted fw-semibold" style="width:130px">Поставил</td><td id="modalCreatedBy" class="fw-semibold"></td></tr>
+                    <tr><td class="text-muted fw-semibold">Назначено</td><td id="modalAssignee"></td></tr>
+                    <tr><td class="text-muted fw-semibold">Проект</td><td id="modalProject"></td></tr>
+                    <tr><td class="text-muted fw-semibold">Дедлайн</td><td id="modalDeadline"></td></tr>
+                    <tr><td class="text-muted fw-semibold">Приоритет</td><td id="modalPriority"></td></tr>
+                    <tr><td class="text-muted fw-semibold">Статус</td><td id="modalStatus"></td></tr>
+                </table>
+                <div id="modalDescWrap" class="mt-3 d-none">
+                    <div class="fw-semibold text-muted small mb-1">Описание</div>
+                    <div id="modalDescription" class="p-2 bg-light rounded small" style="white-space:pre-wrap"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% block scripts %}
 <script>
 // Priority button toggle
@@ -158,6 +193,29 @@ document.querySelectorAll('.priority-label').forEach(label => {
     label.addEventListener('click', function() {
         document.querySelectorAll('.priority-label').forEach(l => l.classList.remove('active'));
         this.classList.add('active');
+    });
+});
+
+// Клик по строке задачи — открыть модал
+document.querySelectorAll('.task-row').forEach(row => {
+    row.addEventListener('click', function(e) {
+        if (e.target.closest('form, select, button, a')) return;
+        document.getElementById('modalTitle').textContent      = this.dataset.title;
+        document.getElementById('modalCreatedBy').textContent  = this.dataset.createdBy;
+        document.getElementById('modalAssignee').textContent   = this.dataset.assignee;
+        document.getElementById('modalProject').textContent    = this.dataset.project;
+        document.getElementById('modalDeadline').textContent   = this.dataset.deadline;
+        document.getElementById('modalPriority').textContent   = this.dataset.priority;
+        document.getElementById('modalStatus').textContent     = this.dataset.status;
+        const desc = this.dataset.description;
+        const wrap = document.getElementById('modalDescWrap');
+        if (desc) {
+            document.getElementById('modalDescription').textContent = desc;
+            wrap.classList.remove('d-none');
+        } else {
+            wrap.classList.add('d-none');
+        }
+        new bootstrap.Modal(document.getElementById('taskModal')).show();
     });
 });
 
