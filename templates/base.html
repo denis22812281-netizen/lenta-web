@@ -373,6 +373,29 @@
 </style>
 
 <script>
+/* ── Уведомления по задачам ── */
+(function() {
+    function checkTaskNotif() {
+        fetch('/api/task-notifications', { credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.notifications || !data.notifications.length) return;
+                data.notifications.forEach(function(n, i) {
+                    setTimeout(function() {
+                        showNotifToast('Задача', n.message, 'medium');
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            try { new Notification('Задача', { body: n.message, icon: '/static/img/raccoon.png' }); } catch(e) {}
+                        }
+                    }, i * 1500);
+                });
+            }).catch(function(){});
+    }
+    setTimeout(checkTaskNotif, 7000);
+    setInterval(checkTaskNotif, 30000);
+})();
+</script>
+
+<script>
 /* ── Присутствие: пинг каждые 25 сек + при любой активности ── */
 (function() {
     var _lastPing = 0;

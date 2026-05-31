@@ -634,6 +634,15 @@ async def startup():
                     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()",
                     "ALTER TABLE managers ADD COLUMN IF NOT EXISTS photo VARCHAR(200) DEFAULT ''",
                     "ALTER TABLE managers ADD COLUMN IF NOT EXISTS position VARCHAR(150) DEFAULT ''",
+                    "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completion_comment TEXT DEFAULT ''",
+                    """CREATE TABLE IF NOT EXISTS task_notifications (
+                        id SERIAL PRIMARY KEY,
+                        recipient_name VARCHAR(100) NOT NULL,
+                        task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+                        message TEXT NOT NULL,
+                        is_read BOOLEAN DEFAULT FALSE,
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )""",
                     "ALTER TABLE vpk_report_items ADD COLUMN IF NOT EXISTS comment TEXT DEFAULT ''",
                     "ALTER TABLE vpk_report_items ADD COLUMN IF NOT EXISTS photo_path VARCHAR(300) DEFAULT ''",
                     "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS photo_path VARCHAR(300) DEFAULT ''",
@@ -1448,20 +1457,44 @@ async def tasks_view(request: Request, db: Session = Depends(get_db),
     user = get_current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=302)
+    my_name = user.get("display_name", "")
+    is_admin = user.get("is_admin", False)
+
+    # Найти менеджера текущего пользователя
+    my_manager = db.query(models.Manager).filter(models.Manager.name == my_name).first()
+
+    from sqlalchemy import or_
     q = db.query(models.Task)
-    if manager_id and str(manager_id).isdigit():
-        q = q.filter(models.Task.assignee_id == int(manager_id))
+    if not is_admin:
+        # Обычный менеджер видит только свои задачи
+        conditions = [models.Task.created_by == my_name]
+        if my_manager:
+            conditions.append(models.Task.assignee_id == my_manager.id)
+        q = q.filter(or_(*conditions))
+    else:
+        # Админ/руководитель видит все, но может фильтровать
+        if manager_id and str(manager_id).isdigit():
+            q = q.filter(models.Task.assignee_id == int(manager_id))
+
     if status:
         q = q.filter(models.Task.status == status)
     tasks = q.order_by(models.Task.deadline.nullslast()).all()
     managers = db.query(models.Manager).all()
     projects = db.query(models.Project).filter(models.Project.status == "Активный").all()
+
+    # Непрочитанные уведомления по задачам
+    unread_notifs = db.query(models.TaskNotification).filter(
+        models.TaskNotification.recipient_name == my_name,
+        models.TaskNotification.is_read == False,
+    ).count()
+
     return templates.TemplateResponse("create_task.html", {
         "request": request, "user": user,
         "tasks": tasks, "managers": managers, "projects": projects,
         "priorities": PRIORITIES, "task_statuses": TASK_STATUSES,
         "today": date.today(),
         "filter_manager_id": manager_id, "filter_status": status,
+        "unread_notifs": unread_notifs,
     })
 
 
@@ -1473,28 +1506,58 @@ async def create_task(request: Request, db: Session = Depends(get_db),
     user = get_current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=302)
+    creator = user.get("display_name", "")
     task = models.Task(
         title=title, description=description,
         project_id=int(project_id) if project_id else None,
         assignee_id=int(assignee_id) if assignee_id else None,
         deadline=datetime.strptime(deadline, "%Y-%m-%d").date() if deadline else None,
         priority=priority,
-        created_by=user.get("display_name", ""),
+        created_by=creator,
     )
     db.add(task)
+    db.flush()
+
+    # Уведомление исполнителю
+    if assignee_id:
+        assignee = db.query(models.Manager).filter(
+            models.Manager.id == int(assignee_id)).first()
+        if assignee and assignee.name != creator:
+            dl = f", дедлайн {task.deadline.strftime('%d.%m.%Y')}" if task.deadline else ""
+            db.add(models.TaskNotification(
+                recipient_name=assignee.name,
+                task_id=task.id,
+                message=f"📋 {creator} поставил вам задачу: «{title}»{dl}",
+            ))
     db.commit()
     return RedirectResponse("/tasks", status_code=303)
 
 
 @app.post("/tasks/{task_id}/update-status")
 async def update_task_status(task_id: int, request: Request, db: Session = Depends(get_db),
-                             status: str = Form(...)):
+                             status: str = Form(...),
+                             completion_comment: str = Form("")):
     user = get_current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=302)
     t = db.query(models.Task).filter(models.Task.id == task_id).first()
     if t:
+        old_status = t.status
         t.status = status
+        if status == "Завершена" and completion_comment.strip():
+            t.completion_comment = completion_comment.strip()
+
+        # Уведомление постановщику при смене статуса
+        if t.created_by and t.created_by != user.get("display_name", "") and old_status != status:
+            status_icon = "✅" if status == "Завершена" else "🔄"
+            msg = f"{status_icon} Задача «{t.title}»: статус изменён на «{status}»"
+            if status == "Завершена" and completion_comment.strip():
+                msg += f"\nКомментарий: {completion_comment.strip()}"
+            db.add(models.TaskNotification(
+                recipient_name=t.created_by,
+                task_id=t.id,
+                message=msg,
+            ))
         db.commit()
     return RedirectResponse("/tasks", status_code=303)
 
@@ -2872,6 +2935,26 @@ async def chat_page(request: Request, db: Session = Depends(get_db),
         "my_name": my_name, "unread_by": unread_by,
         "online_set": online_set,
     })
+
+
+@app.get("/api/task-notifications")
+async def get_task_notifications(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user:
+        return {"notifications": [], "unread": 0}
+    my_name = user.get("display_name", "")
+    notifs = db.query(models.TaskNotification).filter(
+        models.TaskNotification.recipient_name == my_name,
+        models.TaskNotification.is_read == False,
+    ).order_by(models.TaskNotification.created_at.desc()).limit(10).all()
+    # Помечаем как прочитанные
+    for n in notifs:
+        n.is_read = True
+    db.commit()
+    return {
+        "notifications": [{"id": n.id, "message": n.message, "task_id": n.task_id} for n in notifs],
+        "unread": len(notifs),
+    }
 
 
 @app.post("/api/ping")

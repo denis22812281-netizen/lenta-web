@@ -189,5 +189,17 @@ class Task(Base):
     status = Column(String(50), default="Открытая")
     created_at = Column(DateTime, default=datetime.utcnow)
     created_by = Column(String(100), default="")
+    completion_comment = Column(Text, default="")
     project = relationship("Project", back_populates="tasks")
     assignee = relationship("Manager", back_populates="tasks")
+
+
+class TaskNotification(Base):
+    __tablename__ = "task_notifications"
+    id = Column(Integer, primary_key=True)
+    recipient_name = Column(String(100), nullable=False)  # кому
+    task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
+    message = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    task = relationship("Task")
