@@ -1,4 +1,5 @@
 import io
+import os
 from datetime import datetime, date, timedelta
 from pathlib import Path
 
@@ -12,6 +13,11 @@ import models
 from database import get_db
 from deps import templates, get_current_user
 from services.email_service import notify_vpk_report
+
+# Список email для VPK-уведомлений (ASCII env var, через запятую)
+_VPK_NOTIFY_EMAILS = [
+    e.strip() for e in os.getenv("NOTIFY_VPK_EMAILS", "").split(",") if e.strip()
+]
 
 router = APIRouter()
 
@@ -100,10 +106,15 @@ async def vpk_submit(request: Request, db: Session = Depends(get_db)):
     ]
 
     recipients = {}
+    # Из базы: лидеры и менеджер проекта
     for mgr in db.query(models.Manager).filter(
             models.Manager.email != "", models.Manager.email.isnot(None)).all():
         if mgr.is_leader or (proj and proj.manager_id == mgr.id):
             recipients[mgr.email] = mgr.name
+    # Из env: NOTIFY_VPK_EMAILS (надёжный ASCII способ)
+    for e in _VPK_NOTIFY_EMAILS:
+        if e not in recipients:
+            recipients[e] = e.split("@")[0]
 
     for email, name in recipients.items():
         notify_vpk_report(
