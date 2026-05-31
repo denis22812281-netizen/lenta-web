@@ -9,7 +9,7 @@ from pathlib import Path
 from urllib.parse import parse_qs
 
 from fastapi import FastAPI
-from fastapi.middleware.gzip import GZIPMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
@@ -64,7 +64,7 @@ app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=86400 * 7,
                    same_site="lax", https_only=bool(os.getenv("RAILWAY_ENVIRONMENT")))
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-app.add_middleware(GZIPMiddleware, minimum_size=1000)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # ─── Подключаем роутеры ──────────────────────────────────────────────────────
