@@ -610,8 +610,8 @@ async def auto_sync_loop():
                         db.commit()
             finally:
                 db.close()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[auto_sync_loop] критическая ошибка: {e}")
 
 
 @app.on_event("startup")
