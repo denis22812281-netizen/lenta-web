@@ -61,13 +61,16 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         ).group_by(models.Task.status).all()
     }
     # Задачи по менеджерам (топ-8)
-    tasks_per_mgr = db.query(
-        models.Manager.name,
-        func.count(models.Task.id).label("cnt")
-    ).join(models.Task, models.Task.assignee_id == models.Manager.id)\
-     .group_by(models.Manager.name)\
-     .order_by(func.count(models.Task.id).desc())\
-     .limit(8).all()
+    tasks_per_mgr = [
+        (row[0], row[1])
+        for row in db.query(
+            models.Manager.name,
+            func.count(models.Task.id).label("cnt")
+        ).join(models.Task, models.Task.assignee_id == models.Manager.id)
+         .group_by(models.Manager.name)
+         .order_by(func.count(models.Task.id).desc())
+         .limit(8).all()
+    ]
 
     return templates.TemplateResponse("index.html", {
         "request": request, "user": user,

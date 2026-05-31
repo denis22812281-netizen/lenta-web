@@ -353,6 +353,34 @@
     background: #9ca3af; border: 2px solid #fff;
 }
 .mgr-online-dot.mgr-online { background: #16a34a; }
+
+/* ── DARK THEME ─────────────────────────────────────────── */
+[data-bs-theme="dark"] .mgr-tab {
+    background: #1e293b;
+    color: #94a3b8;
+    border-color: #334155;
+}
+[data-bs-theme="dark"] .mgr-tab-count {
+    background: rgba(255,255,255,.1);
+}
+[data-bs-theme="dark"] .mgr-tab-recon:hover,
+[data-bs-theme="dark"] .mgr-tab-recon.active {
+    background: #0d2b1a;
+    border-color: #3CB34A;
+    color: #86efac;
+}
+[data-bs-theme="dark"] .mgr-tab-constr:hover,
+[data-bs-theme="dark"] .mgr-tab-constr.active {
+    background: #0f1e3a;
+    border-color: #3b82f6;
+    color: #93c5fd;
+}
+[data-bs-theme="dark"] .mgr-tab-recon.active .mgr-tab-count { background: #3CB34A; color: #fff; }
+[data-bs-theme="dark"] .mgr-tab-constr.active .mgr-tab-count { background: #3b82f6; color: #fff; }
+[data-bs-theme="dark"] .mgr-raccoon {
+    background: #1e293b;
+}
+[data-bs-theme="dark"] .mgr-online-dot { border-color: #1e293b; }
 </style>
 <!-- Модал: добавить менеджера -->
 {% if user and user.is_admin %}
