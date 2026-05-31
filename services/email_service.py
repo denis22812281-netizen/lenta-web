@@ -183,7 +183,8 @@ def notify_vpk_report(to_email: str, recipient_name: str,
             )
             rows += (
                 f'<div style="padding:10px 0;border-bottom:1px solid #fee2e2">'
-                f'<span style="color:#dc2626">✗</span> {item["name"]}'
+                f'<span style="color:#dc2626;font-size:18px;font-weight:900">✗</span> '
+                f'<b style="color:#dc2626;font-size:14px">{item["name"]}</b>'
                 f'{comment_html}{photo_note}</div>'
             )
         failed_block = f"""
@@ -193,25 +194,23 @@ def notify_vpk_report(to_email: str, recipient_name: str,
                       border-radius:8px;padding:8px 12px;margin-top:8px">{rows}</div>
         </div>"""
 
+    not_done = total - done
     content = f"""
-        <h2 style="color:#1a2e1c">Новый отчёт ВПК{vpk_type}</h2>
-        <p>Привет, <b>{recipient_name}</b>!</p>
-        <p><b>{submitted_by}</b> отправил отчёт:</p>
+        <p style="font-size:16px;margin-bottom:4px">Добрый день, <b>{recipient_name}</b>.</p>
+        <p style="margin-top:4px"><b>{submitted_by}</b> отправил отчёт ВПК{vpk_type}</p>
         <div style="background:#f4faf5;border-left:4px solid #3CB34A;
                     padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0">
           <b style="font-size:18px">ТК {tk_number}</b>
           {"<br><span style='color:#666;font-size:13px'>" + project_name + "</span>" if project_name else ""}
         </div>
-        <p>Выполнено:
-          <span style="background:{color};color:#fff;padding:4px 14px;
-                       border-radius:12px;font-weight:700">{done} / {total} ({pct}%)</span>
-        </p>
+        <p style="font-size:15px">Выполнено: <b>{done}/{total}</b></p>
+        <p style="font-size:15px;color:#dc2626">Не выполнено: <b>{not_done}</b></p>
         {failed_block}
         <p style="color:#999;font-size:12px;margin-top:16px">Отправлено: {submitted_at}</p>
     """
     return send_email(
         to_email,
-        f"ВПК{vpk_type} — ТК {tk_number}: {done}/{total}, нарушений {total - done}",
+        f"ВПК{vpk_type} — ТК {tk_number}: {done}/{total}, нарушений {not_done}",
         _base_template(content),
         attachments=attachments or None,
     )
