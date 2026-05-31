@@ -2,9 +2,18 @@
 Email-уведомления через Brevo HTTP API (порт 443, не блокируется Railway).
 Активируется если задана BREVO_API_KEY.
 """
+import io
 import os
+import base64
 import logging
+from pathlib import Path
 import httpx
+
+try:
+    from PIL import Image as _PILImage
+    _PIL_AVAILABLE = True
+except ImportError:
+    _PIL_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +28,24 @@ EMAIL_ENABLED = bool(BREVO_API_KEY)
 logger.warning("Email init: enabled=%s sender=%s", EMAIL_ENABLED, _SENDER_EMAIL)
 
 
-def send_email(to: str, subject: str, body_html: str) -> bool:
+def _compress_photo(path: Path, max_px: int = 1200, quality: int = 70) -> bytes:
+    """Сжимает фото до max_px и quality%. Без Pillow — возвращает оригинал."""
+    if not _PIL_AVAILABLE:
+        return path.read_bytes()
+    try:
+        with _PILImage.open(path) as img:
+            img = img.convert("RGB")
+            img.thumbnail((max_px, max_px), _PILImage.LANCZOS)
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=quality, optimize=True)
+            return buf.getvalue()
+    except Exception:
+        return path.read_bytes()
+
+
+def send_email(to: str, subject: str, body_html: str,
+               attachments: list | None = None) -> bool:
+    """attachments: список {"name": "file.jpg", "path": "/abs/path/to/file"}"""
     if not EMAIL_ENABLED:
         logger.warning("Email отключён — BREVO_API_KEY не задан, пропуск: %s", to)
         return False
@@ -27,19 +53,35 @@ def send_email(to: str, subject: str, body_html: str) -> bool:
         logger.warning("Email: некорректный адрес: %r", to)
         return False
     try:
+        payload: dict = {
+            "sender":      {"name": _SENDER_NAME, "email": _SENDER_EMAIL},
+            "to":          [{"email": to}],
+            "subject":     subject,
+            "htmlContent": body_html,
+        }
+        if attachments:
+            encoded = []
+            for att in attachments:
+                p = Path(att["path"])
+                if not p.exists():
+                    continue
+                raw = _compress_photo(p)
+                encoded.append({
+                    "name":    att["name"],
+                    "content": base64.b64encode(raw).decode(),
+                })
+            if encoded:
+                payload["attachment"] = encoded
+
         resp = httpx.post(
             _API_URL,
             headers={"api-key": BREVO_API_KEY, "Content-Type": "application/json"},
-            json={
-                "sender":      {"name": _SENDER_NAME, "email": _SENDER_EMAIL},
-                "to":          [{"email": to}],
-                "subject":     subject,
-                "htmlContent": body_html,
-            },
-            timeout=15,
+            json=payload,
+            timeout=20,
         )
         if resp.status_code in (200, 201):
-            logger.warning("Email отправлен: [%s] → %s", subject, to)
+            logger.warning("Email отправлен: [%s] → %s (вложений: %d)",
+                           subject, to, len(payload.get("attachment", [])))
             return True
         else:
             logger.error("Brevo API ошибка %s: %s", resp.status_code, resp.text)
@@ -119,18 +161,22 @@ def notify_vpk_report(to_email: str, recipient_name: str,
     pct   = int(done / total * 100) if total else 0
     color = "#16a34a" if pct >= 80 else "#d97706" if pct >= 50 else "#dc2626"
 
+    attachments = []
     failed_block = ""
     if failed_items:
         rows = ""
-        for item in failed_items:
-            photo_html = ""
-            if item.get("photo_path") and APP_URL:
-                url = f"{APP_URL}/static/{item['photo_path']}"
-                photo_html = (
-                    f'<br><a href="{url}" target="_blank">'
-                    f'<img src="{url}" style="max-width:260px;max-height:180px;'
-                    f'border-radius:6px;margin-top:6px;border:1px solid #e5e7eb"></a>'
-                )
+        for idx, item in enumerate(failed_items, 1):
+            photo_note = ""
+            if item.get("photo_path"):
+                full_path = Path("static") / item["photo_path"]
+                if full_path.exists():
+                    ext  = full_path.suffix or ".jpg"
+                    name = f"фото_{idx}{ext}"
+                    attachments.append({"name": name, "path": str(full_path)})
+                    photo_note = (
+                        f'<div style="color:#2563eb;font-size:12px;margin-top:4px">'
+                        f'📎 Фото прилагается: {name}</div>'
+                    )
             comment_html = (
                 f'<div style="color:#555;font-size:12px;margin-top:4px">{item["comment"]}</div>'
                 if item.get("comment") else ""
@@ -138,7 +184,7 @@ def notify_vpk_report(to_email: str, recipient_name: str,
             rows += (
                 f'<div style="padding:10px 0;border-bottom:1px solid #fee2e2">'
                 f'<span style="color:#dc2626">✗</span> {item["name"]}'
-                f'{comment_html}{photo_html}</div>'
+                f'{comment_html}{photo_note}</div>'
             )
         failed_block = f"""
         <div style="margin-top:16px">
@@ -166,7 +212,8 @@ def notify_vpk_report(to_email: str, recipient_name: str,
     return send_email(
         to_email,
         f"ВПК{vpk_type} — ТК {tk_number}: {done}/{total}, нарушений {total - done}",
-        _base_template(content)
+        _base_template(content),
+        attachments=attachments or None,
     )
 
 
