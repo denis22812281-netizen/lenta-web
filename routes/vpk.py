@@ -3,7 +3,7 @@ import os
 from datetime import datetime, date, timedelta
 from pathlib import Path
 
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Alignment
@@ -57,7 +57,7 @@ async def vpk_page(request: Request, db: Session = Depends(get_db), tab: str = "
 
 
 @router.post("/vpk/submit")
-async def vpk_submit(request: Request, db: Session = Depends(get_db)):
+async def vpk_submit(request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     user = get_current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=302)
@@ -121,13 +121,17 @@ async def vpk_submit(request: Request, db: Session = Depends(get_db)):
             recipients[e] = e.split("@")[0]
 
     _vpk_logger.info("VPK submit: отправка email получателям %s", list(recipients.keys()))
-    for email, name in recipients.items():
-        notify_vpk_report(
-            to_email=email, recipient_name=name,
-            vpk_type=vpk_type, tk_number=tk, project_name=proj_name,
-            submitted_by=submitter, done=done, total=total,
-            submitted_at=submitted_at, failed_items=failed_items,
-        )
+
+    def _send_emails():
+        for email, name in recipients.items():
+            notify_vpk_report(
+                to_email=email, recipient_name=name,
+                vpk_type=vpk_type, tk_number=tk, project_name=proj_name,
+                submitted_by=submitter, done=done, total=total,
+                submitted_at=submitted_at, failed_items=failed_items,
+            )
+
+    background_tasks.add_task(_send_emails)
 
     return RedirectResponse(
         f"/vpk?tab=reports&msg=Отчёт ВПК{vpk_type} по ТК {tk} отправлен",
