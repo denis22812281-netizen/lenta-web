@@ -242,7 +242,7 @@ async def startup():
 
         # Прописать фотографии и должности менеджерам
         MANAGER_DEFAULTS = {
-            "Месмер Денис":    {"photo": "img/raccoon_mesmer.jpg",    "position": "Разработчик"},
+            "Месмер Денис":    {"photo": "img/raccoon_mesmer.jpg",    "position": "Менеджер проектов"},
             "Гаврин Игорь":    {"photo": "img/managers/gavrin.png",   "position": "Руководитель проектов"},
             "Комаров Алексей": {"photo": "img/managers/komarov.png",  "position": "Директор по эксплуатации и реконструкции"},
         }
