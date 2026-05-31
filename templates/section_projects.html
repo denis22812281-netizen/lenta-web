@@ -28,11 +28,6 @@
     </form>
     {% endif %}
     {% if section_type == "Реконструкция" %}
-    <form method="post" action="/reconstruct/fix-types" class="d-inline">
-        <button type="submit" class="btn btn-outline-warning btn-sm">
-            <i class="bi bi-arrow-right-circle me-1"></i>Убрать L-номера в Констракшн
-        </button>
-    </form>
     <form method="post" action="/reconstruct/delete-tk-prefix" class="d-inline"
           onsubmit="return confirm('Удалить все проекты с префиксом ТК/L из Реконструкций?')">
         <button type="submit" class="btn btn-outline-danger btn-sm">

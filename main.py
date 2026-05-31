@@ -2505,22 +2505,6 @@ async def delete_tk_prefix(request: Request, db: Session = Depends(get_db)):
     return RedirectResponse(f"/reconstruct?msg=Удалено: {count} проектов", status_code=303)
 
 
-@app.post("/reconstruct/fix-types")
-async def fix_reconstruct_types(request: Request, db: Session = Depends(get_db)):
-    """Перемещает L-номера из Реконструкций в Констракшн."""
-    user = get_current_user(request)
-    if not user or not user.get("is_admin"):
-        return RedirectResponse("/login", status_code=302)
-    moved = 0
-    wrong = db.query(models.Project).filter(
-        models.Project.project_type == "Реконструкция",
-        models.Project.tk_number.like("L%"),
-    ).all()
-    for p in wrong:
-        p.project_type = "Констракшн"
-        moved += 1
-    db.commit()
-    return RedirectResponse(f"/reconstruct?msg=Перемещено в Констракшн: {moved} проектов", status_code=303)
 
 
 @app.post("/construction/clear-all")
