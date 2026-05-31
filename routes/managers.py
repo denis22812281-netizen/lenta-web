@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from pathlib import Path
 
 from fastapi import APIRouter, Request, Form, Depends, UploadFile, File, HTTPException
@@ -19,7 +19,7 @@ async def managers_view(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=302)
-    today = datetime.utcnow().date()
+    today = date.today()
     _order = [
         "Месмер Денис", "Митько Роберт", "Ловчиков Александр",
         "Валеев Борис", "Косило Сергей", "Студеникин Сергей",
@@ -30,8 +30,6 @@ async def managers_view(request: Request, db: Session = Depends(get_db)):
         0 if m.is_leader else 1,
         _order.index(m.name) if m.name in _order else 99
     ))
-    from datetime import date
-    today = date.today()
     stats = []
     leader_stats = []
     for m in managers:
