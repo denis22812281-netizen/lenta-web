@@ -120,11 +120,26 @@ class VpkReport(Base):
     vpk_type = Column(Integer, default=1)
     submitted_by = Column(String(100), default="")
     submitted_at = Column(DateTime, default=datetime.utcnow)
-    read_gavrin = Column(Boolean, default=False)
-    read_mesmer = Column(Boolean, default=False)
+    read_gavrin = Column(Boolean, default=False)   # оставлено для совместимости
+    read_mesmer = Column(Boolean, default=False)   # оставлено для совместимости
     project = relationship("Project")
     items = relationship("VpkReportItem", back_populates="report",
                          cascade="all, delete-orphan")
+    reads = relationship("VpkReportRead", back_populates="report",
+                         cascade="all, delete-orphan")
+
+
+class VpkReportRead(Base):
+    """Кто и когда прочитал ВПК-отчёт. Заменяет хардкод read_gavrin/read_mesmer."""
+    __tablename__ = "vpk_report_reads"
+    id = Column(Integer, primary_key=True)
+    report_id = Column(Integer, ForeignKey("vpk_reports.id", ondelete="CASCADE"), nullable=False)
+    reader_name = Column(String(100), nullable=False)
+    read_at = Column(DateTime, default=datetime.utcnow)
+    report = relationship("VpkReport", back_populates="reads")
+    __table_args__ = (
+        Index("ix_vpk_reads_report_reader", "report_id", "reader_name", unique=True),
+    )
 
 
 class VpkReportItem(Base):
@@ -223,11 +238,22 @@ class WebAuthnCredential(Base):
     user = relationship("User")
 
 
+class TaskPhoto(Base):
+    """Фотоотчёт к завершённой задаче."""
+    __tablename__ = "task_photos"
+    id = Column(Integer, primary_key=True)
+    task_id = Column(Integer, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False)
+    photo_path = Column(String(300), nullable=False)
+    uploaded_by = Column(String(100), default="")
+    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    task = relationship("Task")
+
+
 class TaskNotification(Base):
     __tablename__ = "task_notifications"
     id = Column(Integer, primary_key=True)
     recipient_name = Column(String(100), nullable=False)  # кому
-    task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)
+    task_id = Column(Integer, ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True)
     message = Column(Text, nullable=False)
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)

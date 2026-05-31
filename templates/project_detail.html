@@ -256,4 +256,152 @@
         </div>
     </div>
 </div>
+
+<!-- ─── GANTT ДИАГРАММА ────────────────────────────────────────────────── -->
+{% set has_gantt = project.sid_start or project.zoning_start or project.closure_date or project.vpk_date or project.opening_date %}
+{% if has_gantt %}
+<div class="data-card mt-3">
+  <div class="data-card-header">
+    <span><i class="bi bi-bar-chart-steps me-2 text-success"></i>График этапов</span>
+  </div>
+  <div style="padding:20px 24px 24px">
+    <canvas id="ganttChart" style="width:100%;height:auto"></canvas>
+  </div>
+</div>
+
+<script src="/static/vendor/chartjs/chart.min.js"></script>
+<script>
+(function() {
+  const today = new Date('{{ today }}');
+
+  // Этапы: [название, цвет, начало, конец]
+  const raw = [
+    {% if project.sid_start %}
+    ['СИД', '#3b82f6',
+     '{{ project.sid_start }}',
+     '{{ project.sid_end or project.sid_start }}'],
+    {% endif %}
+    {% if project.zoning_start %}
+    ['Зонирование', '#8b5cf6',
+     '{{ project.zoning_start }}',
+     '{{ project.zoning_end or project.zoning_start }}'],
+    {% endif %}
+    {% if project.closure_date %}
+    ['Выход на СМР', '#f97316',
+     '{{ project.closure_date }}',
+     '{{ project.closure_date }}'],
+    {% endif %}
+    {% if project.vpk_date %}
+    ['ВПК1', '#ef4444',
+     '{{ project.vpk_date }}',
+     '{{ project.vpk_date }}'],
+    {% endif %}
+    {% if project.opening_date %}
+    ['Открытие', '#16a34a',
+     '{{ project.opening_date }}',
+     '{{ project.opening_date }}'],
+    {% endif %}
+  ];
+
+  if (!raw.length) return;
+
+  // Определяем диапазон дат (±7 дней запас)
+  const allDates = raw.flatMap(r => [new Date(r[2]), new Date(r[3])]);
+  const minDate  = new Date(Math.min(...allDates) - 7 * 86400000);
+  const maxDate  = new Date(Math.max(...allDates) + 7 * 86400000);
+  const span     = maxDate - minDate;
+
+  function toX(d) { return (new Date(d) - minDate) / span * 100; }
+  function toW(s, e) { return Math.max(0.5, toX(e) - toX(s)); }
+
+  const labels   = raw.map(r => r[0]);
+  const starts   = raw.map(r => toX(r[2]));
+  const widths   = raw.map(r => toW(r[2], r[3]));
+  const colors   = raw.map(r => r[1]);
+
+  // Позиция «сегодня»
+  const todayX = (today - minDate) / span * 100;
+
+  new Chart(document.getElementById('ganttChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        // Прозрачный отступ (для сдвига начала бара)
+        { data: starts, backgroundColor: 'transparent', borderWidth: 0 },
+        // Сами бары
+        { data: widths, backgroundColor: colors, borderRadius: 6,
+          borderSkipped: false, borderWidth: 0 }
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          stacked: true,
+          min: 0, max: 100,
+          ticks: {
+            callback: v => {
+              const d = new Date(minDate.getTime() + v / 100 * span);
+              return d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' });
+            },
+            maxTicksLimit: 8, font: { size: 11 }, color: '#888'
+          },
+          grid: { color: '#f0f0f0' },
+        },
+        y: { stacked: true, grid: { display: false },
+             ticks: { font: { size: 13, weight: '600' }, color: '#374151' } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              if (ctx.datasetIndex === 0) return null;
+              const r = raw[ctx.dataIndex];
+              const s = new Date(r[2]).toLocaleDateString('ru-RU', {day:'2-digit',month:'short',year:'numeric'});
+              const e = new Date(r[3]).toLocaleDateString('ru-RU', {day:'2-digit',month:'short',year:'numeric'});
+              return r[2] === r[3] ? ` ${s}` : ` ${s} — ${e}`;
+            },
+            title: ctx => ctx[0] ? raw[ctx[0].dataIndex][0] : ''
+          }
+        },
+        // Линия «сегодня»
+        annotation: null
+      },
+      layout: { padding: { right: 10 } }
+    },
+    plugins: [{
+      id: 'todayLine',
+      afterDraw(chart) {
+        if (todayX < 0 || todayX > 100) return;
+        const { ctx, chartArea, scales } = chart;
+        const x = scales.x.getPixelForValue(todayX);
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x, chartArea.top);
+        ctx.lineTo(x, chartArea.bottom);
+        ctx.strokeStyle = '#FFD200';
+        ctx.lineWidth   = 2;
+        ctx.setLineDash([4, 3]);
+        ctx.stroke();
+        ctx.fillStyle   = '#1A5C22';
+        ctx.font        = 'bold 11px Segoe UI,Arial';
+        ctx.textAlign   = 'center';
+        ctx.fillRect(x - 22, chartArea.top - 18, 44, 16);
+        ctx.fillStyle = '#FFD200';
+        ctx.fillText('Сегодня', x, chartArea.top - 6);
+        ctx.restore();
+      }
+    }]
+  });
+
+  // Подстраиваем высоту под количество этапов
+  document.getElementById('ganttChart').style.height = (raw.length * 52 + 40) + 'px';
+})();
+</script>
+{% endif %}
+
 {% endblock %}

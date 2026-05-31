@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 import models
@@ -36,10 +37,46 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     recent_tasks = db.query(models.Task).options(
         joinedload(models.Task.assignee)
     ).order_by(models.Task.created_at.desc()).limit(6).all()
+
+    # Данные для диаграмм
+    proj_by_status = {
+        row.status: row.cnt
+        for row in db.query(
+            models.Project.status,
+            func.count(models.Project.id).label("cnt")
+        ).group_by(models.Project.status).all()
+    }
+    proj_by_type = {
+        row.project_type: row.cnt
+        for row in db.query(
+            models.Project.project_type,
+            func.count(models.Project.id).label("cnt")
+        ).filter(models.Project.project_type != "").group_by(models.Project.project_type).all()
+    }
+    task_by_status = {
+        row.status: row.cnt
+        for row in db.query(
+            models.Task.status,
+            func.count(models.Task.id).label("cnt")
+        ).group_by(models.Task.status).all()
+    }
+    # Задачи по менеджерам (топ-8)
+    tasks_per_mgr = db.query(
+        models.Manager.name,
+        func.count(models.Task.id).label("cnt")
+    ).join(models.Task, models.Task.assignee_id == models.Manager.id)\
+     .group_by(models.Manager.name)\
+     .order_by(func.count(models.Task.id).desc())\
+     .limit(8).all()
+
     return templates.TemplateResponse("index.html", {
         "request": request, "user": user,
         "total_projects": total_projects, "active_projects": active_projects,
         "overdue_tasks": overdue_tasks, "tasks_due_soon": tasks_due_soon,
         "projects_deadline_soon": projects_deadline_soon,
         "recent_tasks": recent_tasks, "today": today,
+        "proj_by_status": proj_by_status,
+        "proj_by_type": proj_by_type,
+        "task_by_status": task_by_status,
+        "tasks_per_mgr": tasks_per_mgr,
     })

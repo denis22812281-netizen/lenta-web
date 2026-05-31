@@ -6,6 +6,13 @@ def safe_date(val):
         return val.date()
     if isinstance(val, date):
         return val
+    if isinstance(val, str):
+        val = val.strip()
+        for fmt in ("%d.%m.%Y", "%Y-%m-%d", "%d/%m/%Y"):
+            try:
+                return datetime.strptime(val, fmt).date()
+            except ValueError:
+                pass
     return None
 
 

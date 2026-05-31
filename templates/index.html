@@ -155,4 +155,159 @@
         </div>
     </div>
 </div>
+
+<!-- ─── АНАЛИТИКА: ДИАГРАММЫ ──────────────────────────────────────────── -->
+<div class="row g-3 mt-1">
+
+  <!-- Donut: проекты по статусам -->
+  <div class="col-lg-4">
+    <div class="data-card h-100">
+      <div class="data-card-header">
+        <span><i class="bi bi-pie-chart-fill me-2 text-success"></i>Проекты по статусам</span>
+      </div>
+      <div style="padding:16px;display:flex;flex-direction:column;align-items:center">
+        <div style="position:relative;width:180px;height:180px">
+          <canvas id="chartProjStatus"></canvas>
+          <div id="chartProjTotal" style="position:absolute;top:50%;left:50%;
+               transform:translate(-50%,-50%);text-align:center;pointer-events:none">
+            <div style="font-size:28px;font-weight:900;color:#1a2e1c">{{ total_projects }}</div>
+            <div style="font-size:11px;color:#888;margin-top:2px">проектов</div>
+          </div>
+        </div>
+        <div id="legendProjStatus" style="margin-top:14px;width:100%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Donut: задачи по статусам -->
+  <div class="col-lg-4">
+    <div class="data-card h-100">
+      <div class="data-card-header">
+        <span><i class="bi bi-clipboard2-data-fill me-2 text-primary"></i>Задачи по статусам</span>
+      </div>
+      <div style="padding:16px;display:flex;flex-direction:column;align-items:center">
+        <div style="position:relative;width:180px;height:180px">
+          <canvas id="chartTaskStatus"></canvas>
+          <div style="position:absolute;top:50%;left:50%;
+               transform:translate(-50%,-50%);text-align:center;pointer-events:none">
+            <div style="font-size:28px;font-weight:900;color:#1a2e1c">
+              {{ task_by_status.values()|sum }}</div>
+            <div style="font-size:11px;color:#888;margin-top:2px">задач</div>
+          </div>
+        </div>
+        <div id="legendTaskStatus" style="margin-top:14px;width:100%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bar: задачи по менеджерам -->
+  <div class="col-lg-4">
+    <div class="data-card h-100">
+      <div class="data-card-header">
+        <span><i class="bi bi-bar-chart-fill me-2 text-warning"></i>Задачи по менеджерам</span>
+      </div>
+      <div style="padding:16px 12px">
+        <canvas id="chartMgrTasks" style="max-height:220px"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/vendor/chartjs/chart.min.js"></script>
+<script>
+Chart.defaults.font.family = "'Segoe UI', Arial, sans-serif";
+
+// ── Цветовая палитра ─────────────────────────────────────────────────────────
+const PALETTE = {
+  green:  '#3CB34A', darkGreen: '#1A5C22', lightGreen: '#86efac',
+  yellow: '#FFD200', orange:    '#f97316', red:        '#ef4444',
+  blue:   '#3b82f6', purple:    '#8b5cf6', gray:       '#9ca3af',
+};
+
+const STATUS_COLORS_PROJ = {
+  'Активный':    PALETTE.green,
+  'Завершён':    PALETTE.darkGreen,
+  'Приостановлен': PALETTE.yellow,
+  'Планирование': PALETTE.blue,
+};
+const STATUS_COLORS_TASK = {
+  'Открытая':    PALETTE.gray,
+  'В работе':    PALETTE.blue,
+  'На проверке': PALETTE.yellow,
+  'Завершена':   PALETTE.green,
+};
+
+function makeLegend(containerId, labels, colors, values) {
+  const wrap = document.getElementById(containerId);
+  if (!wrap) return;
+  wrap.innerHTML = labels.map((l, i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;
+                padding:3px 0;font-size:12px">
+      <span style="display:flex;align-items:center;gap:6px">
+        <span style="width:10px;height:10px;border-radius:50%;background:${colors[i]};display:inline-block;flex-shrink:0"></span>
+        ${l}
+      </span>
+      <span style="font-weight:700;color:#374151">${values[i]}</span>
+    </div>`).join('');
+}
+
+function makeDonut(canvasId, labels, values, colorMap, defaultColors) {
+  const colors = labels.map((l, i) => colorMap[l] || defaultColors[i % defaultColors.length]);
+  new Chart(document.getElementById(canvasId), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors,
+            borderWidth: 2, borderColor: '#fff', hoverOffset: 4 }] },
+    options: {
+      cutout: '68%', responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}` }
+      }},
+    }
+  });
+  return colors;
+}
+
+// Проекты по статусам
+const projData  = {{ proj_by_status | tojson }};
+const projKeys  = Object.keys(projData);
+const projVals  = projKeys.map(k => projData[k]);
+const projClrs  = makeDonut('chartProjStatus', projKeys, projVals, STATUS_COLORS_PROJ,
+                             [PALETTE.green, PALETTE.blue, PALETTE.yellow, PALETTE.gray]);
+makeLegend('legendProjStatus', projKeys, projClrs, projVals);
+
+// Задачи по статусам
+const taskData  = {{ task_by_status | tojson }};
+const taskKeys  = Object.keys(taskData);
+const taskVals  = taskKeys.map(k => taskData[k]);
+const taskClrs  = makeDonut('chartTaskStatus', taskKeys, taskVals, STATUS_COLORS_TASK,
+                             [PALETTE.gray, PALETTE.blue, PALETTE.yellow, PALETTE.green]);
+makeLegend('legendTaskStatus', taskKeys, taskClrs, taskVals);
+
+// Задачи по менеджерам (горизонтальный bar)
+const mgrData = {{ tasks_per_mgr | tojson }};
+new Chart(document.getElementById('chartMgrTasks'), {
+  type: 'bar',
+  data: {
+    labels: mgrData.map(r => r[0].split(' ')[0]),  // только фамилия
+    datasets: [{
+      label: 'Задач',
+      data:   mgrData.map(r => r[1]),
+      backgroundColor: mgrData.map((_, i) => i === 0 ? PALETTE.green : PALETTE.lightGreen),
+      borderRadius: 6, borderSkipped: false,
+    }]
+  },
+  options: {
+    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false },
+               tooltip: { callbacks: { label: ctx => ` ${ctx.raw} задач` } } },
+    scales: {
+      x: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 11 } } },
+      y: { grid: { display: false },   ticks: { font: { size: 12 } } },
+    }
+  }
+});
+</script>
 {% endblock %}

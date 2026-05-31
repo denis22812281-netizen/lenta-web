@@ -154,7 +154,7 @@ async def startup():
                     """CREATE TABLE IF NOT EXISTS task_notifications (
                         id SERIAL PRIMARY KEY,
                         recipient_name VARCHAR(100) NOT NULL,
-                        task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+                        task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL,
                         message TEXT NOT NULL,
                         is_read BOOLEAN DEFAULT FALSE,
                         created_at TIMESTAMP DEFAULT NOW()
@@ -172,6 +172,20 @@ async def startup():
                         device_name VARCHAR(150) DEFAULT '',
                         created_at TIMESTAMP DEFAULT NOW()
                     )""",
+                    """CREATE TABLE IF NOT EXISTS vpk_report_reads (
+                        id SERIAL PRIMARY KEY,
+                        report_id INTEGER REFERENCES vpk_reports(id) ON DELETE CASCADE NOT NULL,
+                        reader_name VARCHAR(100) NOT NULL,
+                        read_at TIMESTAMP DEFAULT NOW(),
+                        UNIQUE(report_id, reader_name)
+                    )""",
+                    """CREATE TABLE IF NOT EXISTS task_photos (
+                        id SERIAL PRIMARY KEY,
+                        task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE NOT NULL,
+                        photo_path VARCHAR(300) NOT NULL,
+                        uploaded_by VARCHAR(100) DEFAULT '',
+                        uploaded_at TIMESTAMP DEFAULT NOW()
+                    )""",
                 ]:
                     try:
                         conn.exec_driver_sql(sql)
@@ -179,6 +193,43 @@ async def startup():
                         logger.debug("startup migration skipped: %s", e)
         except Exception as e:
             logger.warning("startup: could not run migrations: %s", e)
+
+    # SQLite-миграции для локальной разработки (добавляем колонки к существующим таблицам)
+    if "sqlite" in str(database.DATABASE_URL):
+        try:
+            with database.engine.begin() as conn:
+                for sql in [
+                    "ALTER TABLE managers ADD COLUMN photo VARCHAR(200) DEFAULT ''",
+                    "ALTER TABLE managers ADD COLUMN position VARCHAR(150) DEFAULT ''",
+                    "ALTER TABLE projects ADD COLUMN format_type VARCHAR(50) DEFAULT ''",
+                    "ALTER TABLE projects ADD COLUMN open_status VARCHAR(100) DEFAULT ''",
+                    "ALTER TABLE projects ADD COLUMN delay_reason TEXT DEFAULT ''",
+                    "ALTER TABLE projects ADD COLUMN updated_at TIMESTAMP",
+                    "ALTER TABLE tasks ADD COLUMN completion_comment TEXT DEFAULT ''",
+                    "ALTER TABLE vpk_report_items ADD COLUMN comment TEXT DEFAULT ''",
+                    "ALTER TABLE vpk_report_items ADD COLUMN photo_path VARCHAR(300) DEFAULT ''",
+                    "ALTER TABLE chat_messages ADD COLUMN photo_path VARCHAR(300) DEFAULT ''",
+                    """CREATE TABLE IF NOT EXISTS vpk_report_reads (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        report_id INTEGER NOT NULL,
+                        reader_name VARCHAR(100) NOT NULL,
+                        read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(report_id, reader_name)
+                    )""",
+                    """CREATE TABLE IF NOT EXISTS task_photos (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        task_id INTEGER NOT NULL,
+                        photo_path VARCHAR(300) NOT NULL,
+                        uploaded_by VARCHAR(100) DEFAULT '',
+                        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )""",
+                ]:
+                    try:
+                        conn.exec_driver_sql(sql)
+                    except Exception:
+                        pass  # уже существует
+        except Exception as e:
+            logger.warning("startup: SQLite migration error: %s", e)
 
     db = database.SessionLocal()
     try:

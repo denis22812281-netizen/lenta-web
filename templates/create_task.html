@@ -7,6 +7,12 @@
 <!-- Панель фильтров + кнопка создания -->
 <div class="filter-bar mb-3 d-flex flex-wrap gap-2 align-items-center justify-content-between">
     <div class="d-flex flex-wrap gap-2 align-items-center">
+        <!-- Поиск по задачам -->
+        <div style="position:relative">
+            <i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#aaa;font-size:13px;pointer-events:none"></i>
+            <input id="task-search" type="text" class="form-control form-control-sm"
+                   style="width:200px;padding-left:30px" placeholder="Поиск по задачам...">
+        </div>
         <select id="filter-status" class="form-select form-select-sm" style="width:160px">
             <option value="">Все статусы</option>
             {% for s in task_statuses %}
@@ -187,21 +193,39 @@
 
 <!-- ─── Модал: комментарий при завершении ────────────────────────────── -->
 <div class="modal fade" id="completeModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title"><i class="bi bi-check-circle me-2"></i>Задача выполнена</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <label class="form-label fw-semibold">Комментарий к выполнению <span class="text-muted fw-normal">(необязательно)</span></label>
-                <textarea id="completeComment" class="form-control" rows="4"
-                          placeholder="Опишите что было сделано, результат..."></textarea>
+                <!-- Комментарий -->
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Комментарий <span class="text-muted fw-normal small">(необязательно)</span></label>
+                    <textarea id="completeComment" class="form-control" rows="3"
+                              placeholder="Опишите что сделано, результат..."></textarea>
+                </div>
+
+                <!-- Загрузка фото -->
+                <div class="mb-2">
+                    <label class="form-label fw-semibold">Фото <span class="text-muted fw-normal small">(до 5 фото, сжимаются автоматически)</span></label>
+                    <label id="photoDropZone" style="display:block;border:2px dashed #3CB34A;border-radius:12px;
+                           padding:20px;text-align:center;cursor:pointer;background:#f4faf5;transition:background .2s">
+                        <i class="bi bi-camera-fill" style="font-size:28px;color:#3CB34A"></i>
+                        <div class="mt-1 text-muted small">Нажмите или перетащите фото сюда</div>
+                        <input id="completePhotos" type="file" accept="image/*" multiple style="display:none"
+                               onchange="previewPhotos(this)">
+                    </label>
+                </div>
+
+                <!-- Превью -->
+                <div id="photoPreview" class="d-flex flex-wrap gap-2 mt-2"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="cancelComplete()">Отмена</button>
-                <button type="button" class="btn btn-success" onclick="submitComplete()">
-                    <i class="bi bi-check2-circle me-1"></i>Отправить
+                <button type="button" class="btn btn-success" id="btnSubmitComplete" onclick="submitComplete()">
+                    <i class="bi bi-check2-circle me-1"></i>Завершить и отправить отчёт
                 </button>
             </div>
         </div>
@@ -265,12 +289,39 @@ function onStatusChange(select, taskId, oldStatus) {
     }
 }
 
-function submitComplete() {
+async function submitComplete() {
     if (!_pendingFormId) return;
-    document.getElementById('cc-' + _pendingFormId).value =
-        document.getElementById('completeComment').value;
-    if (_completeModal) _completeModal.hide();
-    document.getElementById('form-' + _pendingFormId).submit();
+    const btn = document.getElementById('btnSubmitComplete');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Отправка...';
+
+    const comment = document.getElementById('completeComment').value;
+    const files   = document.getElementById('completePhotos').files;
+
+    const fd = new FormData();
+    fd.append('status', 'Завершена');
+    fd.append('completion_comment', comment);
+    for (let i = 0; i < Math.min(files.length, 5); i++) {
+        fd.append('photos', files[i]);
+    }
+
+    try {
+        const r = await fetch(`/tasks/${_pendingFormId}/update-status`, {
+            method: 'POST', body: fd, credentials: 'same-origin'
+        });
+        if (_completeModal) _completeModal.hide();
+        if (r.ok || r.redirected) {
+            window.location.reload();
+        } else {
+            alert('Ошибка при сохранении. Попробуйте ещё раз.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check2-circle me-1"></i>Завершить и отправить отчёт';
+        }
+    } catch(e) {
+        alert('Ошибка сети: ' + e.message);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check2-circle me-1"></i>Завершить и отправить отчёт';
+    }
 }
 
 function cancelComplete() {
@@ -281,7 +332,53 @@ function cancelComplete() {
         }
     }
     _pendingFormId = null; _pendingSelect = null;
+    document.getElementById('completeComment').value = '';
+    document.getElementById('completePhotos').value = '';
+    document.getElementById('photoPreview').innerHTML = '';
 }
+
+function previewPhotos(input) {
+    const preview = document.getElementById('photoPreview');
+    preview.innerHTML = '';
+    const files = Array.from(input.files).slice(0, 5);
+    files.forEach((f, i) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'position:relative;width:80px;height:80px';
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid #3CB34A';
+            const del = document.createElement('button');
+            del.innerHTML = '×';
+            del.style.cssText = 'position:absolute;top:-6px;right:-6px;background:#dc2626;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:13px;line-height:1;cursor:pointer;padding:0';
+            del.onclick = () => { wrap.remove(); };
+            wrap.appendChild(img); wrap.appendChild(del);
+            preview.appendChild(wrap);
+        };
+        reader.readAsDataURL(f);
+    });
+    if (input.files.length > 5) {
+        const note = document.createElement('div');
+        note.className = 'text-muted small align-self-center';
+        note.textContent = `Первые 5 из ${input.files.length}`;
+        preview.appendChild(note);
+    }
+}
+
+// Drag & drop на зону загрузки
+document.addEventListener('DOMContentLoaded', () => {
+    const zone = document.getElementById('photoDropZone');
+    if (!zone) return;
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.background='#dcfce7'; });
+    zone.addEventListener('dragleave', () => { zone.style.background='#f4faf5'; });
+    zone.addEventListener('drop', e => {
+        e.preventDefault(); zone.style.background='#f4faf5';
+        const inp = document.getElementById('completePhotos');
+        inp.files = e.dataTransfer.files;
+        previewPhotos(inp);
+    });
+});
 
 // ── Клик по строке → детали ──────────────────────────────────────────────────
 function bindTaskRows() {
@@ -406,5 +503,71 @@ async function applyFilters() {
 document.getElementById('filter-status').addEventListener('change', applyFilters);
 const fmgr = document.getElementById('filter-manager');
 if (fmgr) fmgr.addEventListener('change', applyFilters);
+
+// ── ПОИСК + ПАГИНАЦИЯ ──────────────────────────────────────────
+const PAGE_SIZE = 20;
+let _searchTimer = null;
+
+function applySearchAndPage() {
+    const q = (document.getElementById('task-search').value || '').toLowerCase().trim();
+    const rows = Array.from(document.querySelectorAll('#tasks-body .task-row'));
+    const visible = rows.filter(r => {
+        if (!q) return true;
+        const text = [
+            r.dataset.title, r.dataset.description,
+            r.dataset.assignee, r.dataset.project,
+            r.dataset.createdBy, r.dataset.status,
+        ].join(' ').toLowerCase();
+        return text.includes(q);
+    });
+    // скрываем все, потом показываем нужную страницу
+    rows.forEach(r => r.style.display = 'none');
+    const page = window._taskPage || 1;
+    const total = visible.length;
+    const start = (page - 1) * PAGE_SIZE;
+    visible.slice(start, start + PAGE_SIZE).forEach(r => r.style.display = '');
+    document.getElementById('task-count').textContent = total;
+    renderPagination(total, page);
+}
+
+function renderPagination(total, page) {
+    let wrap = document.getElementById('task-pagination');
+    if (!wrap) {
+        wrap = document.createElement('div');
+        wrap.id = 'task-pagination';
+        wrap.className = 'd-flex justify-content-between align-items-center px-3 py-2 border-top';
+        document.querySelector('.data-card').appendChild(wrap);
+    }
+    if (total <= PAGE_SIZE) { wrap.innerHTML = ''; return; }
+    const pages = Math.ceil(total / PAGE_SIZE);
+    const info = `<span class="text-muted small">Стр. ${page} из ${pages} (${total} задач)</span>`;
+    const prev = page > 1
+        ? `<button class="btn btn-sm btn-outline-secondary" onclick="window._taskPage=${page-1};applySearchAndPage()"><i class="bi bi-chevron-left"></i></button>`
+        : `<button class="btn btn-sm btn-outline-secondary" disabled><i class="bi bi-chevron-left"></i></button>`;
+    const next = page < pages
+        ? `<button class="btn btn-sm btn-outline-secondary" onclick="window._taskPage=${page+1};applySearchAndPage()"><i class="bi bi-chevron-right"></i></button>`
+        : `<button class="btn btn-sm btn-outline-secondary" disabled><i class="bi bi-chevron-right"></i></button>`;
+    wrap.innerHTML = prev + info + next;
+}
+
+// При вводе — сбрасываем на первую страницу
+document.getElementById('task-search').addEventListener('input', () => {
+    window._taskPage = 1;
+    clearTimeout(_searchTimer);
+    _searchTimer = setTimeout(applySearchAndPage, 180);
+});
+
+// Вызываем после каждого обновления таблицы
+const _origRenderRows = renderRows;
+const _origApply = applyFilters;
+applyFilters = async function() {
+    await _origApply();
+    window._taskPage = 1;
+    applySearchAndPage();
+};
+
+// Инициализация при загрузке
+window._taskPage = 1;
+document.addEventListener('DOMContentLoaded', applySearchAndPage);
 </script>
 {% endblock %}

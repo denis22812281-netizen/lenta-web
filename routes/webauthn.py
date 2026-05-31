@@ -66,10 +66,10 @@ async def register_begin(request: Request, db: Session = Depends(get_db)):
         existing = db.query(models.WebAuthnCredential).filter(
             models.WebAuthnCredential.user_id == user["id"]).all()
 
+        from webauthn.helpers import base64url_to_bytes as _b64u
         from webauthn.helpers.structs import PublicKeyCredentialDescriptor
         exclude_creds = [
-            PublicKeyCredentialDescriptor(id=base64.urlsafe_b64decode(
-                c.credential_id + "=="))
+            PublicKeyCredentialDescriptor(id=_b64u(c.credential_id))
             for c in existing
         ]
 
@@ -110,13 +110,24 @@ async def register_complete(request: Request, db: Session = Depends(get_db)):
 
     try:
         from webauthn import verify_registration_response
-        from webauthn.helpers.structs import RegistrationCredential
+        from webauthn.helpers import base64url_to_bytes
+        from webauthn.helpers.structs import (
+            RegistrationCredential, AuthenticatorAttestationResponse)
 
         body = await request.json()
         device_name = body.pop("device_name", "")
 
-        credential = RegistrationCredential.parse_raw(json.dumps(body))
-        challenge   = base64.b64decode(challenge_b64)
+        resp = body.get("response", {})
+        credential = RegistrationCredential(
+            id=body["id"],
+            raw_id=base64url_to_bytes(body["rawId"]),
+            response=AuthenticatorAttestationResponse(
+                client_data_json=base64url_to_bytes(resp["clientDataJSON"]),
+                attestation_object=base64url_to_bytes(resp["attestationObject"]),
+                transports=resp.get("transports"),
+            ),
+        )
+        challenge = base64.b64decode(challenge_b64)
 
         verification = verify_registration_response(
             credential=credential,
@@ -169,15 +180,14 @@ async def auth_begin(request: Request, db: Session = Depends(get_db)):
             return JSONResponse({"error": "Биометрия не настроена"}, status_code=404)
 
         from webauthn import generate_authentication_options
+        from webauthn.helpers import base64url_to_bytes as _b64u, options_to_json
         from webauthn.helpers.structs import (
             PublicKeyCredentialDescriptor,
             UserVerificationRequirement,
         )
-        from webauthn.helpers import options_to_json
 
         allow_creds = [
-            PublicKeyCredentialDescriptor(
-                id=base64.urlsafe_b64decode(c.credential_id + "=="))
+            PublicKeyCredentialDescriptor(id=_b64u(c.credential_id))
             for c in creds
         ]
 
@@ -208,11 +218,24 @@ async def auth_complete(request: Request, db: Session = Depends(get_db)):
 
     try:
         from webauthn import verify_authentication_response
-        from webauthn.helpers.structs import AuthenticationCredential
+        from webauthn.helpers import base64url_to_bytes
+        from webauthn.helpers.structs import (
+            AuthenticationCredential, AuthenticatorAssertionResponse)
 
-        body       = await request.json()
-        credential = AuthenticationCredential.parse_raw(json.dumps(body))
-        challenge  = base64.b64decode(challenge_b64)
+        body = await request.json()
+        resp = body.get("response", {})
+        uh   = resp.get("userHandle")
+        credential = AuthenticationCredential(
+            id=body["id"],
+            raw_id=base64url_to_bytes(body["rawId"]),
+            response=AuthenticatorAssertionResponse(
+                client_data_json=base64url_to_bytes(resp["clientDataJSON"]),
+                authenticator_data=base64url_to_bytes(resp["authenticatorData"]),
+                signature=base64url_to_bytes(resp["signature"]),
+                user_handle=base64url_to_bytes(uh) if uh else None,
+            ),
+        )
+        challenge = base64.b64decode(challenge_b64)
 
         raw_cred_id = base64.urlsafe_b64encode(
             credential.raw_id).decode().rstrip("=")
@@ -237,8 +260,9 @@ async def auth_complete(request: Request, db: Session = Depends(get_db)):
         db_cred.sign_count = verification.new_sign_count
         db.commit()
 
-        # Логиним пользователя
+        # Логиним пользователя (завершает и обычный вход, и 2FA)
         db_user = db_cred.user
+        request.session.pop("pending_2fa", None)
         request.session["user"] = {
             "id": db_user.id,
             "username": db_user.username,

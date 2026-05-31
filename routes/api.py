@@ -17,7 +17,12 @@ router = APIRouter()
 async def ping(request: Request):
     user = get_current_user(request)
     if user:
-        ONLINE_USERS[user.get("display_name", "")] = datetime.utcnow()
+        now = datetime.utcnow()
+        ONLINE_USERS[user.get("display_name", "")] = now
+        stale = [k for k, ts in ONLINE_USERS.items()
+                 if (now - ts).total_seconds() > ONLINE_TIMEOUT * 3]
+        for k in stale:
+            del ONLINE_USERS[k]
     return {"ok": True}
 
 

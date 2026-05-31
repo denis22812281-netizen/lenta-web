@@ -15,6 +15,15 @@ router = APIRouter()
 async def login_page(request: Request):
     if request.session.get("user"):
         return RedirectResponse("/", status_code=302)
+    step = request.query_params.get("step", "")
+    pending = request.session.get("pending_2fa")
+    if step == "2fa" and pending:
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "step": "2fa",
+            "phone": pending["phone"],
+            "display_name": pending["display_name"],
+        })
     return templates.TemplateResponse("login.html", {"request": request})
 
 
@@ -60,6 +69,16 @@ async def login_enter(request: Request, db: Session = Depends(get_db),
     if _is_legacy_hash(user.password_hash):
         user.password_hash = hash_password(password)
         db.commit()
+    # 2FA: если у пользователя зарегистрирован Face ID/Touch ID — требуем его
+    has_webauthn = db.query(models.WebAuthnCredential).filter(
+        models.WebAuthnCredential.user_id == user.id).count() > 0
+    if has_webauthn:
+        request.session["pending_2fa"] = {
+            "id": user.id, "username": user.username,
+            "display_name": user.display_name,
+            "is_admin": user.is_admin, "phone": user.phone,
+        }
+        return RedirectResponse("/login?step=2fa", status_code=302)
     _set_session(request, user)
     return RedirectResponse("/", status_code=302)
 

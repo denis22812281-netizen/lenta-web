@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" id="html-root">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,13 +11,21 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Менеджер проекта">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script>
+      // Инициализируем тему до рендера — без мигания
+      (function(){
+        var t = localStorage.getItem('lenta_theme') || 'light';
+        document.getElementById('html-root').setAttribute('data-bs-theme', t);
+      })();
+    </script>
+    <link href="/static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
     <link href="/static/css/style.css" rel="stylesheet">
     <meta name="csrf-token" content="{{ csrf_token(request) }}">
 </head>
 <body>
 
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 <div class="sidebar" id="sidebar">
     <div class="sidebar-logo">
         <div class="logo-raccoon">
@@ -42,7 +50,7 @@
             <i class="bi bi-people-fill"></i><span>Менеджеры проектов</span>
         </a>
         <a href="/tasks" class="nav-item {% if '/tasks' in request.url.path %}active{% endif %}">
-            <i class="bi bi-plus-circle-fill"></i><span>Поставить задачу</span>
+            <i class="bi bi-check2-square"></i><span>Задачи</span>
         </a>
         <a href="/chat" class="nav-item {% if '/chat' in request.url.path %}active{% endif %}" style="position:relative">
             <i class="bi bi-chat-dots-fill"></i><span>Чат</span>
@@ -113,6 +121,10 @@
         <div class="topbar-right">
             <span class="topbar-date" id="js-date"></span>
             <span class="notif-badge d-none" id="notif-badge"></span>
+            <button class="btn-theme-toggle" id="btn-theme" title="Сменить тему" onclick="toggleTheme()">
+                <i class="bi" id="theme-icon"></i>
+                <span id="theme-label"></span>
+            </button>
         </div>
     </header>
 
@@ -123,7 +135,7 @@
 
 <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-box" style="z-index:9999"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
 <script src="/static/js/app.js"></script>
 {% block scripts %}{% endblock %}
 <script>

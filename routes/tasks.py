@@ -1,6 +1,8 @@
+import os
 from datetime import datetime, date
+from pathlib import Path
 
-from fastapi import APIRouter, Request, Form, Depends, HTTPException
+from fastapi import APIRouter, Request, Form, Depends, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
@@ -9,7 +11,18 @@ import models
 from database import get_db
 from deps import templates, get_current_user
 from config import PRIORITIES, TASK_STATUSES
-from services.email_service import notify_task_assigned, notify_task_status_changed
+from services.email_service import notify_task_assigned, notify_task_status_changed, notify_task_completed
+
+_TASK_REPORT_EMAILS = []
+for _entry in os.getenv("TASK_REPORT_EMAILS", "").split(","):
+    _entry = _entry.strip()
+    if not _entry:
+        continue
+    if ":" in _entry:
+        _e, _n = _entry.split(":", 1)
+        _TASK_REPORT_EMAILS.append((_e.strip(), _n.strip()))
+    else:
+        _TASK_REPORT_EMAILS.append((_entry, _entry.split("@")[0]))
 
 router = APIRouter()
 
@@ -103,37 +116,90 @@ async def create_task(request: Request, db: Session = Depends(get_db),
 
 @router.post("/tasks/{task_id}/update-status")
 async def update_task_status(task_id: int, request: Request, db: Session = Depends(get_db),
-                             status: str = Form(...), completion_comment: str = Form("")):
+                             status: str = Form(...), completion_comment: str = Form(""),
+                             photos: list[UploadFile] = File(default=[])):
     user = get_current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=302)
     t = db.query(models.Task).filter(models.Task.id == task_id).first()
-    if t:
-        old_status = t.status
-        t.status = status
-        if status == "Завершена" and completion_comment.strip():
-            t.completion_comment = completion_comment.strip()
-        if t.created_by and t.created_by != user.get("display_name", "") and old_status != status:
-            icon = "✅" if status == "Завершена" else "🔄"
-            msg = f"{icon} Задача «{t.title}»: статус изменён на «{status}»"
-            if status == "Завершена" and completion_comment.strip():
-                msg += f"\nКомментарий: {completion_comment.strip()}"
-            db.add(models.TaskNotification(
-                recipient_name=t.created_by, task_id=t.id, message=msg))
-            # Email постановщику
-            creator_mgr = db.query(models.Manager).filter(
-                models.Manager.name == t.created_by).first()
-            if creator_mgr and creator_mgr.email:
-                assignee_name = t.assignee.name if t.assignee else user.get("display_name", "")
-                notify_task_status_changed(
-                    to_email=creator_mgr.email,
-                    creator_name=t.created_by,
-                    task_title=t.title,
-                    new_status=status,
-                    assignee_name=assignee_name,
-                    comment=completion_comment.strip() if status == "Завершена" else "",
-                )
-        db.commit()
+    if not t:
+        return RedirectResponse("/tasks", status_code=303)
+
+    old_status = t.status
+    t.status = status
+    comment = completion_comment.strip()
+    if status == "Завершена" and comment:
+        t.completion_comment = comment
+
+    # Сохраняем фото (только при завершении)
+    saved_photos = []
+    if status == "Завершена" and photos:
+        photo_dir = Path("static/uploads/tasks")
+        photo_dir.mkdir(parents=True, exist_ok=True)
+        for ph in photos:
+            if not ph.filename:
+                continue
+            ext = Path(ph.filename).suffix.lower() or ".jpg"
+            fname = f"{task_id}_{int(datetime.utcnow().timestamp())}_{ph.filename[:20]}{ext}"
+            fname = "".join(c if c.isalnum() or c in "._-" else "_" for c in fname)
+            raw = await ph.read()
+            # Сжимаем через Pillow если доступен
+            try:
+                from PIL import Image
+                import io
+                img = Image.open(io.BytesIO(raw)).convert("RGB")
+                img.thumbnail((1200, 1200), Image.LANCZOS)
+                buf = io.BytesIO()
+                img.save(buf, format="JPEG", quality=70, optimize=True)
+                raw = buf.getvalue()
+                ext = ".jpg"
+                fname = fname.rsplit(".", 1)[0] + ".jpg"
+            except Exception:
+                pass
+            (photo_dir / fname).write_bytes(raw)
+            rel = f"uploads/tasks/{fname}"
+            db.add(models.TaskPhoto(task_id=task_id, photo_path=rel,
+                                    uploaded_by=user.get("display_name", "")))
+            saved_photos.append(rel)
+
+    db.flush()
+
+    if t.created_by and t.created_by != user.get("display_name", "") and old_status != status:
+        icon = "✅" if status == "Завершена" else "🔄"
+        msg = f"{icon} Задача «{t.title}»: статус изменён на «{status}»"
+        if status == "Завершена" and comment:
+            msg += f"\nКомментарий: {comment}"
+        db.add(models.TaskNotification(recipient_name=t.created_by, task_id=t.id, message=msg))
+
+    db.commit()
+
+    # Email-отчёт при завершении
+    if status == "Завершена" and old_status != "Завершена":
+        assignee_name = t.assignee.name if t.assignee else user.get("display_name", "")
+        # Все фото задачи (включая только что сохранённые)
+        all_photos = [p.photo_path for p in db.query(models.TaskPhoto).filter(
+            models.TaskPhoto.task_id == task_id).all()]
+
+        recipients = {}
+        creator_mgr = db.query(models.Manager).filter(
+            models.Manager.name == t.created_by).first()
+        if creator_mgr and creator_mgr.email:
+            recipients[creator_mgr.email] = creator_mgr.name
+        for _e, _n in _TASK_REPORT_EMAILS:
+            if _e not in recipients:
+                recipients[_e] = _n
+
+        for email, name in recipients.items():
+            notify_task_completed(
+                to_email=email,
+                creator_name=name,
+                task_title=t.title,
+                assignee_name=assignee_name,
+                comment=comment,
+                photo_paths=all_photos,
+                project_name=t.project.name if t.project else "",
+            )
+
     return RedirectResponse("/tasks", status_code=303)
 
 

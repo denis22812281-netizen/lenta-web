@@ -49,11 +49,10 @@ async def vpk_page(request: Request, db: Session = Depends(get_db), tab: str = "
     reports   = db.query(models.VpkReport).order_by(
         models.VpkReport.submitted_at.desc()).limit(50).all()
     name = user.get("display_name", "")
-    unread = 0
-    if "Гаврин" in name:
-        unread = db.query(models.VpkReport).filter(models.VpkReport.read_gavrin == False).count()
-    elif "Месмер" in name:
-        unread = db.query(models.VpkReport).filter(models.VpkReport.read_mesmer == False).count()
+    total_reports = db.query(models.VpkReport).count()
+    read_by_me = db.query(models.VpkReportRead).filter(
+        models.VpkReportRead.reader_name == name).count()
+    unread = max(0, total_reports - read_by_me)
     return templates.TemplateResponse("vpk.html", {
         "request": request, "user": user,
         "tab": tab, "projects": projects,
@@ -85,7 +84,7 @@ async def vpk_submit(request: Request, background_tasks: BackgroundTasks, db: Se
     photo_dir = Path("static/uploads/vpk")
     photo_dir.mkdir(parents=True, exist_ok=True)
     for c in criteria:
-        done    = form.get(f"criterion_{c.id}") == "on"
+        is_done = form.get(f"criterion_{c.id}") == "on"
         comment = str(form.get(f"comment_{c.id}", "") or "").strip()
         photo_path = ""
         photo_file = form.get(f"photo_{c.id}")
@@ -96,7 +95,7 @@ async def vpk_submit(request: Request, background_tasks: BackgroundTasks, db: Se
             photo_path = f"uploads/vpk/{fname}"
         db.add(models.VpkReportItem(
             report_id=report.id, criterion_id=c.id,
-            criterion_name=c.name, done=done,
+            criterion_name=c.name, done=is_done,
             comment=comment, photo_path=photo_path,
         ))
     db.commit()
@@ -117,10 +116,10 @@ async def vpk_submit(request: Request, background_tasks: BackgroundTasks, db: Se
     ]
 
     recipients = {}
-    # Из базы: лидеры и менеджер проекта
+    # Из базы: лидеры + менеджер проекта + отправитель
     for mgr in db.query(models.Manager).filter(
             models.Manager.email != "", models.Manager.email.isnot(None)).all():
-        if mgr.is_leader or (proj and proj.manager_id == mgr.id):
+        if mgr.is_leader or (proj and proj.manager_id == mgr.id) or mgr.name == submitter:
             recipients[mgr.email] = mgr.name
     # Из env: NOTIFY_VPK_EMAILS
     for _e, _n in _VPK_NOTIFY_EMAILS:
@@ -154,11 +153,13 @@ async def vpk_mark_read(report_id: int, request: Request, db: Session = Depends(
     if not report:
         raise HTTPException(status_code=404)
     name = user.get("display_name", "")
-    if "Гаврин" in name:
-        report.read_gavrin = True
-    elif "Месмер" in name:
-        report.read_mesmer = True
-    db.commit()
+    existing = db.query(models.VpkReportRead).filter(
+        models.VpkReportRead.report_id == report_id,
+        models.VpkReportRead.reader_name == name,
+    ).first()
+    if not existing:
+        db.add(models.VpkReportRead(report_id=report_id, reader_name=name))
+        db.commit()
     return {"ok": True}
 
 
@@ -168,12 +169,12 @@ async def vpk_unread(request: Request, db: Session = Depends(get_db)):
     if not user:
         return {"reports": []}
     name = user.get("display_name", "")
-    if "Гаврин" in name:
-        reports = db.query(models.VpkReport).filter(models.VpkReport.read_gavrin == False).all()
-    elif "Месмер" in name:
-        reports = db.query(models.VpkReport).filter(models.VpkReport.read_mesmer == False).all()
-    else:
+    if not name:
         return {"reports": []}
+    read_ids = {r.report_id for r in db.query(models.VpkReportRead).filter(
+        models.VpkReportRead.reader_name == name).all()}
+    reports = db.query(models.VpkReport).filter(
+        models.VpkReport.id.notin_(read_ids)).all()
     result = []
     for r in reports:
         tk   = r.project.tk_number if r.project else "—"

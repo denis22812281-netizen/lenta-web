@@ -1,5 +1,32 @@
+// ── Theme ────────────────────────────────────────────────────────────────────
+function _applyThemeUI() {
+    const dark  = document.getElementById('html-root').getAttribute('data-bs-theme') === 'dark';
+    const icon  = document.getElementById('theme-icon');
+    const label = document.getElementById('theme-label');
+    if (icon)  icon.className  = dark ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
+    if (label) label.textContent = dark ? 'Светлая' : 'Тёмная';
+
+    // Перекрашиваем Chart.js оси если charts на странице
+    if (window.Chart) {
+        const tickColor = dark ? '#94a3b8' : '#888';
+        const gridColor = dark ? '#1e3a2f' : '#f0f0f0';
+        Chart.defaults.color         = tickColor;
+        Chart.defaults.borderColor   = gridColor;
+        Chart.defaults.scale.grid.color = gridColor;
+    }
+}
+
+function toggleTheme() {
+    const root = document.getElementById('html-root');
+    const next = root.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-bs-theme', next);
+    localStorage.setItem('lenta_theme', next);
+    _applyThemeUI();
+}
+
 // ── Date display ────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+    _applyThemeUI();  // синхронизируем иконку при загрузке
     const el = document.getElementById('js-date');
     if (el) {
         el.textContent = new Date().toLocaleDateString('ru-RU', {
@@ -7,15 +34,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Mobile sidebar
+    // Mobile sidebar + backdrop
     const hamburger = document.getElementById('btn-hamburger');
-    const sidebar = document.getElementById('sidebar');
-    if (hamburger && sidebar) {
-        hamburger.addEventListener('click', () => sidebar.classList.toggle('open'));
-        document.addEventListener('click', e => {
-            if (!sidebar.contains(e.target) && !hamburger.contains(e.target)) {
-                sidebar.classList.remove('open');
-            }
+    const sidebar   = document.getElementById('sidebar');
+    const backdrop  = document.getElementById('sidebar-backdrop');
+
+    function openSidebar()  {
+        sidebar && sidebar.classList.add('open');
+        backdrop && backdrop.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeSidebar() {
+        sidebar && sidebar.classList.remove('open');
+        backdrop && backdrop.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    if (hamburger) hamburger.addEventListener('click', () =>
+        sidebar && sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
+
+    // Закрыть по клику на backdrop
+    if (backdrop) backdrop.addEventListener('click', closeSidebar);
+
+    // Закрыть при клике по любому пункту меню на мобиле
+    if (sidebar) {
+        sidebar.querySelectorAll('.nav-item').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth < 992) closeSidebar();
+            });
         });
     }
 

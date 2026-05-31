@@ -245,3 +245,71 @@
     </div>
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    const PAGE_SIZE = 25;
+    let currentPage = 1;
+    let searchTimer = null;
+
+    const tbody   = document.querySelector('table tbody');
+    const allRows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
+    if (!allRows.length) return;
+
+    // Быстрый клиентский поиск — добавляем поле рядом с серверным
+    const serverSearch = document.querySelector('input[name="search"]');
+    if (serverSearch) {
+        const qi = document.createElement('input');
+        qi.type = 'text';
+        qi.id = 'proj-quick-search';
+        qi.className = 'form-control form-control-sm';
+        qi.placeholder = '⚡ Быстрый поиск...';
+        qi.style.cssText = 'width:180px;border-color:#3CB34A';
+        qi.title = 'Мгновенный поиск по уже загруженным проектам';
+        serverSearch.parentNode.insertBefore(qi, serverSearch.nextSibling);
+        qi.addEventListener('input', () => { currentPage = 1; clearTimeout(searchTimer); searchTimer = setTimeout(update, 150); });
+    }
+
+    function getVisible() {
+        const qi = document.getElementById('proj-quick-search');
+        const q = qi ? qi.value.toLowerCase().trim() : '';
+        return q ? allRows.filter(r => r.textContent.toLowerCase().includes(q)) : allRows;
+    }
+
+    function update() {
+        const visible = getVisible();
+        const total   = visible.length;
+        const pages   = Math.max(1, Math.ceil(total / PAGE_SIZE));
+        if (currentPage > pages) currentPage = pages;
+        allRows.forEach(r => r.style.display = 'none');
+        visible.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE).forEach(r => r.style.display = '');
+        const cnt = document.querySelector('.ms-auto.text-muted.small');
+        if (cnt) cnt.textContent = total + ' проектов';
+        renderPager(total, pages);
+    }
+
+    function renderPager(total, pages) {
+        let p = document.getElementById('proj-pager');
+        if (!p) {
+            p = document.createElement('div');
+            p.id = 'proj-pager';
+            p.className = 'd-flex justify-content-between align-items-center px-3 py-2 border-top';
+            (document.querySelector('.data-card') || document.querySelector('.table-responsive').parentNode).appendChild(p);
+        }
+        if (total <= PAGE_SIZE) { p.innerHTML = ''; return; }
+        const mk = (id, icon, disabled) => disabled
+            ? `<button class="btn btn-sm btn-outline-secondary" disabled><i class="bi ${icon}"></i></button>`
+            : `<button id="${id}" class="btn btn-sm btn-outline-secondary"><i class="bi ${icon}"></i></button>`;
+        p.innerHTML = mk('pprev','bi-chevron-left', currentPage<=1)
+            + `<span class="text-muted small">Стр. ${currentPage} из ${pages} · ${total} проектов</span>`
+            + mk('pnext','bi-chevron-right', currentPage>=pages);
+        const pp = document.getElementById('pprev'), pn = document.getElementById('pnext');
+        if (pp) pp.onclick = () => { currentPage--; update(); window.scrollTo(0,0); };
+        if (pn) pn.onclick = () => { currentPage++; update(); window.scrollTo(0,0); };
+    }
+
+    update();
+})();
+</script>
+{% endblock %}
