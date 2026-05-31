@@ -94,6 +94,11 @@
                 <i class="bi bi-clipboard2 me-1"></i>Задачи
             </a>
             {% if user and user.is_admin %}
+            <button class="btn btn-xs {% if m.email %}btn-outline-success{% else %}btn-outline-secondary{% endif %}"
+                    onclick="openEmailModal({{ m.id }}, '{{ m.name }}', '{{ m.email or '' }}')"
+                    title="{% if m.email %}Email: {{ m.email }}{% else %}Добавить email{% endif %}">
+                <i class="bi bi-envelope{% if m.email %}-check{% endif %}"></i>
+            </button>
             <form method="post" action="/managers/{{ m.id }}/delete" class="d-inline"
                   onsubmit="return confirm('Удалить {{ m.name }}? Его проекты останутся без менеджера.')">
                 <button type="submit" class="btn btn-xs btn-outline-danger">
@@ -371,6 +376,12 @@
                            placeholder="+79991234567">
                     <div class="form-text">Если указан — менеджер сможет войти на сайт</div>
                 </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Email <span class="text-muted fw-normal">(для уведомлений)</span></label>
+                    <input type="email" name="email" class="form-control"
+                           placeholder="ivanov@lenta.com">
+                    <div class="form-text">На этот адрес будут приходить уведомления о задачах и дедлайнах</div>
+                </div>
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" name="is_leader" id="chkLeader">
                     <label class="form-check-label" for="chkLeader">Руководитель проектов</label>
@@ -383,6 +394,32 @@
                 </button>
             </div>
             </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Модал: редактировать email -->
+{% if user and user.is_admin %}
+<div class="modal fade" id="modalEmail" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h6 class="modal-title"><i class="bi bi-envelope me-2"></i>Email для уведомлений</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="fw-semibold mb-2" id="emailModalName"></div>
+                <input type="email" id="emailModalInput" class="form-control"
+                       placeholder="ivanov@lenta.com">
+                <div class="form-text">На этот адрес придут уведомления о задачах</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-dark btn-sm" onclick="saveEmail()">
+                    <i class="bi bi-check2 me-1"></i>Сохранить
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -436,6 +473,31 @@ function closeMgrTab(mgrId, tab) {
     const btn = document.getElementById('btn-' + tab + '-' + mgrId);
     panel.classList.add('d-none');
     if (btn) btn.classList.remove('active');
+}
+
+// ── Email менеджера ──────────────────────────────────────────
+var _emailMgrId = null;
+
+function openEmailModal(mgrId, name, currentEmail) {
+    _emailMgrId = mgrId;
+    document.getElementById('emailModalName').textContent = name;
+    document.getElementById('emailModalInput').value = currentEmail || '';
+    new bootstrap.Modal(document.getElementById('modalEmail')).show();
+}
+
+async function saveEmail() {
+    if (!_emailMgrId) return;
+    const email = document.getElementById('emailModalInput').value.trim();
+    const resp = await fetch('/managers/' + _emailMgrId + '/email', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({email: email})
+    });
+    const data = await resp.json();
+    if (data.ok) {
+        bootstrap.Modal.getInstance(document.getElementById('modalEmail')).hide();
+        location.reload();
+    }
 }
 </script>
 {% endblock %}

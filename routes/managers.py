@@ -66,11 +66,12 @@ async def managers_view(request: Request, db: Session = Depends(get_db)):
 @router.post("/managers/add")
 async def add_manager(request: Request, db: Session = Depends(get_db),
                       name: str = Form(...), phone: str = Form(""),
-                      is_leader: str = Form("")):
+                      email: str = Form(""), is_leader: str = Form("")):
     user = get_current_user(request)
     if not user or not user.get("is_admin"):
         return RedirectResponse("/managers", status_code=302)
-    mgr = models.Manager(name=name.strip(), is_leader=bool(is_leader))
+    mgr = models.Manager(name=name.strip(), is_leader=bool(is_leader),
+                         email=email.strip().lower() if email.strip() else "")
     db.add(mgr)
     db.flush()
     if phone.strip():
@@ -97,6 +98,21 @@ async def delete_manager(manager_id: int, request: Request, db: Session = Depend
         db.delete(mgr)
         db.commit()
     return RedirectResponse("/managers", status_code=303)
+
+
+@router.post("/managers/{manager_id}/email")
+async def update_manager_email(manager_id: int, request: Request,
+                                db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user or not user.get("is_admin"):
+        return {"error": "Нет доступа"}
+    data = await request.json()
+    mgr = db.query(models.Manager).filter(models.Manager.id == manager_id).first()
+    if not mgr:
+        return {"error": "Менеджер не найден"}
+    mgr.email = data.get("email", "").strip().lower()
+    db.commit()
+    return {"ok": True, "email": mgr.email}
 
 
 @router.post("/managers/{manager_id}/photo")
