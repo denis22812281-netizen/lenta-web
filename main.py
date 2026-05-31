@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import secrets
 from datetime import datetime
 from pathlib import Path
@@ -182,6 +184,18 @@ async def startup():
             for name, is_leader in MANAGERS_SEED:
                 db.add(models.Manager(name=name, is_leader=is_leader))
             db.commit()
+
+        # Прописать email и права менеджерам из переменных окружения
+        # MANAGER_EMAIL_Имя_Фамилия=email  |  MANAGER_LEADER_Имя_Фамилия=true
+        for mgr in db.query(models.Manager).all():
+            key = mgr.name.replace(" ", "_")
+            email_val = os.getenv(f"MANAGER_EMAIL_{key}", "").strip().lower()
+            if email_val and mgr.email != email_val:
+                mgr.email = email_val
+            leader_val = os.getenv(f"MANAGER_LEADER_{key}", "").strip().lower()
+            if leader_val in ("true", "1", "yes") and not mgr.is_leader:
+                mgr.is_leader = True
+        db.commit()
 
         # Первый администратор — из переменной окружения ADMIN_PHONE
         # Для тестирования: установить ADMIN_PHONE в .env или Railway Variables

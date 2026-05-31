@@ -1,29 +1,41 @@
 """
-Email-уведомления через корпоративный SMTP.
-Активируется если заданы переменные SMTP_HOST, SMTP_USER, SMTP_PASSWORD.
+Email-уведомления через Brevo SMTP.
+Активируется если заданы SMTP_HOST, SMTP_USER, SMTP_PASS.
 Если не заданы — молча пропускает (система работает без email).
 """
 import os
 import logging
 import smtplib
-from email.mime.text import MIMEText
+from email.header import Header
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.utils import formataddr
 
 logger = logging.getLogger(__name__)
 
-SMTP_HOST     = os.getenv("SMTP_HOST", "")
-SMTP_PORT     = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER     = os.getenv("SMTP_USER", "")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-SMTP_FROM     = os.getenv("SMTP_FROM", SMTP_USER)
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASS = os.getenv("SMTP_PASS", "")
+_smtp_from_raw = os.getenv("SMTP_FROM", "") or SMTP_USER
 
-EMAIL_ENABLED = bool(SMTP_HOST and SMTP_USER and SMTP_PASSWORD)
+# Разбираем "Имя <адрес>" → правильное RFC 2047 кодирование для кириллицы
+def _parse_from(raw: str):
+    if "<" in raw and raw.endswith(">"):
+        name, addr = raw.rsplit("<", 1)
+        return name.strip(), addr.rstrip(">").strip()
+    return "", raw.strip()
+
+_from_name, _from_addr = _parse_from(_smtp_from_raw)
+SMTP_FROM = formataddr((str(Header(_from_name, "utf-8")) if _from_name else "", _from_addr))
+
+EMAIL_ENABLED = bool(SMTP_HOST and SMTP_USER and SMTP_PASS)
 
 
 def send_email(to: str, subject: str, body_html: str) -> bool:
     """Отправить письмо. Возвращает True при успехе, False при ошибке."""
     if not EMAIL_ENABLED:
-        logger.debug("Email отключён (SMTP_HOST не задан), пропускаем отправку на %s", to)
+        logger.debug("Email отключён (SMTP не настроен), пропускаем отправку на %s", to)
         return False
     if not to or "@" not in to:
         return False
@@ -34,10 +46,9 @@ def send_email(to: str, subject: str, body_html: str) -> bool:
         msg["To"]      = to
         msg.attach(MIMEText(body_html, "html", "utf-8"))
 
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
-            server.ehlo()
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
             server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.login(SMTP_USER, SMTP_PASS)
             server.sendmail(SMTP_FROM, [to], msg.as_string())
 
         logger.info("Email отправлен: %s → %s", subject, to)
