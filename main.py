@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from datetime import datetime, date, timedelta
 import models
 import database
@@ -12,11 +12,15 @@ import openpyxl
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Alignment
 import hashlib
+import base64
 import io
 import os
 import secrets
 import asyncio
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Лента — Управление проектами")
 
@@ -60,7 +64,31 @@ ONLINE_TIMEOUT = 120  # секунд без пинга = оффлайн
 
 
 def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+    """PBKDF2-SHA256 with random 16-byte salt. Format: base64(salt+key)."""
+    salt = os.urandom(16)
+    key = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 260_000)
+    return base64.b64encode(salt + key).decode()
+
+
+def verify_password(plain: str, stored: str) -> bool:
+    """Verify against PBKDF2 hash. Transparently accepts legacy SHA256 hashes (64 hex)."""
+    if not stored:
+        return False
+    # Legacy: raw SHA256 hex (no salt, 64 chars)
+    if len(stored) == 64 and all(c in '0123456789abcdefABCDEF' for c in stored):
+        return hashlib.sha256(plain.encode('utf-8')).hexdigest() == stored
+    try:
+        raw = base64.b64decode(stored.encode())
+        salt, key = raw[:16], raw[16:]
+        check = hashlib.pbkdf2_hmac('sha256', plain.encode('utf-8'), salt, 260_000)
+        return key == check
+    except Exception:
+        return False
+
+
+def _is_legacy_hash(stored: str) -> bool:
+    return bool(stored) and len(stored) == 64 and all(
+        c in '0123456789abcdefABCDEF' for c in stored)
 
 
 def normalize_phone(phone: str) -> str:
@@ -106,7 +134,7 @@ def _match_manager(name_str: str, managers: list) -> int | None:
 def _safe_date(val):
     if isinstance(val, datetime):
         return val.date()
-    if isinstance(val, date) and not isinstance(val, datetime):
+    if isinstance(val, date):
         return val
     return None
 
@@ -650,10 +678,10 @@ async def startup():
                 ]:
                     try:
                         conn.exec_driver_sql(sql)
-                    except Exception:
-                        pass
-        except Exception:
-            pass
+                    except Exception as e:
+                        logger.debug("startup migration skipped: %s", e)
+        except Exception as e:
+            logger.warning("startup: could not run migrations: %s", e)
     db = database.SessionLocal()
     try:
         if db.query(models.Manager).count() == 0:
@@ -808,7 +836,7 @@ async def login_enter(request: Request, db: Session = Depends(get_db),
     """Step 2a: login with existing password."""
     normalized = normalize_phone(phone)
     user = db.query(models.User).filter(models.User.phone == normalized).first()
-    if not user or user.password_hash != hash_password(password):
+    if not user or not verify_password(password, user.password_hash):
         return templates.TemplateResponse("login.html", {
             "request": request,
             "step": "password",
@@ -816,6 +844,10 @@ async def login_enter(request: Request, db: Session = Depends(get_db),
             "display_name": user.display_name if user else "",
             "error": "Неверный пароль",
         })
+    # Авто-upgrade: если хранится старый SHA256 — сразу перехешировать в PBKDF2
+    if _is_legacy_hash(user.password_hash):
+        user.password_hash = hash_password(password)
+        db.commit()
     _set_session(request, user)
     return RedirectResponse("/", status_code=302)
 
@@ -900,13 +932,17 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         models.Task.deadline >= today,
         models.Task.deadline <= today + timedelta(days=7),
         models.Task.status != "Завершена").count()
-    projects_deadline_soon = db.query(models.Project).filter(
+    projects_deadline_soon = db.query(models.Project).options(
+        joinedload(models.Project.manager)
+    ).filter(
         models.Project.end_date >= today,
         models.Project.end_date <= today + timedelta(days=14),
         models.Project.status == "Активный",
         (models.Project.opening_date == None) | (models.Project.opening_date > today)
     ).order_by(models.Project.end_date).limit(6).all()
-    recent_tasks = db.query(models.Task).order_by(models.Task.created_at.desc()).limit(6).all()
+    recent_tasks = db.query(models.Task).options(
+        joinedload(models.Task.assignee)
+    ).order_by(models.Task.created_at.desc()).limit(6).all()
     return templates.TemplateResponse("index.html", {
         "request": request, "user": user,
         "total_projects": total_projects, "active_projects": active_projects,
@@ -1478,7 +1514,10 @@ async def tasks_view(request: Request, db: Session = Depends(get_db),
 
     if status:
         q = q.filter(models.Task.status == status)
-    tasks = q.order_by(models.Task.deadline.nullslast()).all()
+    tasks = q.options(
+        joinedload(models.Task.assignee),
+        joinedload(models.Task.project),
+    ).order_by(models.Task.deadline.nullslast()).all()
     managers = db.query(models.Manager).all()
     projects = db.query(models.Project).filter(models.Project.status == "Активный").all()
 
@@ -1572,6 +1611,57 @@ async def delete_task(task_id: int, request: Request, db: Session = Depends(get_
         db.delete(t)
         db.commit()
     return RedirectResponse("/tasks", status_code=303)
+
+
+@app.get("/api/tasks")
+async def api_tasks_json(request: Request, db: Session = Depends(get_db),
+                         manager_id: str = None, status: str = None):
+    """JSON endpoint для AJAX-фильтрации задач."""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401)
+    my_name = user.get("display_name", "")
+    is_admin = user.get("is_admin", False)
+    my_manager = db.query(models.Manager).filter(models.Manager.name == my_name).first()
+
+    from sqlalchemy import or_
+    q = db.query(models.Task)
+    if not is_admin:
+        conditions = [models.Task.created_by == my_name]
+        if my_manager:
+            conditions.append(models.Task.assignee_id == my_manager.id)
+        q = q.filter(or_(*conditions))
+    else:
+        if manager_id and str(manager_id).isdigit():
+            q = q.filter(models.Task.assignee_id == int(manager_id))
+    if status:
+        q = q.filter(models.Task.status == status)
+
+    from fastapi.responses import JSONResponse
+    today = date.today()
+    tasks = q.options(
+        joinedload(models.Task.assignee),
+        joinedload(models.Task.project),
+    ).order_by(models.Task.deadline.nullslast()).all()
+
+    result = []
+    for t in tasks:
+        days = (t.deadline - today).days if t.deadline else None
+        result.append({
+            "id": t.id,
+            "title": t.title,
+            "description": t.description or "",
+            "assignee": t.assignee.name if t.assignee else "",
+            "assignee_id": t.assignee_id,
+            "created_by": t.created_by or "",
+            "project": t.project.name if t.project else "",
+            "deadline": t.deadline.strftime("%d.%m.%Y") if t.deadline else "",
+            "deadline_days": days,
+            "priority": t.priority,
+            "status": t.status,
+            "completion_comment": t.completion_comment or "",
+        })
+    return JSONResponse({"tasks": result, "total": len(result)})
 
 
 # ─── EXCEL ───────────────────────────────────────────────────────────────────

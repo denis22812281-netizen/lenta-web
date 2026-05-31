@@ -3,167 +3,189 @@
 {% block title %}<i class="bi bi-clipboard2-check-fill me-2"></i>Задачи{% endblock %}
 
 {% block content %}
-<div class="row g-3">
-    <!-- Create task form -->
-    <div class="col-lg-4">
-        <div class="data-card">
-            <div class="data-card-header">
-                <span><i class="bi bi-plus-circle-fill me-2"></i>Поставить задачу</span>
+
+<!-- Панель фильтров + кнопка создания -->
+<div class="filter-bar mb-3 d-flex flex-wrap gap-2 align-items-center justify-content-between">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <select id="filter-status" class="form-select form-select-sm" style="width:160px">
+            <option value="">Все статусы</option>
+            {% for s in task_statuses %}
+            <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+        {% if user and user.is_admin %}
+        <select id="filter-manager" class="form-select form-select-sm" style="width:180px">
+            <option value="">Все менеджеры</option>
+            {% for m in managers %}
+            <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>{{ m.name }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+        <span id="task-count" class="badge bg-secondary">{{ tasks|length }}</span>
+    </div>
+    {% if user and user.is_admin or true %}
+    <button class="btn btn-dark btn-sm" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+        <i class="bi bi-plus-circle me-1"></i>Поставить задачу
+    </button>
+    {% endif %}
+</div>
+
+<!-- Таблица задач (полная ширина) -->
+<div class="data-card">
+    <div id="tasks-table-wrap">
+        {% include "partials/tasks_table.html" ignore missing %}
+        {% if tasks %}
+        <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle small" id="tasks-table">
+            <thead class="table-head">
+                <tr>
+                    <th style="min-width:180px">Задача</th>
+                    <th>Проект</th>
+                    <th>Назначено</th>
+                    <th>Поставил</th>
+                    <th>Дедлайн</th>
+                    <th>Приоритет</th>
+                    <th>Статус</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="tasks-body">
+            {% for t in tasks %}
+            {% if t.deadline %}{% set days = (t.deadline - today).days %}{% else %}{% set days = None %}{% endif %}
+            <tr class="task-row {% if days is not none and days < 0 and t.status != 'Завершена' %}table-danger{% elif days is not none and days <= 3 and t.status != 'Завершена' %}table-warning{% endif %}"
+                style="cursor:pointer"
+                data-title="{{ t.title|e }}"
+                data-description="{{ t.description|e }}"
+                data-assignee="{{ t.assignee.name if t.assignee else '—' }}"
+                data-created-by="{{ t.created_by or '—' }}"
+                data-project="{{ t.project.name if t.project else '—' }}"
+                data-deadline="{{ t.deadline.strftime('%d.%m.%Y') if t.deadline else '—' }}"
+                data-priority="{{ t.priority }}"
+                data-status="{{ t.status }}"
+                data-completion-comment="{{ t.completion_comment|e }}">
+                <td>
+                    <div class="fw-semibold">{{ t.title }}</div>
+                    {% if t.description %}<div class="text-muted" style="font-size:11px">{{ t.description[:60] }}{% if t.description|length > 60 %}…{% endif %}</div>{% endif %}
+                </td>
+                <td class="text-muted">{{ t.project.name[:20] if t.project else '—' }}</td>
+                <td>{{ t.assignee.name if t.assignee else '—' }}</td>
+                <td class="text-muted small">{{ t.created_by or '—' }}</td>
+                <td class="fw-semibold" style="white-space:nowrap">
+                    {% if t.deadline %}
+                    {{ t.deadline.strftime('%d.%m.%Y') }}
+                    {% if days is not none %}
+                    <br><span class="dl-badge {% if days < 0 %}dl-over{% elif days <= 3 %}dl-crit{% elif days <= 7 %}dl-warn{% else %}dl-ok{% endif %}">
+                        {% if days < 0 %}{{ -days }} д назад{% elif days == 0 %}Сегодня{% else %}{{ days }} д{% endif %}
+                    </span>
+                    {% endif %}
+                    {% else %}—{% endif %}
+                </td>
+                <td>
+                    <span class="badge {% if t.priority == 'Высокий' %}bg-danger{% elif t.priority == 'Средний' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                        {{ t.priority }}
+                    </span>
+                </td>
+                <td>
+                    <form method="post" action="/tasks/{{ t.id }}/update-status" id="form-{{ t.id }}">
+                        <input type="hidden" name="completion_comment" id="cc-{{ t.id }}" value="">
+                        <select name="status" class="form-select form-select-sm" style="width:130px"
+                                onchange="onStatusChange(this, {{ t.id }}, '{{ t.status }}')">
+                            {% for s in task_statuses %}
+                            <option value="{{ s }}" {% if t.status == s %}selected{% endif %}>{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </td>
+                <td>
+                    <form method="post" action="/tasks/{{ t.id }}/delete"
+                          onsubmit="return confirm('Удалить задачу?')">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Удалить">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <div class="empty-state" id="empty-state">
+            <i class="bi bi-clipboard2"></i>
+            <p>Задач пока нет</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ─── Модал: создать задачу ─────────────────────────────────────────── -->
+<div class="modal fade" id="createTaskModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Поставить задачу</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form method="post" action="/tasks/create" class="p-3">
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Название задачи *</label>
-                    <input type="text" name="title" class="form-control" required placeholder="Что нужно сделать?">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Описание</label>
-                    <textarea name="description" class="form-control" rows="3" placeholder="Подробнее..."></textarea>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Проект</label>
-                    <select name="project_id" class="form-select">
-                        <option value="">— без проекта —</option>
-                        {% for p in projects %}
-                        <option value="{{ p.id }}">{{ p.tk_number and '[' + p.tk_number + '] ' or '' }}{{ p.name[:35] }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Назначить менеджеру</label>
-                    <select name="assignee_id" class="form-select">
-                        <option value="">— не назначена —</option>
-                        {% for m in managers %}
-                        <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>{{ m.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Дедлайн</label>
-                    <input type="date" name="deadline" class="form-control">
-                </div>
-                <div class="mb-4">
-                    <label class="form-label fw-semibold">Приоритет</label>
-                    <div class="d-flex gap-2">
-                        {% for pr in priorities %}
-                        <div class="form-check flex-fill text-center">
-                            <input class="form-check-input d-none" type="radio" name="priority" value="{{ pr }}" id="pr_{{ pr }}" {% if pr == 'Средний' %}checked{% endif %}>
-                            <label class="form-check-label btn btn-sm w-100 {% if pr == 'Высокий' %}btn-outline-danger{% elif pr == 'Средний' %}btn-outline-warning{% else %}btn-outline-secondary{% endif %} priority-label" for="pr_{{ pr }}">
-                                {{ pr }}
-                            </label>
+            <form method="post" action="/tasks/create">
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Название задачи <span class="text-danger">*</span></label>
+                        <input type="text" name="title" class="form-control" required placeholder="Что нужно сделать?">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Описание</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="Подробнее..."></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Проект</label>
+                        <select name="project_id" class="form-select">
+                            <option value="">— без проекта —</option>
+                            {% for p in projects %}
+                            <option value="{{ p.id }}">{{ p.tk_number and '[' + p.tk_number + '] ' or '' }}{{ p.name[:40] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Назначить менеджеру</label>
+                        <select name="assignee_id" class="form-select">
+                            <option value="">— не назначена —</option>
+                            {% for m in managers %}
+                            <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>{{ m.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Дедлайн</label>
+                        <input type="date" name="deadline" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Приоритет</label>
+                        <div class="d-flex gap-2">
+                            {% for pr in priorities %}
+                            <div class="form-check flex-fill text-center">
+                                <input class="form-check-input d-none" type="radio" name="priority" value="{{ pr }}" id="pr_{{ pr }}" {% if pr == 'Средний' %}checked{% endif %}>
+                                <label class="form-check-label btn btn-sm w-100 {% if pr == 'Высокий' %}btn-outline-danger{% elif pr == 'Средний' %}btn-outline-warning{% else %}btn-outline-secondary{% endif %} priority-label" for="pr_{{ pr }}">
+                                    {{ pr }}
+                                </label>
+                            </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
                     </div>
                 </div>
-                <button type="submit" class="btn btn-dark w-100">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-dark">
                     <i class="bi bi-check2-circle me-1"></i>Поставить задачу
                 </button>
+            </div>
             </form>
-        </div>
-    </div>
-
-    <!-- Task list -->
-    <div class="col-lg-8">
-        <div class="data-card">
-            <div class="data-card-header">
-                <span>Все задачи <span class="badge bg-secondary ms-1">{{ tasks|length }}</span></span>
-                <div class="d-flex gap-2">
-                    <select id="filter-status" class="form-select form-select-sm" style="width:140px" onchange="filterTasks(this)">
-                        <option value="">Все статусы</option>
-                        {% for s in task_statuses %}
-                        <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ s }}</option>
-                        {% endfor %}
-                    </select>
-                    <select id="filter-manager" class="form-select form-select-sm" style="width:160px" onchange="filterTasks(this)">
-                        <option value="">Все менеджеры</option>
-                        {% for m in managers %}
-                        <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>{{ m.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            {% if tasks %}
-            <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle small">
-                <thead class="table-head">
-                    <tr>
-                        <th>Задача</th>
-                        <th>Проект</th>
-                        <th>Назначено</th>
-                        <th>Дедлайн</th>
-                        <th>Приоритет</th>
-                        <th>Статус</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                {% for t in tasks %}
-                {% if t.deadline %}{% set days = (t.deadline - today).days %}{% else %}{% set days = None %}{% endif %}
-                <tr class="task-row {% if days is not none and days < 0 and t.status != 'Завершена' %}table-danger{% elif days is not none and days <= 3 and t.status != 'Завершена' %}table-warning{% endif %}"
-                    style="cursor:pointer"
-                    data-title="{{ t.title|e }}"
-                    data-description="{{ t.description|e }}"
-                    data-assignee="{{ t.assignee.name if t.assignee else '—' }}"
-                    data-created-by="{{ t.created_by or '—' }}"
-                    data-project="{{ t.project.name if t.project else '—' }}"
-                    data-deadline="{{ t.deadline.strftime('%d.%m.%Y') if t.deadline else '—' }}"
-                    data-priority="{{ t.priority }}"
-                    data-status="{{ t.status }}"
-                    data-completion-comment="{{ t.completion_comment|e }}">
-                    <td>
-                        <div class="fw-semibold">{{ t.title }}</div>
-                        {% if t.description %}<div class="text-muted small">{{ t.description[:50] }}{% if t.description|length > 50 %}…{% endif %}</div>{% endif %}
-                    </td>
-                    <td class="text-muted">{{ t.project.name[:18] if t.project else '—' }}</td>
-                    <td>{{ t.assignee.name if t.assignee else '—' }}</td>
-                    <td class="fw-semibold">
-                        {% if t.deadline %}
-                        {{ t.deadline.strftime('%d.%m.%Y') }}
-                        {% if days is not none %}
-                        <br><span class="dl-badge {% if days < 0 %}dl-over{% elif days <= 3 %}dl-crit{% elif days <= 7 %}dl-warn{% else %}dl-ok{% endif %}">
-                            {% if days < 0 %}{{ -days }} д назад{% elif days == 0 %}Сегодня{% else %}{{ days }} д{% endif %}
-                        </span>
-                        {% endif %}
-                        {% else %}—{% endif %}
-                    </td>
-                    <td>
-                        <span class="badge {% if t.priority == 'Высокий' %}bg-danger{% elif t.priority == 'Средний' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                            {{ t.priority }}
-                        </span>
-                    </td>
-                    <td>
-                        <form method="post" action="/tasks/{{ t.id }}/update-status" id="form-{{ t.id }}">
-                            <input type="hidden" name="completion_comment" id="cc-{{ t.id }}" value="">
-                            <select name="status" class="form-select form-select-sm" style="width:130px"
-                                    onchange="onStatusChange(this, {{ t.id }}, '{{ t.status }}')">
-                                {% for s in task_statuses %}
-                                <option value="{{ s }}" {% if t.status == s %}selected{% endif %}>{{ s }}</option>
-                                {% endfor %}
-                            </select>
-                        </form>
-                    </td>
-                    <td>
-                        <form method="post" action="/tasks/{{ t.id }}/delete"
-                              onsubmit="return confirm('Удалить задачу?')">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-            </div>
-            {% else %}
-            <div class="empty-state"><i class="bi bi-clipboard2"></i><p>Задач пока нет</p></div>
-            {% endif %}
         </div>
     </div>
 </div>
 
-{% endblock %}
-
-<!-- Модал: комментарий при завершении -->
+<!-- ─── Модал: комментарий при завершении ────────────────────────────── -->
 <div class="modal fade" id="completeModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -186,7 +208,7 @@
     </div>
 </div>
 
-<!-- Модал: детали задачи -->
+<!-- ─── Модал: детали задачи ─────────────────────────────────────────── -->
 <div class="modal fade" id="taskModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -216,9 +238,11 @@
     </div>
 </div>
 
+{% endblock %}
+
 {% block scripts %}
 <script>
-// Priority button toggle
+// ── Priority toggle ──────────────────────────────────────────────────────────
 document.querySelectorAll('.priority-label').forEach(label => {
     label.addEventListener('click', function() {
         document.querySelectorAll('.priority-label').forEach(l => l.classList.remove('active'));
@@ -226,10 +250,8 @@ document.querySelectorAll('.priority-label').forEach(label => {
     });
 });
 
-// Завершение задачи с комментарием
-var _pendingFormId = null;
-var _pendingSelect = null;
-var _completeModal = null;
+// ── Завершение задачи с комментарием ────────────────────────────────────────
+var _pendingFormId = null, _pendingSelect = null, _completeModal = null;
 
 function onStatusChange(select, taskId, oldStatus) {
     if (select.value === 'Завершена') {
@@ -253,7 +275,6 @@ function submitComplete() {
 
 function cancelComplete() {
     if (_pendingSelect) {
-        // вернуть предыдущий статус в dropdown
         const opts = _pendingSelect.options;
         for (let i = 0; i < opts.length; i++) {
             if (opts[i].value !== 'Завершена') { _pendingSelect.selectedIndex = i; break; }
@@ -262,44 +283,128 @@ function cancelComplete() {
     _pendingFormId = null; _pendingSelect = null;
 }
 
-// Клик по строке задачи — открыть модал
-document.querySelectorAll('.task-row').forEach(row => {
-    row.addEventListener('click', function(e) {
-        if (e.target.closest('form, select, button, a')) return;
-        document.getElementById('modalTitle').textContent      = this.dataset.title;
-        document.getElementById('modalCreatedBy').textContent  = this.dataset.createdBy;
-        document.getElementById('modalAssignee').textContent   = this.dataset.assignee;
-        document.getElementById('modalProject').textContent    = this.dataset.project;
-        document.getElementById('modalDeadline').textContent   = this.dataset.deadline;
-        document.getElementById('modalPriority').textContent   = this.dataset.priority;
-        document.getElementById('modalStatus').textContent     = this.dataset.status;
-        const desc = this.dataset.description;
-        const wrap = document.getElementById('modalDescWrap');
-        if (desc) {
-            document.getElementById('modalDescription').textContent = desc;
-            wrap.classList.remove('d-none');
-        } else {
-            wrap.classList.add('d-none');
-        }
-        const comment = this.dataset.completionComment;
-        const cwrap = document.getElementById('modalCommentWrap');
-        if (comment) {
-            document.getElementById('modalComment').textContent = comment;
-            cwrap.classList.remove('d-none');
-        } else {
-            cwrap.classList.add('d-none');
-        }
-        new bootstrap.Modal(document.getElementById('taskModal')).show();
+// ── Клик по строке → детали ──────────────────────────────────────────────────
+function bindTaskRows() {
+    document.querySelectorAll('.task-row').forEach(row => {
+        row.addEventListener('click', function(e) {
+            if (e.target.closest('form, select, button, a')) return;
+            document.getElementById('modalTitle').textContent      = this.dataset.title;
+            document.getElementById('modalCreatedBy').textContent  = this.dataset.createdBy;
+            document.getElementById('modalAssignee').textContent   = this.dataset.assignee;
+            document.getElementById('modalProject').textContent    = this.dataset.project;
+            document.getElementById('modalDeadline').textContent   = this.dataset.deadline;
+            document.getElementById('modalPriority').textContent   = this.dataset.priority;
+            document.getElementById('modalStatus').textContent     = this.dataset.status;
+            const desc = this.dataset.description;
+            const wrap = document.getElementById('modalDescWrap');
+            if (desc) { document.getElementById('modalDescription').textContent = desc; wrap.classList.remove('d-none'); }
+            else { wrap.classList.add('d-none'); }
+            const comment = this.dataset.completionComment;
+            const cwrap = document.getElementById('modalCommentWrap');
+            if (comment) { document.getElementById('modalComment').textContent = comment; cwrap.classList.remove('d-none'); }
+            else { cwrap.classList.add('d-none'); }
+            new bootstrap.Modal(document.getElementById('taskModal')).show();
+        });
     });
-});
-
-function filterTasks(el) {
-    const status = document.getElementById('filter-status').value;
-    const manager = document.getElementById('filter-manager').value;
-    let url = '/tasks?';
-    if (status) url += 'status=' + encodeURIComponent(status) + '&';
-    if (manager) url += 'manager_id=' + manager;
-    window.location.href = url;
 }
+bindTaskRows();
+
+// ── AJAX фильтр ──────────────────────────────────────────────────────────────
+const TODAY = new Date(); TODAY.setHours(0,0,0,0);
+
+function daysDiff(ddmmyyyy) {
+    if (!ddmmyyyy) return null;
+    const [d,m,y] = ddmmyyyy.split('.');
+    const dt = new Date(y, m-1, d);
+    return Math.round((dt - TODAY) / 86400000);
+}
+
+function priorityBadge(p) {
+    if (p === 'Высокий') return '<span class="badge bg-danger">Высокий</span>';
+    if (p === 'Средний') return '<span class="badge bg-warning text-dark">Средний</span>';
+    return '<span class="badge bg-secondary">Низкий</span>';
+}
+
+function statusBadge(s) {
+    const map = { 'Завершена':'success','В работе':'primary','На проверке':'warning','Открытая':'secondary' };
+    return `<span class="badge bg-${map[s]||'secondary'}${s==='На проверке'?' text-dark':''}">${s}</span>`;
+}
+
+function dlBadge(days) {
+    if (days === null) return '';
+    let cls = days < 0 ? 'dl-over' : days <= 3 ? 'dl-crit' : days <= 7 ? 'dl-warn' : 'dl-ok';
+    let txt = days < 0 ? `${-days} д назад` : days === 0 ? 'Сегодня' : `${days} д`;
+    return `<br><span class="dl-badge ${cls}">${txt}</span>`;
+}
+
+function renderRows(tasks, statuses) {
+    if (!tasks.length) {
+        return '<tr><td colspan="8"><div class="empty-state"><i class="bi bi-clipboard2"></i><p>Задач нет</p></div></td></tr>';
+    }
+    return tasks.map(t => {
+        const days = daysDiff(t.deadline);
+        const rowCls = (days !== null && days < 0 && t.status !== 'Завершена') ? 'table-danger'
+                     : (days !== null && days <= 3 && t.status !== 'Завершена') ? 'table-warning' : '';
+        const statusOpts = statuses.map(s =>
+            `<option value="${s}"${s===t.status?' selected':''}>${s}</option>`).join('');
+        return `<tr class="task-row ${rowCls}" style="cursor:pointer"
+            data-title="${escHtml(t.title)}"
+            data-description="${escHtml(t.description)}"
+            data-assignee="${escHtml(t.assignee||'—')}"
+            data-created-by="${escHtml(t.created_by||'—')}"
+            data-project="${escHtml(t.project||'—')}"
+            data-deadline="${t.deadline||'—'}"
+            data-priority="${t.priority}"
+            data-status="${t.status}"
+            data-completion-comment="${escHtml(t.completion_comment)}">
+            <td><div class="fw-semibold">${escHtml(t.title)}</div>${t.description?`<div class="text-muted" style="font-size:11px">${escHtml(t.description.slice(0,60))}${t.description.length>60?'…':''}</div>`:''}</td>
+            <td class="text-muted">${escHtml(t.project.slice(0,20)||'—')}</td>
+            <td>${escHtml(t.assignee||'—')}</td>
+            <td class="text-muted small">${escHtml(t.created_by||'—')}</td>
+            <td class="fw-semibold" style="white-space:nowrap">${t.deadline||'—'}${dlBadge(days)}</td>
+            <td>${priorityBadge(t.priority)}</td>
+            <td><form method="post" action="/tasks/${t.id}/update-status" id="form-${t.id}">
+                <input type="hidden" name="completion_comment" id="cc-${t.id}" value="">
+                <select name="status" class="form-select form-select-sm" style="width:130px"
+                        onchange="onStatusChange(this,${t.id},'${t.status}')">${statusOpts}</select>
+            </form></td>
+            <td><form method="post" action="/tasks/${t.id}/delete" onsubmit="return confirm('Удалить задачу?')">
+                <button type="submit" class="btn btn-sm btn-outline-danger" title="Удалить"><i class="bi bi-trash"></i></button>
+            </form></td>
+        </tr>`;
+    }).join('');
+}
+
+function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+const STATUSES = {{ task_statuses | tojson }};
+
+async function applyFilters() {
+    const status  = document.getElementById('filter-status').value;
+    const mgr     = document.getElementById('filter-manager') ? document.getElementById('filter-manager').value : '';
+    let url = '/api/tasks?';
+    if (status) url += 'status=' + encodeURIComponent(status) + '&';
+    if (mgr)    url += 'manager_id=' + mgr;
+
+    // Обновить URL без перезагрузки страницы
+    const histUrl = '/tasks?' + (status ? 'status='+encodeURIComponent(status)+'&' : '') + (mgr ? 'manager_id='+mgr : '');
+    history.replaceState({}, '', histUrl.replace(/[?&]$/, ''));
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        document.getElementById('tasks-body').innerHTML = renderRows(data.tasks, STATUSES);
+        document.getElementById('task-count').textContent = data.total;
+        bindTaskRows();
+    } catch(e) {
+        console.error('filter error', e);
+    }
+}
+
+document.getElementById('filter-status').addEventListener('change', applyFilters);
+const fmgr = document.getElementById('filter-manager');
+if (fmgr) fmgr.addEventListener('change', applyFilters);
 </script>
 {% endblock %}

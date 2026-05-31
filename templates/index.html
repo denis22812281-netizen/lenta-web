@@ -23,16 +23,23 @@
     </a>
 </div>
 
-<!-- ВРЕМЕННАЯ КНОПКА ОЧИСТКИ -->
+{% if user and user.is_admin %}
 <div class="mb-4">
-    <form method="post" action="/projects/clear-all"
-          onsubmit="return confirm('Удалить ВСЕ проекты Реконструкций и Констракшн? Это необратимо!')">
-        <button type="submit" class="btn btn-danger">
-            <i class="bi bi-trash-fill me-2"></i>Удалить ВСЕ проекты (Реконструкции + Констракшн)
-        </button>
-    </form>
+    <details>
+        <summary class="text-muted small" style="cursor:pointer;user-select:none">
+            <i class="bi bi-shield-lock me-1"></i>Опасные операции (только администратор)
+        </summary>
+        <div class="mt-2">
+            <form method="post" action="/projects/clear-all"
+                  onsubmit="return confirm('Удалить ВСЕ проекты Реконструкций и Констракшн? Это необратимо!')">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-trash-fill me-1"></i>Удалить ВСЕ проекты (Реконструкции + Констракшн)
+                </button>
+            </form>
+        </div>
+    </details>
 </div>
-<!-- /ВРЕМЕННАЯ КНОПКА -->
+{% endif %}
 
 <!-- Stats row -->
 <div class="row g-3 mb-4">

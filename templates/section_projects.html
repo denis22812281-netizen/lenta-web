@@ -19,6 +19,7 @@
     <a href="/sync-settings" class="btn btn-outline-secondary">
         <i class="bi bi-arrow-repeat me-1"></i>Авто-синхронизация
     </a>
+    {% if user and user.is_admin %}
     {% if section_type == "Констракшн" %}
     <form method="post" action="/construction/clear-all" onsubmit="return confirm('Удалить ВСЕ проекты Констракшн и загрузить заново?')">
         <button type="submit" class="btn btn-outline-danger btn-sm">
@@ -38,6 +39,7 @@
             <i class="bi bi-trash me-1"></i>Удалить лишние
         </button>
     </form>
+    {% endif %}
     {% endif %}
     <span class="ms-auto text-muted small">{{ projects|length }} проектов</span>
 </div>
@@ -109,10 +111,10 @@
             <td class="small text-muted">{{ p.stage or '—' }}</td>
             <td class="small">{{ p.start_date.strftime('%d.%m.%y') if p.start_date else '—' }}</td>
             <td class="small fw-semibold">{{ p.end_date.strftime('%d.%m.%Y') if p.end_date else '—' }}</td>
-            <td>
+            <td style="white-space:nowrap">
                 {% if days is not none %}
-                <span class="dl-badge {% if days < 0 %}dl-over{% elif days <= 7 %}dl-warn{% else %}dl-ok{% endif %}">
-                    {% if days < 0 %}{{ days }}{% else %}+{{ days }}{% endif %}
+                <span class="dl-badge {% if days < 0 %}dl-over{% elif days <= 3 %}dl-crit{% elif days <= 14 %}dl-warn{% else %}dl-ok{% endif %}">
+                    {% if days < 0 %}{{ -days }} д назад{% elif days == 0 %}Сегодня{% else %}{{ days }} д{% endif %}
                 </span>
                 {% else %}—{% endif %}
             </td>
