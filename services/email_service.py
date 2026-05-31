@@ -196,7 +196,7 @@ def notify_vpk_report(to_email: str, recipient_name: str,
 
     not_done = total - done
     content = f"""
-        <p style="font-size:16px;margin-bottom:4px">Добрый день, <b>{recipient_name}</b>.</p>
+        <p style="font-size:16px;margin-bottom:4px">Добрый день.</p>
         <p style="margin-top:4px"><b>{submitted_by}</b> отправил отчёт ВПК{vpk_type}</p>
         <div style="background:#f4faf5;border-left:4px solid #3CB34A;
                     padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0">
