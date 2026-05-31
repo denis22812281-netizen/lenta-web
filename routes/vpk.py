@@ -17,11 +17,18 @@ from services.email_service import notify_vpk_report
 import logging as _logging
 _vpk_logger = _logging.getLogger(__name__)
 
-# Список email для VPK-уведомлений (ASCII env var, через запятую)
-_VPK_NOTIFY_EMAILS = [
-    e.strip() for e in os.getenv("NOTIFY_VPK_EMAILS", "").split(",") if e.strip()
-]
-_vpk_logger.info("VPK: NOTIFY_VPK_EMAILS = %s", _VPK_NOTIFY_EMAILS)
+# Список email для VPK-уведомлений. Формат: email:Имя,email2:Имя2
+_VPK_NOTIFY_EMAILS = []
+for _entry in os.getenv("NOTIFY_VPK_EMAILS", "").split(","):
+    _entry = _entry.strip()
+    if not _entry:
+        continue
+    if ":" in _entry:
+        _e, _n = _entry.split(":", 1)
+        _VPK_NOTIFY_EMAILS.append((_e.strip(), _n.strip()))
+    else:
+        _VPK_NOTIFY_EMAILS.append((_entry, _entry.split("@")[0]))
+_vpk_logger.warning("VPK: NOTIFY_VPK_EMAILS = %s", _VPK_NOTIFY_EMAILS)
 
 router = APIRouter()
 
@@ -115,10 +122,10 @@ async def vpk_submit(request: Request, background_tasks: BackgroundTasks, db: Se
             models.Manager.email != "", models.Manager.email.isnot(None)).all():
         if mgr.is_leader or (proj and proj.manager_id == mgr.id):
             recipients[mgr.email] = mgr.name
-    # Из env: NOTIFY_VPK_EMAILS (надёжный ASCII способ)
-    for e in _VPK_NOTIFY_EMAILS:
-        if e not in recipients:
-            recipients[e] = e.split("@")[0]
+    # Из env: NOTIFY_VPK_EMAILS
+    for _e, _n in _VPK_NOTIFY_EMAILS:
+        if _e not in recipients:
+            recipients[_e] = _n
 
     _vpk_logger.info("VPK submit: отправка email получателям %s", list(recipients.keys()))
 
