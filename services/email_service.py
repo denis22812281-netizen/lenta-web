@@ -133,6 +133,35 @@ def notify_task_status_changed(to_email: str, creator_name: str,
     )
 
 
+def notify_vpk_report(to_email: str, recipient_name: str,
+                      vpk_type: int, tk_number: str, project_name: str,
+                      submitted_by: str, done: int, total: int,
+                      submitted_at: str) -> bool:
+    """Уведомление о новом ВПК-отчёте."""
+    pct   = int(done / total * 100) if total else 0
+    color = "#16a34a" if pct >= 80 else "#d97706" if pct >= 50 else "#dc2626"
+    content = f"""
+        <h2 style="color:#1a2e1c">Новый отчёт ВПК{vpk_type}</h2>
+        <p>Привет, <b>{recipient_name}</b>!</p>
+        <p><b>{submitted_by}</b> отправил отчёт ВПК{vpk_type}:</p>
+        <div style="background:#f4faf5;border-left:4px solid #3CB34A;
+                    padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0">
+          <b style="font-size:16px">ТК {tk_number}</b>
+          {"<br><span style='color:#666;font-size:13px'>" + project_name + "</span>" if project_name else ""}
+        </div>
+        <p>Выполнено критериев:
+          <span style="background:{color};color:#fff;padding:4px 12px;
+                       border-radius:12px;font-weight:700">{done}/{total} ({pct}%)</span>
+        </p>
+        <p style="color:#999;font-size:12px">Отправлено: {submitted_at}</p>
+    """
+    return send_email(
+        to_email,
+        f"ВПК{vpk_type} отчёт — ТК {tk_number} ({done}/{total} критериев)",
+        _base_template(content)
+    )
+
+
 def notify_deadline_tomorrow(to_email: str, manager_name: str,
                               projects: list) -> bool:
     """Список проектов с дедлайном завтра."""

@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import templates, get_current_user
+from services.email_service import notify_vpk_report
 
 router = APIRouter()
 
@@ -83,7 +84,32 @@ async def vpk_submit(request: Request, db: Session = Depends(get_db)):
         ))
     db.commit()
     proj = db.query(models.Project).filter(models.Project.id == project_id).first()
-    tk = proj.tk_number if proj else "—"
+    tk   = proj.tk_number if proj else "—"
+    proj_name = proj.name if proj else ""
+
+    # Email-уведомления — всем кто имеет email: лидеры + менеджер проекта
+    items     = db.query(models.VpkReportItem).filter(
+        models.VpkReportItem.report_id == report.id).all()
+    done      = sum(1 for i in items if i.done)
+    total     = len(items)
+    submitted_at = report.submitted_at.strftime("%d.%m.%Y %H:%M") if report.submitted_at else ""
+    submitter = user.get("display_name", "")
+
+    recipients = {}
+    # Все лидеры и менеджер проекта получают уведомление
+    for mgr in db.query(models.Manager).filter(
+            models.Manager.email != "", models.Manager.email.isnot(None)).all():
+        if mgr.is_leader or (proj and proj.manager_id == mgr.id):
+            recipients[mgr.email] = mgr.name
+
+    for email, name in recipients.items():
+        notify_vpk_report(
+            to_email=email, recipient_name=name,
+            vpk_type=vpk_type, tk_number=tk, project_name=proj_name,
+            submitted_by=submitter, done=done, total=total,
+            submitted_at=submitted_at,
+        )
+
     return RedirectResponse(
         f"/vpk?tab=reports&msg=Отчёт ВПК{vpk_type} по ТК {tk} отправлен",
         status_code=303)
