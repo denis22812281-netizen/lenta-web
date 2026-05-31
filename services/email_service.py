@@ -27,34 +27,40 @@ def _parse_from(raw: str):
     return "", raw.strip()
 
 _from_name, _from_addr = _parse_from(_smtp_from_raw)
-SMTP_FROM = formataddr((str(Header(_from_name, "utf-8")) if _from_name else "", _from_addr))
+# msg["From"] — отображаемое имя (RFC 2047), envelope — чистый адрес
+SMTP_FROM_HEADER = formataddr((str(Header(_from_name, "utf-8")) if _from_name else "", _from_addr))
+SMTP_FROM_ADDR   = _from_addr  # только адрес для envelope sendmail
 
 EMAIL_ENABLED = bool(SMTP_HOST and SMTP_USER and SMTP_PASS)
+logger.info("Email init: enabled=%s host=%s user=%s from=%s",
+            EMAIL_ENABLED, SMTP_HOST, SMTP_USER, SMTP_FROM_ADDR)
 
 
 def send_email(to: str, subject: str, body_html: str) -> bool:
     """Отправить письмо. Возвращает True при успехе, False при ошибке."""
     if not EMAIL_ENABLED:
-        logger.debug("Email отключён (SMTP не настроен), пропускаем отправку на %s", to)
+        logger.warning("Email отключён — SMTP_HOST/USER/PASS не заданы, пропуск отправки на %s", to)
         return False
     if not to or "@" not in to:
+        logger.warning("Email: некорректный адрес получателя: %r", to)
         return False
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
-        msg["From"]    = SMTP_FROM
+        msg["From"]    = SMTP_FROM_HEADER
         msg["To"]      = to
         msg.attach(MIMEText(body_html, "html", "utf-8"))
 
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        logger.info("Email: подключение к %s:%s", SMTP_HOST, SMTP_PORT)
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
             server.starttls()
             server.login(SMTP_USER, SMTP_PASS)
-            server.sendmail(SMTP_FROM, [to], msg.as_string())
+            server.sendmail(SMTP_FROM_ADDR, [to], msg.as_string())
 
-        logger.info("Email отправлен: %s → %s", subject, to)
+        logger.info("Email отправлен: [%s] → %s", subject, to)
         return True
     except Exception as e:
-        logger.warning("Ошибка отправки email на %s: %s", to, e)
+        logger.error("Ошибка отправки email на %s: %s", to, e, exc_info=True)
         return False
 
 

@@ -14,10 +14,14 @@ from database import get_db
 from deps import templates, get_current_user
 from services.email_service import notify_vpk_report
 
+import logging as _logging
+_vpk_logger = _logging.getLogger(__name__)
+
 # Список email для VPK-уведомлений (ASCII env var, через запятую)
 _VPK_NOTIFY_EMAILS = [
     e.strip() for e in os.getenv("NOTIFY_VPK_EMAILS", "").split(",") if e.strip()
 ]
+_vpk_logger.info("VPK: NOTIFY_VPK_EMAILS = %s", _VPK_NOTIFY_EMAILS)
 
 router = APIRouter()
 
@@ -116,6 +120,7 @@ async def vpk_submit(request: Request, db: Session = Depends(get_db)):
         if e not in recipients:
             recipients[e] = e.split("@")[0]
 
+    _vpk_logger.info("VPK submit: отправка email получателям %s", list(recipients.keys()))
     for email, name in recipients.items():
         notify_vpk_report(
             to_email=email, recipient_name=name,
