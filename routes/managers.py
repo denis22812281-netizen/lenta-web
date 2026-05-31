@@ -3,7 +3,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Request, Form, Depends, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 import models
 from database import get_db
@@ -25,7 +25,10 @@ async def managers_view(request: Request, db: Session = Depends(get_db)):
         "Валеев Борис", "Косило Сергей", "Студеникин Сергей",
         "Хачатурова Жанна", "Шевченко Наталья",
     ]
-    managers = db.query(models.Manager).all()
+    managers = db.query(models.Manager).options(
+        joinedload(models.Manager.projects),
+        joinedload(models.Manager.tasks),
+    ).all()
     managers.sort(key=lambda m: (
         0 if m.is_leader else 1,
         _order.index(m.name) if m.name in _order else 99

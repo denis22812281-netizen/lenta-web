@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey, Text, Float, Boolean
+from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey, Text, Float, Boolean, Index
 from sqlalchemy.orm import relationship
 from database import Base
 from datetime import datetime
@@ -74,6 +74,12 @@ class Project(Base):
     tasks = relationship("Task", back_populates="project", cascade="all, delete-orphan")
     stages = relationship("ProjectStage", back_populates="project", cascade="all, delete-orphan",
                           order_by="ProjectStage.order")
+    __table_args__ = (
+        Index("ix_project_manager_id",  "manager_id"),
+        Index("ix_project_status",      "status"),
+        Index("ix_project_type",        "project_type"),
+        Index("ix_project_end_date",    "end_date"),
+    )
 
 
 class ProjectStage(Base):
@@ -153,6 +159,10 @@ class ChatMessage(Base):
     photo_path = Column(String(300), default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     is_read = Column(Boolean, default=False)
+    __table_args__ = (
+        Index("ix_chat_receiver",  "receiver_name"),
+        Index("ix_chat_is_read",   "is_read"),
+    )
 
 
 class KsoObject(Base):
@@ -192,6 +202,12 @@ class Task(Base):
     completion_comment = Column(Text, default="")
     project = relationship("Project", back_populates="tasks")
     assignee = relationship("Manager", back_populates="tasks")
+    __table_args__ = (
+        Index("ix_task_project_id",  "project_id"),
+        Index("ix_task_assignee_id", "assignee_id"),
+        Index("ix_task_status",      "status"),
+        Index("ix_task_deadline",    "deadline"),
+    )
 
 
 class WebAuthnCredential(Base):

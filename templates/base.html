@@ -175,8 +175,9 @@
         n.onclick = () => location.reload();
         document.body.appendChild(n);
     }
+    var _isMobile = window.innerWidth < 768;
     setTimeout(checkVersion, 5000);
-    setInterval(checkVersion, 30000);
+    setInterval(checkVersion, _isMobile ? 120000 : 30000);
 })();
 
 // ─── УВЕДОМЛЕНИЯ КОНСТРАКШН ───────────────────────────────────────────────
@@ -314,9 +315,8 @@
         } catch(e) {}
     }
 
-    // Первая проверка через 10 сек, затем каждую минуту (чтобы не пропустить окно)
     setTimeout(checkNotifications, 10000);
-    setInterval(checkNotifications, 60000);
+    setInterval(checkNotifications, _isMobile ? 180000 : 60000);
 
     // Проверка новых ВПК отчётов (для Гаврина и Месмера)
     async function checkVpkReports() {
@@ -348,7 +348,7 @@
         } catch(e) {}
     }
     setTimeout(checkVpkReports, 6000);
-    setInterval(checkVpkReports, 60000);
+    setInterval(checkVpkReports, _isMobile ? 180000 : 60000);
 
     // Непрочитанные сообщения чата
     async function checkChatUnread() {
@@ -368,7 +368,7 @@
         } catch(e) {}
     }
     setTimeout(checkChatUnread, 8000);
-    setInterval(checkChatUnread, 15000);
+    setInterval(checkChatUnread, _isMobile ? 60000 : 15000);
 
     // Глобальная функция для кнопки теста
     window.testNotification = function() {
@@ -417,7 +417,7 @@
             }).catch(function(){});
     }
     setTimeout(checkTaskNotif, 7000);
-    setInterval(checkTaskNotif, 30000);
+    setInterval(checkTaskNotif, _isMobile ? 90000 : 30000);
 })();
 </script>
 
