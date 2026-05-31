@@ -60,11 +60,7 @@
             <div>
                 <div class="fw-bold fs-6">{{ m.name }}</div>
                 <div class="text-muted" style="font-size:12px">
-                    {% if s.overdue_tasks > 0 %}
-                    <span class="text-danger"><i class="bi bi-exclamation-circle me-1"></i>{{ s.overdue_tasks }} просроч. задач</span>
-                    {% else %}
-                    <span class="text-success"><i class="bi bi-check-circle me-1"></i>Всё в порядке</span>
-                    {% endif %}
+                    <i class="bi bi-briefcase me-1"></i>{{ m.position if m.position else "Менеджер проектов" }}
                 </div>
             </div>
         </div>
