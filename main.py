@@ -267,11 +267,18 @@ async def startup():
                 db.add(models.Manager(name=name, is_leader=is_leader))
         db.commit()
 
-        # Прописать фотографии и должности менеджерам
+        # Прописать фотографии, должности и email менеджерам
         MANAGER_DEFAULTS = {
-            "Гаврин Игорь":    {"photo": "img/managers/gavrin.png",  "position": "Руководитель проектов"},
-            "Комаров Алексей": {"photo": "img/managers/komarov.png", "position": "Директор по эксплуатации и реконструкции"},
-            "Месмер Денис":    {"photo": "img/raccoon_mesmer.jpg",   "position": "Менеджер проектов"},
+            "Гаврин Игорь":       {"photo": "img/managers/gavrin.png",  "position": "Руководитель проектов",                        "email": "igor.gavrin@lenta.com"},
+            "Комаров Алексей":    {"photo": "img/managers/komarov.png", "position": "Директор по эксплуатации и реконструкции"},
+            "Месмер Денис":       {"photo": "img/raccoon_mesmer.jpg",   "position": "Менеджер проектов",                             "email": "denis.mesmer@lenta.com"},
+            "Митько Роберт":      {"email": "robert.mitko@lenta.com"},
+            "Ловчиков Александр": {"email": "alexander.lovchikov@lenta.com"},
+            "Валеев Борис":       {"email": "boris.valeev@lenta.com"},
+            "Студеникин Сергей":  {"email": "sergey.studenikin@lenta.com"},
+            "Косило Сергей":      {"email": "sergey.kosilo@lenta.com"},
+            "Хачатурова Жанна":   {"email": "zhanna.hachaturova@lenta.com"},
+            "Шевченко Наталья":   {"email": "nataiya.shevchenko@lenta.com"},
         }
         _DEFAULT_POSITION = "Менеджер проектов"
         for mgr in db.query(models.Manager).all():
@@ -281,6 +288,8 @@ async def startup():
             pos = defaults.get("position", _DEFAULT_POSITION)
             if not mgr.position:
                 mgr.position = pos
+            if defaults.get("email") and not mgr.email:
+                mgr.email = defaults["email"]
         db.commit()
 
         # Прописать email и права менеджерам из переменных окружения
