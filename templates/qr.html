@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block page_title %}QR-код входа — Лента{% endblock %}
+{% block title %}<i class="bi bi-qr-code me-2"></i>QR-код для входа{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column align-items-center justify-content-center" style="min-height:70vh; gap:24px">
+
+    <div class="data-card text-center p-4" style="max-width:360px; width:100%">
+        <p class="text-muted mb-3">Отсканируй камерой телефона</p>
+        <div id="qrcode" class="d-flex justify-content-center mb-3"></div>
+        <code class="small text-muted">{{ app_url }}</code>
+    </div>
+
+    <div class="data-card p-4" style="max-width:360px; width:100%">
+        <p class="fw-semibold mb-3"><i class="bi bi-phone me-2"></i>Как сохранить на экран «Домой»</p>
+        <div class="mb-3">
+            <div class="small fw-semibold mb-1"><i class="bi bi-apple me-1"></i>iPhone (Safari)</div>
+            <ol class="small text-muted mb-0 ps-3">
+                <li>Открой ссылку в Safari</li>
+                <li>Нажми <strong>⎙ Поделиться</strong> внизу</li>
+                <li>Выбери <strong>«На экран Домой»</strong></li>
+                <li>Нажми <strong>Добавить</strong></li>
+            </ol>
+        </div>
+        <div>
+            <div class="small fw-semibold mb-1"><i class="bi bi-android2 me-1"></i>Android (Chrome)</div>
+            <ol class="small text-muted mb-0 ps-3">
+                <li>Открой ссылку в Chrome</li>
+                <li>Нажми <strong>⋮</strong> (три точки)</li>
+                <li>Выбери <strong>«Добавить на главный экран»</strong></li>
+                <li>Нажми <strong>Добавить</strong></li>
+            </ol>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+new QRCode(document.getElementById("qrcode"), {
+    text: "{{ app_url }}",
+    width: 240,
+    height: 240,
+    colorDark: "#000000",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H
+});
+</script>
+{% endblock %}

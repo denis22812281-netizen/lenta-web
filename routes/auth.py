@@ -1,3 +1,5 @@
+import os
+
 from fastapi import APIRouter, Request, Form, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
@@ -9,6 +11,13 @@ from utils.passwords import hash_password, verify_password, _is_legacy_hash
 from utils.phone import normalize_phone
 
 router = APIRouter()
+
+_APP_URL = os.getenv("APP_URL", "https://lenta-web-production.up.railway.app").rstrip("/")
+
+
+@router.get("/qr", response_class=HTMLResponse)
+async def qr_page(request: Request):
+    return templates.TemplateResponse("qr.html", {"request": request, "app_url": _APP_URL})
 
 
 @router.get("/login", response_class=HTMLResponse)
