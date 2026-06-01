@@ -10,82 +10,130 @@ from config import STAGE_NAMES
 from utils.excel import safe_date, row_to_dict, match_manager
 
 
+def _detect_cols(ws, hdr_rows, defaults):
+    """
+    Определяет номера колонок по заголовкам листа.
+    Возвращает defaults если колонка не найдена.
+    hdr_rows — строки с заголовками (1-based), например [2, 3].
+    """
+    def find_exact(keywords, min_c=1):
+        kws = [k.lower() for k in keywords]
+        for ri in hdr_rows:
+            for ci in range(min_c, ws.max_column + 1):
+                v = str(ws.cell(ri, ci).value or "").strip().lower()
+                if v in kws:
+                    return ci
+        return None
+
+    def find_contains(keywords, min_c=1):
+        kws = [k.lower() for k in keywords]
+        for ri in hdr_rows:
+            for ci in range(min_c, ws.max_column + 1):
+                v = str(ws.cell(ri, ci).value or "").strip().lower()
+                if any(kw in v for kw in kws):
+                    return ci
+        return None
+
+    def start_end_after(from_c):
+        s = e = None
+        for ri in hdr_rows:
+            for ci in range(from_c, min(from_c + 15, ws.max_column + 1)):
+                v = str(ws.cell(ri, ci).value or "").strip().lower()
+                if v == "старт" and s is None:
+                    s = ci
+                elif v == "окончание" and s is not None and e is None:
+                    e = ci
+                    return s, e
+        return s, e
+
+    r = dict(defaults)
+
+    g = find_contains(["сбор исходных данных"])
+    if g:
+        s, e = start_end_after(g)
+        if s: r["sid_s"] = s
+        if e: r["sid_e"] = e
+
+    g = find_contains(["зонирование"])
+    if g:
+        s, e = start_end_after(g)
+        if s: r["zon_s"] = s
+        if e: r["zon_e"] = e
+
+    c = find_contains(["старт закрытия", "старт, закрытие"], min_c=30)
+    if c: r["clos"] = c
+
+    c = find_exact(["впк 1"], min_c=25) or find_contains(["впк 1"], min_c=25)
+    if c: r["vpk"] = c
+
+    c = find_exact(["открытие"], min_c=30)
+    if c: r["opening"] = c
+
+    c = find_exact(["мп"], min_c=35)
+    if c: r["mgr"] = c
+
+    c = find_exact(["мпс"], min_c=35)
+    if c: r["mgr2"] = c
+
+    return r
+
+
 def import_reconstruct_excel(content: bytes, db: Session) -> dict:
     wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
     managers = db.query(models.Manager).all()
     today = date.today()
     created = updated = 0
 
-    # Точные номера колонок (1-based) для каждого листа файла
-    CONFIGS = [
-        {
-            "idx": 9, "start": 4,
-            "tk": 1, "city": 4, "addr": 5, "area": 12,
-            "sid_s": 14, "sid_e": 15,
-            "zon_s": 16, "zon_e": 17,
-            "clos": 36, "vpk": 40, "opening": 41,
-            "mgr": 52, "mgr2": 51,
-        },
-        {
-            "idx": 10, "start": 4,
-            "tk": 1, "city": 4, "addr": 5, "area": 12,
-            "sid_s": 13, "sid_e": 14,
-            "zon_s": 15, "zon_e": 16,
-            "clos": 35, "vpk": 36, "opening": 37,
-            "mgr": 42, "mgr2": 41,
-        },
-        {
-            "idx": 11, "start": 3,
-            "tk": 1, "city": 2, "addr": 3, "area": 7,
-            "sid_s": 9,  "sid_e": 10,
-            "zon_s": 11, "zon_e": 12,
-            "clos": 32, "vpk": 33, "opening": 34,
-            "mgr": 41, "mgr2": 40,
-        },
-        {
-            "idx": 12, "start": 3,
-            "tk": 1, "city": 2, "addr": 3, "area": 7,
-            "sid_s": 9,  "sid_e": 10,
-            "zon_s": 11, "zon_e": 12,
-            "clos": 32, "vpk": 33, "opening": 34,
-            "mgr": 37, "mgr2": 36,
-        },
+    # Статичные параметры листов + дефолтные позиции колонок (авто-определяются из заголовков)
+    SHEETS = [
+        {"idx": 9,  "hdr": [2, 3], "start": 4, "tk": 1, "city": 4, "addr": 5, "area": 12,
+         "sid_s": 14, "sid_e": 15, "zon_s": 16, "zon_e": 17,
+         "clos": 36, "vpk": 40, "opening": 41, "mgr": 52, "mgr2": 51},
+        {"idx": 10, "hdr": [2, 3], "start": 4, "tk": 1, "city": 4, "addr": 5, "area": 12,
+         "sid_s": 13, "sid_e": 14, "zon_s": 15, "zon_e": 16,
+         "clos": 35, "vpk": 36, "opening": 37, "mgr": 42, "mgr2": 41},
+        {"idx": 11, "hdr": [1, 2], "start": 3, "tk": 1, "city": 2, "addr": 3, "area": 7,
+         "sid_s": 9,  "sid_e": 10, "zon_s": 11, "zon_e": 12,
+         "clos": 32, "vpk": 33, "opening": 34, "mgr": 41, "mgr2": 40},
+        {"idx": 12, "hdr": [1, 2], "start": 3, "tk": 1, "city": 2, "addr": 3, "area": 7,
+         "sid_s": 9,  "sid_e": 10, "zon_s": 11, "zon_e": 12,
+         "clos": 32, "vpk": 33, "opening": 34, "mgr": 37, "mgr2": 36},
     ]
 
-    def cell(ws, row, col):
-        return ws.cell(row, col).value
-
-    for cfg in CONFIGS:
-        idx = cfg["idx"]
+    for sheet_cfg in SHEETS:
+        idx = sheet_cfg["idx"]
         if idx >= len(wb.worksheets):
             continue
         ws = wb.worksheets[idx]
 
-        for row_idx in range(cfg["start"], ws.max_row + 1):
-            tk_val = cell(ws, row_idx, cfg["tk"])
+        # Авто-определение колонок по заголовкам
+        cols = _detect_cols(ws, sheet_cfg["hdr"], sheet_cfg)
+
+        for row_idx in range(sheet_cfg["start"], ws.max_row + 1):
+            tk_val = ws.cell(row_idx, sheet_cfg["tk"]).value
             if not tk_val or not isinstance(tk_val, (int, float)):
                 continue
             tk_num = str(int(tk_val))
 
-            city_val = cell(ws, row_idx, cfg["city"])
+            city_val = ws.cell(row_idx, sheet_cfg["city"]).value
             city = str(city_val).strip() if city_val and str(city_val).strip() not in ("", "#REF!", "#N/A") else ""
 
-            addr_val = cell(ws, row_idx, cfg["addr"])
+            addr_val = ws.cell(row_idx, sheet_cfg["addr"]).value
             address = str(addr_val).strip() if addr_val else ""
 
-            area_val = cell(ws, row_idx, cfg["area"])
+            area_val = ws.cell(row_idx, sheet_cfg["area"]).value
             area = float(area_val) if isinstance(area_val, (int, float)) else None
 
-            sid_s   = safe_date(cell(ws, row_idx, cfg["sid_s"]))
-            sid_e   = safe_date(cell(ws, row_idx, cfg["sid_e"]))
-            zon_s   = safe_date(cell(ws, row_idx, cfg["zon_s"]))
-            zon_e   = safe_date(cell(ws, row_idx, cfg["zon_e"]))
-            clos    = safe_date(cell(ws, row_idx, cfg["clos"]))
-            vpk     = safe_date(cell(ws, row_idx, cfg["vpk"]))
-            opening = safe_date(cell(ws, row_idx, cfg["opening"]))
+            sid_s   = safe_date(ws.cell(row_idx, cols["sid_s"]).value)
+            sid_e   = safe_date(ws.cell(row_idx, cols["sid_e"]).value)
+            zon_s   = safe_date(ws.cell(row_idx, cols["zon_s"]).value)
+            zon_e   = safe_date(ws.cell(row_idx, cols["zon_e"]).value)
+            clos    = safe_date(ws.cell(row_idx, cols["clos"]).value)
+            vpk     = safe_date(ws.cell(row_idx, cols["vpk"]).value)
+            opening = safe_date(ws.cell(row_idx, cols["opening"]).value)
 
-            mgr_raw  = str(cell(ws, row_idx, cfg["mgr"])  or "").strip()
-            mgr_raw2 = str(cell(ws, row_idx, cfg["mgr2"]) or "").strip()
+            mgr_raw  = str(ws.cell(row_idx, cols["mgr"]).value  or "").strip()
+            mgr_raw2 = str(ws.cell(row_idx, cols["mgr2"]).value or "").strip()
             manager_id = match_manager(mgr_raw, managers) or match_manager(mgr_raw2, managers)
 
             status = "Завершён" if (opening and opening <= today) else "Активный"
@@ -95,19 +143,19 @@ def import_reconstruct_excel(content: bytes, db: Session) -> dict:
                 models.Project.tk_number == tk_num).first()
 
             if existing:
-                existing.city         = city      or existing.city
-                existing.address      = address   or existing.address
+                if city:    existing.city         = city
+                if address: existing.address      = address
                 existing.project_type = "Реконструкция"
-                existing.area         = area      or existing.area
-                existing.start_date   = sid_s     or existing.start_date
-                existing.end_date     = opening   or existing.end_date
-                existing.sid_start    = sid_s     or existing.sid_start
-                existing.sid_end      = sid_e     or existing.sid_end
-                existing.zoning_start = zon_s     or existing.zoning_start
-                existing.zoning_end   = zon_e     or existing.zoning_end
-                existing.closure_date = clos      or existing.closure_date
-                existing.vpk_date     = vpk       or existing.vpk_date
-                existing.opening_date = opening   or existing.opening_date
+                if area:    existing.area         = area
+                if sid_s:   existing.start_date   = sid_s
+                if opening: existing.end_date     = opening
+                if sid_s:   existing.sid_start    = sid_s
+                if sid_e:   existing.sid_end      = sid_e
+                if zon_s:   existing.zoning_start = zon_s
+                if zon_e:   existing.zoning_end   = zon_e
+                if clos:    existing.closure_date = clos
+                if vpk:     existing.vpk_date     = vpk
+                if opening: existing.opening_date = opening
                 if existing.status != "Приостановлен":
                     existing.status = status
                 if manager_id:
