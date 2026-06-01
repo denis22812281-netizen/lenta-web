@@ -131,10 +131,18 @@ async def kso_schedule_upload(request: Request, db: Session = Depends(get_db),
     user = get_current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=302)
+    _ALLOWED_KSO = {".pdf", ".xlsx", ".xls", ".doc", ".docx", ".jpg", ".jpeg", ".png"}
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in _ALLOWED_KSO:
+        return RedirectResponse("/kso?tab=schedules&msg=Недопустимый тип файла", status_code=303)
+    content = await file.read()
+    if len(content) > 50 * 1024 * 1024:  # 50 MB
+        return RedirectResponse("/kso?tab=schedules&msg=Файл слишком большой (макс 50MB)", status_code=303)
     save_dir = Path("static/uploads/kso")
     save_dir.mkdir(parents=True, exist_ok=True)
     safe_name = f"{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
-    (save_dir / safe_name).write_bytes(await file.read())
+    safe_name = "".join(c if c.isalnum() or c in "._-" else "_" for c in safe_name)
+    (save_dir / safe_name).write_bytes(content)
     db.add(models.KsoSchedule(
         original_name=file.filename, filename=safe_name,
         description=description, uploaded_by=user.get("display_name", ""),

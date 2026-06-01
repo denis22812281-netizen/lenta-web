@@ -136,13 +136,19 @@ async def update_task_status(task_id: int, request: Request, db: Session = Depen
     if status == "Завершена" and photos:
         photo_dir = Path("static/uploads/tasks")
         photo_dir.mkdir(parents=True, exist_ok=True)
+        _ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".webp", ".heic"}
+        _MAX_SIZE = 20 * 1024 * 1024  # 20 MB
         for ph in photos:
             if not ph.filename:
                 continue
             ext = Path(ph.filename).suffix.lower() or ".jpg"
+            if ext not in _ALLOWED_EXT:
+                continue
+            raw = await ph.read()
+            if len(raw) > _MAX_SIZE:
+                continue
             fname = f"{task_id}_{int(datetime.utcnow().timestamp())}_{ph.filename[:20]}{ext}"
             fname = "".join(c if c.isalnum() or c in "._-" else "_" for c in fname)
-            raw = await ph.read()
             # Сжимаем через Pillow если доступен
             try:
                 from PIL import Image
