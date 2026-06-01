@@ -14,7 +14,7 @@
         </div>
     </div>
     <div class="col-6 col-xl-3">
-        <div class="stat-card" style="background:linear-gradient(135deg,#e9ecef,#dee2e6);color:#333">
+        <div class="stat-card stat-on-time">
             <div class="stat-icon"><i class="bi bi-check-circle-fill" style="color:#16a34a"></i></div>
             <div class="stat-num">{{ total_on_time }}</div>
             <div class="stat-label">Открыто вовремя</div>
@@ -218,7 +218,13 @@
 }
 .save-indicator.show { opacity: 1; }
 
+.stat-on-time { background: linear-gradient(135deg,#e9ecef,#dee2e6); color:#333; }
+.stat-on-time .stat-label { color:#555; }
+
 /* ── DARK THEME ── */
+[data-bs-theme="dark"] .stat-on-time { background: linear-gradient(135deg,#334155,#475569) !important; color:#e2e8f0 !important; }
+[data-bs-theme="dark"] .stat-on-time .stat-label { color:#cbd5e1 !important; }
+[data-bs-theme="dark"] .stat-on-time .stat-num { color:#e2e8f0 !important; }
 [data-bs-theme="dark"] .stats-row-early  { background: #052e16 !important; }
 [data-bs-theme="dark"] .stats-row-on-time { background: #1e293b !important; color:#e2e8f0; }
 [data-bs-theme="dark"] .stats-row-late   { background: #450a0a !important; }

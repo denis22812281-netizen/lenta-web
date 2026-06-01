@@ -536,7 +536,7 @@ body {
 [data-bs-theme="dark"] .text-dark   { color: #e2e8f0 !important; }
 [data-bs-theme="dark"] .text-muted  { color: #64748b !important; }
 [data-bs-theme="dark"] .bg-light    { background: #1e293b !important; }
-[data-bs-theme="dark"] a.text-dark  { color: #86efac !important; }
+[data-bs-theme="dark"] a.text-dark  { color: #e2e8f0 !important; }
 
 /* Dropdowns */
 [data-bs-theme="dark"] .dropdown-menu {
