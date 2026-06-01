@@ -84,6 +84,14 @@
 .typing-dots span:nth-child(2) { animation-delay:.2s; }
 .typing-dots span:nth-child(3) { animation-delay:.4s; }
 @keyframes blink { 0%,80%,100%{opacity:0} 40%{opacity:1} }
+
+/* ── DARK THEME ── */
+[data-bs-theme="dark"] .msg-bubble.ai { background:#1e293b; border-color:#334155; color:#e2e8f0; }
+[data-bs-theme="dark"] .msg-bubble.ai code { background:#0f172a; color:#86efac; }
+[data-bs-theme="dark"] .msg-bubble.ai hr { border-color:#334155; }
+[data-bs-theme="dark"] .quick-prompt-btn { background:#1e293b; color:#94a3b8; border:1px solid #334155; }
+[data-bs-theme="dark"] .quick-prompt-btn:hover { background:#E31C25; color:#fff; border-color:#E31C25; }
+[data-bs-theme="dark"] .typing-dots span { background:#64748b; }
 </style>
 {% endblock %}
 

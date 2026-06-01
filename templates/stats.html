@@ -217,6 +217,22 @@
     transition: opacity .3s;
 }
 .save-indicator.show { opacity: 1; }
+
+/* ── DARK THEME ── */
+[data-bs-theme="dark"] .stats-row-early  { background: #052e16 !important; }
+[data-bs-theme="dark"] .stats-row-on-time { background: #1e293b !important; color:#e2e8f0; }
+[data-bs-theme="dark"] .stats-row-late   { background: #450a0a !important; }
+[data-bs-theme="dark"] .stats-row-active { background: #0f1e3a !important; }
+[data-bs-theme="dark"] .stats-row-early:hover  { background: #064e1f !important; }
+[data-bs-theme="dark"] .stats-row-late:hover   { background: #6b0a0a !important; }
+[data-bs-theme="dark"] .stats-row-active:hover { background: #1a3060 !important; }
+[data-bs-theme="dark"] .delay-reason-input { background: #0f172a; color:#e2e8f0; border-color:#334155; }
+[data-bs-theme="dark"] [style*="background:#f8f9fa"] { background:#1e293b !important; color:#e2e8f0; }
+[data-bs-theme="dark"] [style*="background:#dcfce7"] { background:#052e16 !important; }
+[data-bs-theme="dark"] [style*="background:#fee2e2"] { background:#450a0a !important; }
+[data-bs-theme="dark"] [style*="background:#dbeafe"] { background:#0f1e3a !important; }
+[data-bs-theme="dark"] [style*="background:#eff6ff"] { background:#0f1e3a !important; }
+[data-bs-theme="dark"] [style*="background:linear-gradient(135deg,#e9ecef"] { background: linear-gradient(135deg,#334155,#475569) !important; color:#e2e8f0 !important; }
 </style>
 {% endblock %}
 
