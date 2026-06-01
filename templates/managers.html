@@ -4,13 +4,75 @@
 
 {% block content %}
 
-{% if user and user.is_admin %}
-<div class="d-flex justify-content-end mb-3">
-    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalAddManager">
-        <i class="bi bi-person-plus-fill me-2"></i>Добавить менеджера
-    </button>
+<!-- Lenta-style banner -->
+<div class="lenta-banner mb-4">
+    <div class="lenta-logo-wrap">
+        <div class="lenta-logo">
+            <div class="lenta-leaf"></div>
+        </div>
+    </div>
+    <div class="lenta-banner-text">
+        <div class="lenta-banner-title">Менеджеры проектов</div>
+        <div class="lenta-banner-sub">Управление командой и объектами</div>
+    </div>
+    {% if user and user.is_admin %}
+    <div class="ms-auto">
+        <button class="btn btn-warning fw-semibold" data-bs-toggle="modal" data-bs-target="#modalAddManager">
+            <i class="bi bi-person-plus-fill me-2"></i>Добавить менеджера
+        </button>
+    </div>
+    {% endif %}
 </div>
-{% endif %}
+
+<style>
+.lenta-banner {
+    background: linear-gradient(135deg, #1a4d22 0%, #2d7a35 60%, #3cb34a 100%);
+    border-radius: 16px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 4px 24px rgba(44,122,53,0.25);
+    overflow: hidden;
+    position: relative;
+}
+.lenta-banner::after {
+    content: '';
+    position: absolute;
+    right: -40px; top: -40px;
+    width: 180px; height: 180px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 50%;
+}
+.lenta-logo-wrap { flex-shrink: 0; }
+.lenta-logo {
+    width: 64px; height: 64px;
+    background: #2d8c38;
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+.lenta-leaf {
+    width: 44px; height: 26px;
+    background: #FFD200;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    transform: rotate(-35deg) translate(4px, 4px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+.lenta-banner-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+}
+.lenta-banner-sub {
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.65);
+    margin-top: 2px;
+}
+</style>
 
 <!-- Руководители -->
 {% for ls in leader_stats %}
