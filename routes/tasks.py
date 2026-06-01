@@ -187,13 +187,14 @@ async def update_task_status(task_id: int, request: Request, db: Session = Depen
             models.TaskPhoto.task_id == task_id).all()]
 
         recipients = {}
+        # Создатель задачи
         creator_mgr = db.query(models.Manager).filter(
             models.Manager.name == t.created_by).first()
         if creator_mgr and creator_mgr.email:
             recipients[creator_mgr.email] = creator_mgr.name
-        for _e, _n in _TASK_REPORT_EMAILS:
-            if _e not in recipients:
-                recipients[_e] = _n
+        # Исполнитель задачи
+        if t.assignee and t.assignee.email and t.assignee.email not in recipients:
+            recipients[t.assignee.email] = t.assignee.name
 
         for email, name in recipients.items():
             notify_task_completed(
