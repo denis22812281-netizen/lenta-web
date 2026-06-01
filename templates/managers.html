@@ -17,11 +17,14 @@
 {% set lm = ls.manager %}
 <div class="data-card mb-3" style="border-left:4px solid #FFD200">
     <div class="p-3 d-flex align-items-center gap-3 flex-wrap">
-        {% if lm.photo %}
-        <img src="/static/{{ lm.photo }}" style="width:52px;height:52px;object-fit:cover;border-radius:12px;flex-shrink:0" alt="{{ lm.name }}">
-        {% else %}
-        <img src="/static/img/raccoon_boss.jpg" style="width:52px;height:52px;object-fit:cover;border-radius:12px;flex-shrink:0" alt="руководитель">
-        {% endif %}
+        <div style="position:relative;flex-shrink:0">
+            {% if lm.photo %}
+            <img src="/static/{{ lm.photo }}" style="width:52px;height:52px;object-fit:cover;border-radius:12px" alt="{{ lm.name }}">
+            {% else %}
+            <img src="/static/img/raccoon_boss.jpg" style="width:52px;height:52px;object-fit:cover;border-radius:12px" alt="руководитель">
+            {% endif %}
+            <span class="mgr-online-dot {% if lm.name in online_set %}mgr-online{% endif %}" data-name="{{ lm.name }}"></span>
+        </div>
         <div>
             <div class="fw-bold fs-5">{{ lm.name }}</div>
             <div class="text-muted small">
