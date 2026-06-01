@@ -16,102 +16,110 @@ def import_reconstruct_excel(content: bytes, db: Session) -> dict:
     today = date.today()
     created = updated = 0
 
-    sheet_configs = [
-        (9,  4, 1, 3, 5, 9, 12, 41, 52, 51, "Реконструкция"),
-        (10, 4, 1, 3, 5, 9, 12, 37, 42, 41, "Реконструкция"),
-        (11, 3, 1, 2, 3, 6,  7,  8, 41, 40, "Реконструкция"),
-        (12, 3, 1, 2, 3, 5,  7,  8, 37, 40, "Реконструкция"),
+    # Точные номера колонок (1-based) для каждого листа файла
+    CONFIGS = [
+        {
+            "idx": 9, "start": 4,
+            "tk": 1, "city": 4, "addr": 5, "area": 12,
+            "sid_s": 14, "sid_e": 15,
+            "zon_s": 16, "zon_e": 17,
+            "clos": 36, "vpk": 40, "opening": 41,
+            "mgr": 52, "mgr2": 51,
+        },
+        {
+            "idx": 10, "start": 4,
+            "tk": 1, "city": 4, "addr": 5, "area": 12,
+            "sid_s": 13, "sid_e": 14,
+            "zon_s": 15, "zon_e": 16,
+            "clos": 35, "vpk": 36, "opening": 37,
+            "mgr": 42, "mgr2": 41,
+        },
+        {
+            "idx": 11, "start": 3,
+            "tk": 1, "city": 2, "addr": 3, "area": 7,
+            "sid_s": 9,  "sid_e": 10,
+            "zon_s": 11, "zon_e": 12,
+            "clos": 32, "vpk": 33, "opening": 34,
+            "mgr": 41, "mgr2": 40,
+        },
+        {
+            "idx": 12, "start": 3,
+            "tk": 1, "city": 2, "addr": 3, "area": 7,
+            "sid_s": 9,  "sid_e": 10,
+            "zon_s": 11, "zon_e": 12,
+            "clos": 32, "vpk": 33, "opening": 34,
+            "mgr": 37, "mgr2": 36,
+        },
     ]
-    stage_map_main = {
-        "СИД": (14, 15), "Зонирование": (16, 17), "Закрытие": (18, 19),
-        "ВПК1": (34, 35), "Открытие": (40, 41),
-    }
-    stage_map_risk = {
-        "СИД": (9, 10), "Зонирование": (11, 12), "Закрытие": (13, 14),
-        "ВПК1": (15, 16), "Открытие": (8, None),
-    }
 
-    for cfg in sheet_configs:
-        idx, start_row, c_tk, c_region, c_addr, c_type, c_area, c_deadline, c_mgr, c_mgr2, p_type = cfg
+    def cell(ws, row, col):
+        return ws.cell(row, col).value
+
+    for cfg in CONFIGS:
+        idx = cfg["idx"]
         if idx >= len(wb.worksheets):
             continue
         ws = wb.worksheets[idx]
-        is_risk = idx in (11, 12)
-        stage_map = stage_map_risk if is_risk else stage_map_main
 
-        for row_idx in range(start_row, ws.max_row + 1):
-            row = ws[row_idx]
-            vals = row_to_dict(row)
-
-            tk = vals.get(c_tk)
-            if not tk or not isinstance(tk, (int, float)):
+        for row_idx in range(cfg["start"], ws.max_row + 1):
+            tk_val = cell(ws, row_idx, cfg["tk"])
+            if not tk_val or not isinstance(tk_val, (int, float)):
                 continue
-            tk_num = str(int(tk))
+            tk_num = str(int(tk_val))
 
-            region = vals.get(c_region, "")
-            full_address = str(vals.get(c_addr, "") or "").strip()
-            area = vals.get(c_area)
-            area = float(area) if isinstance(area, (int, float)) else None
+            city_val = cell(ws, row_idx, cfg["city"])
+            city = str(city_val).strip() if city_val and str(city_val).strip() not in ("", "#REF!", "#N/A") else ""
 
-            city = ""
-            if region and isinstance(region, str) and region not in ("#REF!", "#N/A"):
-                city = region
-            elif full_address:
-                city = full_address.split(",")[0].strip()
+            addr_val = cell(ws, row_idx, cfg["addr"])
+            address = str(addr_val).strip() if addr_val else ""
 
-            dl_val = vals.get(c_deadline)
-            deadline = safe_date(dl_val)
-            if deadline is None:
-                dates = [safe_date(v) for v in vals.values() if safe_date(v)]
-                deadline = max(dates) if dates else None
+            area_val = cell(ws, row_idx, cfg["area"])
+            area = float(area_val) if isinstance(area_val, (int, float)) else None
 
-            mgr_val = vals.get(c_mgr, "")
-            manager_id = match_manager(str(mgr_val) if mgr_val else "", managers)
-            if not manager_id:
-                mgr_val2 = vals.get(c_mgr2, "")
-                manager_id = match_manager(str(mgr_val2) if mgr_val2 else "", managers)
+            sid_s   = safe_date(cell(ws, row_idx, cfg["sid_s"]))
+            sid_e   = safe_date(cell(ws, row_idx, cfg["sid_e"]))
+            zon_s   = safe_date(cell(ws, row_idx, cfg["zon_s"]))
+            zon_e   = safe_date(cell(ws, row_idx, cfg["zon_e"]))
+            clos    = safe_date(cell(ws, row_idx, cfg["clos"]))
+            vpk     = safe_date(cell(ws, row_idx, cfg["vpk"]))
+            opening = safe_date(cell(ws, row_idx, cfg["opening"]))
 
-            sid_s  = safe_date(vals.get(stage_map["СИД"][0]))
-            sid_e  = safe_date(vals.get(stage_map["СИД"][1]))
-            zon_s  = safe_date(vals.get(stage_map["Зонирование"][0]))
-            zon_e  = safe_date(vals.get(stage_map["Зонирование"][1]))
-            clos   = safe_date(vals.get(stage_map["Закрытие"][0]))
-            vpk    = safe_date(vals.get(stage_map["ВПК1"][0]))
-            open_end = stage_map["Открытие"][1]
-            opening  = safe_date(vals.get(open_end if open_end else stage_map["Открытие"][0]))
+            mgr_raw  = str(cell(ws, row_idx, cfg["mgr"])  or "").strip()
+            mgr_raw2 = str(cell(ws, row_idx, cfg["mgr2"]) or "").strip()
+            manager_id = match_manager(mgr_raw, managers) or match_manager(mgr_raw2, managers)
 
-            proj_start = sid_s
-            proj_name  = f"ТК {tk_num}" + (f" {city}" if city else "")
             status = "Завершён" if (opening and opening <= today) else "Активный"
+            proj_name = f"ТК {tk_num}" + (f" {city}" if city else "")
 
             existing = db.query(models.Project).filter(
                 models.Project.tk_number == tk_num).first()
 
             if existing:
-                existing.city          = city or existing.city
-                existing.address       = full_address or existing.address
-                existing.project_type  = p_type
-                existing.start_date    = proj_start or existing.start_date
-                existing.end_date      = deadline or existing.end_date
-                existing.area          = area or existing.area
-                existing.sid_start     = sid_s  or existing.sid_start
-                existing.sid_end       = sid_e  or existing.sid_end
-                existing.zoning_start  = zon_s  or existing.zoning_start
-                existing.zoning_end    = zon_e  or existing.zoning_end
-                existing.closure_date  = clos   or existing.closure_date
-                existing.vpk_date      = vpk    or existing.vpk_date
-                existing.opening_date  = opening or existing.opening_date
+                existing.city         = city      or existing.city
+                existing.address      = address   or existing.address
+                existing.project_type = "Реконструкция"
+                existing.area         = area      or existing.area
+                existing.start_date   = sid_s     or existing.start_date
+                existing.end_date     = opening   or existing.end_date
+                existing.sid_start    = sid_s     or existing.sid_start
+                existing.sid_end      = sid_e     or existing.sid_end
+                existing.zoning_start = zon_s     or existing.zoning_start
+                existing.zoning_end   = zon_e     or existing.zoning_end
+                existing.closure_date = clos      or existing.closure_date
+                existing.vpk_date     = vpk       or existing.vpk_date
+                existing.opening_date = opening   or existing.opening_date
                 if existing.status != "Приостановлен":
                     existing.status = status
-                if manager_id and not existing.manager_id:
+                if manager_id:
                     existing.manager_id = manager_id
                 updated += 1
             else:
                 db.add(models.Project(
-                    name=proj_name, tk_number=tk_num, city=city,
-                    address=full_address, project_type=p_type,
+                    name=proj_name, tk_number=tk_num,
+                    city=city, address=address,
+                    project_type="Реконструкция",
                     manager_id=manager_id, status=status,
-                    start_date=proj_start, end_date=deadline, area=area,
+                    start_date=sid_s, end_date=opening, area=area,
                     sid_start=sid_s, sid_end=sid_e,
                     zoning_start=zon_s, zoning_end=zon_e,
                     closure_date=clos, vpk_date=vpk, opening_date=opening,
