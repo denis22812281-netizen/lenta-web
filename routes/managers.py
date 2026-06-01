@@ -22,8 +22,8 @@ async def managers_view(request: Request, db: Session = Depends(get_db)):
     today = date.today()
     _order = [
         "Месмер Денис", "Митько Роберт", "Ловчиков Александр",
-        "Валеев Борис", "Косило Сергей", "Студеникин Сергей",
         "Хачатурова Жанна", "Шевченко Наталья",
+        "Валеев Борис", "Косило Сергей", "Студеникин Сергей",
     ]
     managers = db.query(models.Manager).options(
         joinedload(models.Manager.projects),
