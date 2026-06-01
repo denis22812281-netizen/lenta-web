@@ -59,7 +59,33 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_hex(32))
+
+
+class SessionVersionMiddleware(BaseHTTPMiddleware):
+    """Инвалидирует сессию если session_version не совпадает с БД (после сброса пароля)."""
+    _SKIP = ("/login", "/static", "/webauthn", "/api/ping")
+
+    async def dispatch(self, request: Request, call_next):
+        user = request.session.get("user")
+        if user and not any(request.url.path.startswith(s) for s in self._SKIP):
+            sv_cookie = user.get("sv", 1)
+            try:
+                db = database.SessionLocal()
+                db_user = db.query(models.User).filter(
+                    models.User.id == user["id"]).first()
+                if db_user and (db_user.session_version or 1) != sv_cookie:
+                    request.session.pop("user", None)
+                    from fastapi.responses import RedirectResponse as RR
+                    return RR("/login", status_code=302)
+            except Exception:
+                pass
+            finally:
+                db.close()
+        return await call_next(request)
+
+
 app.add_middleware(CSRFMiddleware)
+app.add_middleware(SessionVersionMiddleware)
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=86400 * 7,
                    same_site="lax", https_only=bool(os.getenv("RAILWAY_ENVIRONMENT")))
 app.state.limiter = limiter
@@ -151,6 +177,7 @@ async def startup():
                     "ALTER TABLE managers ADD COLUMN IF NOT EXISTS photo VARCHAR(200) DEFAULT ''",
                     "ALTER TABLE managers ADD COLUMN IF NOT EXISTS position VARCHAR(150) DEFAULT ''",
                     "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completion_comment TEXT DEFAULT ''",
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS session_version INTEGER DEFAULT 1",
                     """CREATE TABLE IF NOT EXISTS task_notifications (
                         id SERIAL PRIMARY KEY,
                         recipient_name VARCHAR(100) NOT NULL,

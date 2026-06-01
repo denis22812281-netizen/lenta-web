@@ -104,12 +104,10 @@
                             </form>
                             {% endif %}
                             {% if wl.phone != user.phone %}
-                            <form method="post" action="/admin/whitelist/{{ wl.id }}/delete" class="d-inline"
-                                  onsubmit="return confirm('Удалить {{ wl.display_name }} из списка доступа?')">
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    onclick="confirmDelete({{ wl.id }}, '{{ wl.display_name }}')">
+                                <i class="bi bi-trash"></i>
+                            </button>
                             {% else %}
                             <span class="text-muted small">текущий</span>
                             {% endif %}
@@ -129,4 +127,36 @@
         </div>
     </div>
 </div>
+
+<!-- Confirm delete modal -->
+<div class="modal fade" id="modalConfirmDelete" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h6 class="modal-title"><i class="bi bi-exclamation-triangle-fill me-2"></i>Удалить доступ</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="mb-1">Удалить сотрудника из белого списка?</p>
+                <p class="fw-bold fs-6" id="deleteUserName"></p>
+                <p class="text-muted small mb-0">Аккаунт и сессия будут удалены.</p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Отмена</button>
+                <form id="deleteForm" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="bi bi-trash me-1"></i>Удалить
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+function confirmDelete(wlId, name) {
+    document.getElementById('deleteUserName').textContent = name;
+    document.getElementById('deleteForm').action = '/admin/whitelist/' + wlId + '/delete';
+    new bootstrap.Modal(document.getElementById('modalConfirmDelete')).show();
+}
+</script>
 {% endblock %}

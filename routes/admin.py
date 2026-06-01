@@ -66,5 +66,6 @@ async def reset_password(user_id: int, request: Request, db: Session = Depends(g
     u = db.query(models.User).filter(models.User.id == user_id).first()
     if u:
         u.password_hash = None
+        u.session_version = (u.session_version or 1) + 1
         db.commit()
     return RedirectResponse("/admin/users", status_code=303)

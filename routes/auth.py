@@ -134,4 +134,5 @@ def _set_session(request: Request, user: models.User):
         "display_name": user.display_name,
         "is_admin": user.is_admin,
         "phone": user.phone,
+        "sv": user.session_version or 1,
     }

@@ -21,6 +21,7 @@ class User(Base):
     password_hash = Column(String(255), nullable=True)        # NULL = пароль ещё не создан
     display_name = Column(String(100))
     is_admin = Column(Boolean, default=False)
+    session_version = Column(Integer, default=1)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
