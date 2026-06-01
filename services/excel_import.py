@@ -143,19 +143,19 @@ def import_reconstruct_excel(content: bytes, db: Session) -> dict:
                 models.Project.tk_number == tk_num).first()
 
             if existing:
-                if city:    existing.city         = city
-                if address: existing.address      = address
-                existing.project_type = "Реконструкция"
-                if area:    existing.area         = area
-                if sid_s:   existing.start_date   = sid_s
-                if opening: existing.end_date     = opening
-                if sid_s:   existing.sid_start    = sid_s
-                if sid_e:   existing.sid_end      = sid_e
-                if zon_s:   existing.zoning_start = zon_s
-                if zon_e:   existing.zoning_end   = zon_e
-                if clos:    existing.closure_date = clos
-                if vpk:     existing.vpk_date     = vpk
-                if opening: existing.opening_date = opening
+                if city:    existing.city    = city
+                if address: existing.address = address
+                if area:    existing.area    = area
+                existing.project_type  = "Реконструкция"
+                existing.start_date    = sid_s
+                existing.end_date      = opening
+                existing.sid_start     = sid_s
+                existing.sid_end       = sid_e
+                existing.zoning_start  = zon_s
+                existing.zoning_end    = zon_e
+                existing.closure_date  = clos
+                existing.vpk_date      = vpk
+                existing.opening_date  = opening
                 if existing.status != "Приостановлен":
                     existing.status = status
                 if manager_id:
@@ -303,16 +303,16 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
                 models.Project.project_type == "Констракшн"
             ).first()
             if existing:
-                existing.address      = address   or existing.address
-                existing.city         = city       or existing.city
-                existing.area         = area       or existing.area
-                existing.format_type  = fmt_type   or existing.format_type
-                existing.open_status  = open_st    or existing.open_status
-                existing.start_date   = reception  or existing.start_date
-                existing.closure_date = cmp_date   or existing.closure_date
-                existing.vpk_date     = vpk_date   or existing.vpk_date
-                existing.end_date     = open_plan  or existing.end_date
-                existing.opening_date = open_fact  or existing.opening_date
+                if address:  existing.address     = address
+                if city:     existing.city        = city
+                if area:     existing.area        = area
+                if fmt_type: existing.format_type = fmt_type
+                if open_st:  existing.open_status = open_st
+                existing.start_date   = reception
+                existing.closure_date = cmp_date
+                existing.vpk_date     = vpk_date
+                existing.end_date     = open_plan
+                existing.opening_date = open_fact
                 if existing.status != "Приостановлен":
                     existing.status = status
                 existing.manager_id = manager_id
