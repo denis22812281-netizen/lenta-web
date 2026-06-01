@@ -12,7 +12,7 @@ import models
 from database import get_db
 from deps import templates, get_current_user
 from config import PROJECT_TYPES, STATUSES, STAGE_NAMES
-from services.excel_import import parse_excel_file
+from services.excel_import import parse_excel_file, import_reconstruct_excel, import_construction_excel
 
 router = APIRouter()
 
@@ -209,8 +209,13 @@ async def import_excel_section(request: Request, db: Session = Depends(get_db),
         return RedirectResponse("/login", status_code=302)
     content = await file.read()
     try:
-        result = parse_excel_file(content, project_type,
-                                  int(manager_id) if manager_id else None, db)
+        if project_type == "Реконструкция":
+            result = import_reconstruct_excel(content, db)
+        elif project_type == "Констракшн":
+            result = import_construction_excel(content, db)
+        else:
+            result = parse_excel_file(content, project_type,
+                                      int(manager_id) if manager_id else None, db)
         return RedirectResponse(
             f"{redirect_to}?msg=created:{result['created']},updated:{result['updated']}",
             status_code=303)
