@@ -84,6 +84,39 @@ class SessionVersionMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class AuditMiddleware(BaseHTTPMiddleware):
+    """Записывает посещения страниц авторизованными пользователями."""
+    _SKIP = ("/static", "/api/ping", "/api/online", "/favicon")
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        try:
+            path = request.url.path
+            if (request.method == "GET"
+                    and not any(path.startswith(s) for s in self._SKIP)
+                    and not path.endswith((".css", ".js", ".png", ".ico", ".jpg", ".woff2"))):
+                user = request.session.get("user")
+                if user:
+                    db = database.SessionLocal()
+                    try:
+                        db.add(models.AuditLog(
+                            user_name=user.get("display_name", ""),
+                            user_phone=user.get("phone", ""),
+                            path=path,
+                            method=request.method,
+                            ip=request.client.host if request.client else "",
+                        ))
+                        db.commit()
+                    except Exception:
+                        pass
+                    finally:
+                        db.close()
+        except Exception:
+            pass
+        return response
+
+
+app.add_middleware(AuditMiddleware)
 app.add_middleware(CSRFMiddleware)
 app.add_middleware(SessionVersionMiddleware)
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=86400 * 7,
@@ -212,6 +245,15 @@ async def startup():
                         photo_path VARCHAR(300) NOT NULL,
                         uploaded_by VARCHAR(100) DEFAULT '',
                         uploaded_at TIMESTAMP DEFAULT NOW()
+                    )""",
+                    """CREATE TABLE IF NOT EXISTS audit_logs (
+                        id SERIAL PRIMARY KEY,
+                        user_name  VARCHAR(100) DEFAULT '',
+                        user_phone VARCHAR(20)  DEFAULT '',
+                        path       VARCHAR(300) DEFAULT '',
+                        method     VARCHAR(10)  DEFAULT 'GET',
+                        ip         VARCHAR(50)  DEFAULT '',
+                        created_at TIMESTAMP DEFAULT NOW()
                     )""",
                 ]:
                     try:

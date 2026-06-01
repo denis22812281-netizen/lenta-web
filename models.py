@@ -259,3 +259,18 @@ class TaskNotification(Base):
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     task = relationship("Task")
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    id         = Column(Integer, primary_key=True)
+    user_name  = Column(String(100), default="")   # display_name пользователя
+    user_phone = Column(String(20),  default="")   # телефон
+    path       = Column(String(300), default="")   # URL страницы
+    method     = Column(String(10),  default="GET")
+    ip         = Column(String(50),  default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    __table_args__ = (
+        Index("ix_audit_user",    "user_name"),
+        Index("ix_audit_created", "created_at"),
+    )

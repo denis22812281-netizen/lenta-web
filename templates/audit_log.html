@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block page_title %}Аудит активности — Лента{% endblock %}
+{% block title %}<i class="bi bi-shield-lock-fill me-2"></i>Аудит активности{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+    <form method="get" class="d-flex gap-2 flex-wrap">
+        <select name="user_filter" class="form-select form-select-sm" style="width:200px" onchange="this.form.submit()">
+            <option value="">Все пользователи</option>
+            {% for u in users %}
+            <option value="{{ u }}" {% if user_filter == u %}selected{% endif %}>{{ u }}</option>
+            {% endfor %}
+        </select>
+        {% if user_filter %}
+        <a href="/admin/audit" class="btn btn-sm btn-outline-secondary">Сбросить</a>
+        {% endif %}
+    </form>
+    <span class="text-muted small ms-2">{{ logs|length }} записей</span>
+    <form method="post" action="/admin/audit/clear" class="ms-auto"
+          onsubmit="return confirm('Очистить весь лог?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-trash me-1"></i>Очистить лог
+        </button>
+    </form>
+</div>
+
+<div class="data-card">
+    {% if logs %}
+    <div class="table-responsive">
+    <table class="table table-hover table-sm mb-0 align-middle">
+        <thead class="table-head">
+            <tr>
+                <th style="width:160px">Время</th>
+                <th style="width:180px">Пользователь</th>
+                <th>Страница</th>
+                <th style="width:120px">IP</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for log in logs %}
+        <tr>
+            <td class="small text-muted">{{ log.created_at.strftime('%d.%m.%Y %H:%M:%S') }}</td>
+            <td>
+                <span class="fw-semibold small">{{ log.user_name or '—' }}</span>
+                {% if log.user_phone %}<br><span class="text-muted" style="font-size:11px">{{ log.user_phone }}</span>{% endif %}
+            </td>
+            <td>
+                <code class="small" style="color:#86efac">{{ log.path }}</code>
+            </td>
+            <td class="small text-muted">{{ log.ip or '—' }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-shield-check" style="font-size:2rem"></i>
+        <p class="mt-2">Лог пуст</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

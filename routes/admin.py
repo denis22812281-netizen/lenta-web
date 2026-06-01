@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Request, Form, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
@@ -8,6 +9,12 @@ from deps import templates, get_current_user
 from utils.phone import normalize_phone
 
 router = APIRouter()
+
+_AUDIT_ALLOWED_PHONE = os.getenv("ADMIN_PHONE", "+79997303914")
+
+
+def _is_audit_allowed(user: dict) -> bool:
+    return user and user.get("phone") == _AUDIT_ALLOWED_PHONE
 
 
 @router.get("/admin/users", response_class=HTMLResponse)
@@ -69,3 +76,31 @@ async def reset_password(user_id: int, request: Request, db: Session = Depends(g
         u.session_version = (u.session_version or 1) + 1
         db.commit()
     return RedirectResponse("/admin/users", status_code=303)
+
+
+@router.get("/admin/audit", response_class=HTMLResponse)
+async def audit_log(request: Request, db: Session = Depends(get_db),
+                    user_filter: str = "", limit: int = 200):
+    user = get_current_user(request)
+    if not user or not _is_audit_allowed(user):
+        return RedirectResponse("/", status_code=302)
+    q = db.query(models.AuditLog).order_by(models.AuditLog.created_at.desc())
+    if user_filter:
+        q = q.filter(models.AuditLog.user_name == user_filter)
+    logs = q.limit(limit).all()
+    users = [r[0] for r in db.query(models.AuditLog.user_name).distinct().all() if r[0]]
+    return templates.TemplateResponse("audit_log.html", {
+        "request": request, "user": user,
+        "logs": logs, "users": users,
+        "user_filter": user_filter,
+    })
+
+
+@router.post("/admin/audit/clear")
+async def audit_clear(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user or not _is_audit_allowed(user):
+        return RedirectResponse("/", status_code=302)
+    db.query(models.AuditLog).delete()
+    db.commit()
+    return RedirectResponse("/admin/audit", status_code=303)
