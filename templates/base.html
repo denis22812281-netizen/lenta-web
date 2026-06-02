@@ -84,6 +84,12 @@
         <a href="/import-construction" class="nav-item {% if '/import-construction' in request.url.path %}active{% endif %}">
             <i class="bi bi-file-earmark-arrow-up"></i><span>Загрузить Констракшн</span>
         </a>
+        {% if user and user.phone == '+79997303914' %}
+        <div class="nav-section-label">СИСТЕМА</div>
+        <a href="/admin/audit" class="nav-item {% if '/admin/audit' in request.url.path %}active{% endif %}">
+            <i class="bi bi-shield-lock-fill"></i><span>Аудит активности</span>
+        </a>
+        {% endif %}
     </nav>
 
     <div class="sidebar-bottom">

@@ -21,3 +21,32 @@ def require_login(request: Request):
     if not user:
         raise HTTPException(status_code=302, headers={"Location": "/login"})
     return user
+
+
+def write_audit(request: Request, path: str | None = None):
+    """Записывает посещение в audit_log. Вызывается из роутов вручную."""
+    try:
+        import database, models
+        user = request.session.get("user")
+        if not user:
+            return
+        p = path or request.url.path
+        skip = ("/static", "/api/ping", "/api/online", "/favicon", "/admin/audit")
+        if any(p.startswith(s) for s in skip):
+            return
+        db = database.SessionLocal()
+        try:
+            db.add(models.AuditLog(
+                user_name=user.get("display_name", ""),
+                user_phone=user.get("phone", ""),
+                path=p,
+                method=request.method,
+                ip=request.client.host if request.client else "",
+            ))
+            db.commit()
+        except Exception:
+            db.rollback()
+        finally:
+            db.close()
+    except Exception:
+        pass

@@ -86,31 +86,34 @@ class SessionVersionMiddleware(BaseHTTPMiddleware):
 
 class AuditMiddleware(BaseHTTPMiddleware):
     """Записывает посещения страниц авторизованными пользователями."""
-    _SKIP = ("/static", "/api/ping", "/api/online", "/favicon")
+    _SKIP_PREFIX = ("/static", "/api/ping", "/api/online", "/favicon", "/admin/audit")
+    _SKIP_EXT    = (".css", ".js", ".png", ".ico", ".jpg", ".woff2", ".svg", ".webp")
 
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
         try:
+            if request.method != "GET":
+                return response
             path = request.url.path
-            if (request.method == "GET"
-                    and not any(path.startswith(s) for s in self._SKIP)
-                    and not path.endswith((".css", ".js", ".png", ".ico", ".jpg", ".woff2"))):
-                user = request.session.get("user")
-                if user:
-                    db = database.SessionLocal()
-                    try:
-                        db.add(models.AuditLog(
-                            user_name=user.get("display_name", ""),
-                            user_phone=user.get("phone", ""),
-                            path=path,
-                            method=request.method,
-                            ip=request.client.host if request.client else "",
-                        ))
-                        db.commit()
-                    except Exception:
-                        pass
-                    finally:
-                        db.close()
+            if (any(path.startswith(s) for s in self._SKIP_PREFIX)
+                    or any(path.endswith(e) for e in self._SKIP_EXT)):
+                return response
+            user = request.session.get("user")
+            if not user:
+                return response
+            db = database.SessionLocal()
+            try:
+                db.add(models.AuditLog(
+                    user_name=user.get("display_name", ""),
+                    user_phone=user.get("phone", ""),
+                    path=path,
+                    ip=request.client.host if request.client else "",
+                ))
+                db.commit()
+            except Exception:
+                db.rollback()
+            finally:
+                db.close()
         except Exception:
             pass
         return response
