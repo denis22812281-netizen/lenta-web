@@ -18,7 +18,7 @@
     <span class="text-muted small ms-2">{{ logs|length }} записей</span>
     <form method="post" action="/admin/audit/clear" class="ms-auto"
           onsubmit="return confirm('Очистить весь лог?')">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
         <button class="btn btn-sm btn-outline-danger">
             <i class="bi bi-trash me-1"></i>Очистить лог
         </button>
