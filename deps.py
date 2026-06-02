@@ -4,9 +4,11 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 
 from utils.csrf import get_csrf_token
+from services.cloud_storage import media_url
 
 templates = Jinja2Templates(directory="templates")
 templates.env.globals["csrf_token"] = get_csrf_token
+templates.env.globals["media_url"]  = media_url
 
 # Rate limiter (shared между роутерами)
 limiter = Limiter(key_func=get_remote_address)

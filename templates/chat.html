@@ -20,7 +20,7 @@
            class="chat-contact {% if partner == m.name %}active{% endif %}">
             <div class="chat-avatar-wrap">
                 <div class="chat-avatar">
-                    {% if m.photo %}<img src="/static/{{ m.photo }}" alt="{{ m.name }}">
+                    {% if m.photo %}<img src="{{ media_url(m.photo) }}" alt="{{ m.name }}">
                     {% else %}<img src="/static/img/raccoon.png" alt="{{ m.name }}">{% endif %}
                 </div>
                 <span class="online-dot {% if m.name in online_set %}online{% endif %}"
@@ -353,7 +353,7 @@ function renderMessages(msgs, clear) {
         let bubbleContent = '';
         if (m.text) bubbleContent += escHtml(m.text);
         if (m.photo) {
-            bubbleContent += `<img src="/static/${escHtml(m.photo)}" class="chat-photo" onclick="openLightbox('/static/${escHtml(m.photo)}')" alt="фото">`;
+            bubbleContent += `<img src="${escHtml(m.photo)}" class="chat-photo" onclick="openLightbox('${escHtml(m.photo)}')" alt="фото">`;
         }
 
         div.innerHTML = senderHtml +

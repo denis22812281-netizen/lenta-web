@@ -184,6 +184,9 @@ async def section_create_project(request: Request, db: Session = Depends(get_db)
 
 # ─── Excel импорт/экспорт ─────────────────────────────────────────────────────
 
+_MAX_EXCEL_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
 @router.post("/projects/import-excel")
 async def import_excel(request: Request, db: Session = Depends(get_db),
                        file: UploadFile = File(...), manager_id: str = Form("")):
@@ -191,6 +194,8 @@ async def import_excel(request: Request, db: Session = Depends(get_db),
     if not user:
         return RedirectResponse("/login", status_code=302)
     content = await file.read()
+    if len(content) > _MAX_EXCEL_BYTES:
+        return RedirectResponse("/projects?error=Файл слишком большой (макс 10 МБ)", status_code=303)
     try:
         result = parse_excel_file(content, "", int(manager_id) if manager_id else None, db)
     except Exception:
@@ -208,6 +213,8 @@ async def import_excel_section(request: Request, db: Session = Depends(get_db),
     if not user:
         return RedirectResponse("/login", status_code=302)
     content = await file.read()
+    if len(content) > _MAX_EXCEL_BYTES:
+        return RedirectResponse(f"{redirect_to}?error=Файл слишком большой (макс 10 МБ)", status_code=303)
     try:
         if project_type == "Реконструкция":
             result = import_reconstruct_excel(content, db)

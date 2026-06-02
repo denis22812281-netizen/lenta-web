@@ -12,6 +12,7 @@ from database import get_db
 from deps import templates, get_current_user
 from config import PRIORITIES, TASK_STATUSES
 from services.email_service import notify_task_assigned, notify_task_status_changed, notify_task_completed
+from services.cloud_storage import upload_photo
 
 _TASK_REPORT_EMAILS = []
 for _entry in os.getenv("TASK_REPORT_EMAILS", "").split(","):
@@ -134,8 +135,6 @@ async def update_task_status(task_id: int, request: Request, db: Session = Depen
     # Сохраняем фото (только при завершении)
     saved_photos = []
     if status == "Завершена" and photos:
-        photo_dir = Path("static/uploads/tasks")
-        photo_dir.mkdir(parents=True, exist_ok=True)
         _ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".webp", ".heic"}
         _MAX_SIZE = 20 * 1024 * 1024  # 20 MB
         for ph in photos:
@@ -162,11 +161,10 @@ async def update_task_status(task_id: int, request: Request, db: Session = Depen
                 fname = fname.rsplit(".", 1)[0] + ".jpg"
             except Exception:
                 pass
-            (photo_dir / fname).write_bytes(raw)
-            rel = f"uploads/tasks/{fname}"
-            db.add(models.TaskPhoto(task_id=task_id, photo_path=rel,
+            stored = upload_photo(raw, "tasks", fname)
+            db.add(models.TaskPhoto(task_id=task_id, photo_path=stored,
                                     uploaded_by=user.get("display_name", "")))
-            saved_photos.append(rel)
+            saved_photos.append(stored)
 
     db.flush()
 

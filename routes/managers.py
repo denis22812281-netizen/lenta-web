@@ -10,6 +10,7 @@ from database import get_db
 from deps import templates, get_current_user
 from utils.phone import normalize_phone
 from services.online import ONLINE_USERS, ONLINE_TIMEOUT
+from services.cloud_storage import upload_photo
 
 router = APIRouter()
 
@@ -131,10 +132,8 @@ async def upload_manager_photo(manager_id: int, request: Request,
     ext = Path(file.filename).suffix.lower() if file.filename else ".jpg"
     if ext not in ('.jpg', '.jpeg', '.png', '.webp'):
         ext = '.jpg'
-    save_dir = Path("static/img/managers")
-    save_dir.mkdir(parents=True, exist_ok=True)
-    filename = f"{manager_id}{ext}"
-    (save_dir / filename).write_bytes(await file.read())
-    mgr.photo = f"img/managers/{filename}"
+    filename = f"manager_{manager_id}{ext}"
+    content = await file.read()
+    mgr.photo = upload_photo(content, "managers", filename)
     db.commit()
     return RedirectResponse("/managers", status_code=303)

@@ -74,6 +74,10 @@ async def import_reconstruct_page(request: Request):
     })
 
 
+_MAX_EXCEL_MB = 10
+_MAX_EXCEL_BYTES = _MAX_EXCEL_MB * 1024 * 1024
+
+
 @router.post("/import-reconstruct")
 async def do_import_reconstruct(request: Request, db: Session = Depends(get_db),
                                  file: UploadFile = File(...)):
@@ -81,6 +85,10 @@ async def do_import_reconstruct(request: Request, db: Session = Depends(get_db),
     if not user:
         return RedirectResponse("/login", status_code=302)
     content = await file.read()
+    if len(content) > _MAX_EXCEL_BYTES:
+        return RedirectResponse(
+            f"/import-reconstruct?error=Файл слишком большой (макс {_MAX_EXCEL_MB} МБ)",
+            status_code=303)
     try:
         result = import_reconstruct_excel(content, db)
         return RedirectResponse(
@@ -112,6 +120,10 @@ async def do_import_construction(request: Request, db: Session = Depends(get_db)
     if not user:
         return RedirectResponse("/login", status_code=302)
     content = await file.read()
+    if len(content) > _MAX_EXCEL_BYTES:
+        return RedirectResponse(
+            f"/import-construction?error=Файл слишком большой (макс {_MAX_EXCEL_MB} МБ)",
+            status_code=303)
     try:
         result = import_construction_excel(content, db)
         msg = (f"Создано:{result['created']} Обновлено:{result['updated']} "

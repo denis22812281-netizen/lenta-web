@@ -13,6 +13,7 @@ import models
 from database import get_db
 from deps import templates, get_current_user
 from services.email_service import notify_vpk_report
+from services.cloud_storage import upload_photo
 
 import logging as _logging
 _vpk_logger = _logging.getLogger(__name__)
@@ -81,8 +82,6 @@ async def vpk_submit(request: Request, background_tasks: BackgroundTasks, db: Se
     criteria = db.query(models.VpkCriterion).filter(
         models.VpkCriterion.vpk_type == vpk_type
     ).order_by(models.VpkCriterion.order).all()
-    photo_dir = Path("static/uploads/vpk")
-    photo_dir.mkdir(parents=True, exist_ok=True)
     for c in criteria:
         is_done = form.get(f"criterion_{c.id}") == "on"
         comment = str(form.get(f"comment_{c.id}", "") or "").strip()
@@ -91,8 +90,7 @@ async def vpk_submit(request: Request, background_tasks: BackgroundTasks, db: Se
         if photo_file and hasattr(photo_file, "filename") and photo_file.filename:
             ext = Path(photo_file.filename).suffix.lower() or ".jpg"
             fname = f"{report.id}_{c.id}{ext}"
-            (photo_dir / fname).write_bytes(await photo_file.read())
-            photo_path = f"uploads/vpk/{fname}"
+            photo_path = upload_photo(await photo_file.read(), "vpk", fname)
         db.add(models.VpkReportItem(
             report_id=report.id, criterion_id=c.id,
             criterion_name=c.name, done=is_done,

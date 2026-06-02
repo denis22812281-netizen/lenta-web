@@ -10,6 +10,7 @@ import models
 from database import get_db
 from deps import templates, get_current_user
 from services.online import ONLINE_USERS, ONLINE_TIMEOUT
+from services.cloud_storage import upload_photo, media_url
 
 router = APIRouter()
 
@@ -76,7 +77,8 @@ async def chat_messages(request: Request, db: Session = Depends(get_db),
     msgs = q.order_by(models.ChatMessage.id).limit(200).all()
     return {"messages": [
         {"id": m.id, "sender": m.sender_name, "text": m.text,
-         "photo": m.photo_path or "", "time": m.created_at.strftime("%H:%M"),
+         "photo": media_url(m.photo_path) if m.photo_path else "",
+         "time": m.created_at.strftime("%H:%M"),
          "mine": m.sender_name == my_name}
         for m in msgs
     ]}
@@ -109,18 +111,16 @@ async def chat_send_photo(request: Request, db: Session = Depends(get_db),
     user = get_current_user(request)
     if not user:
         return {"error": "Не авторизован"}
-    photo_dir = Path("static/uploads/chat")
-    photo_dir.mkdir(parents=True, exist_ok=True)
     ext = Path(file.filename).suffix.lower() if file.filename else ".jpg"
     if ext not in ('.jpg', '.jpeg', '.png', '.webp', '.gif'):
         ext = '.jpg'
     fname = (f"{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_"
              f"{user.get('display_name','u').replace(' ','_')}{ext}")
-    (photo_dir / fname).write_bytes(await file.read())
+    stored = upload_photo(await file.read(), "chat", fname)
     msg = models.ChatMessage(
         sender_name=user.get("display_name", ""),
         receiver_name=partner, text=text or "",
-        photo_path=f"uploads/chat/{fname}",
+        photo_path=stored,
     )
     db.add(msg)
     db.commit()

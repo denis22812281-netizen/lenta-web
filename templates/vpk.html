@@ -196,8 +196,8 @@
                 {% endif %}
                 {% if not item.done and item.photo_path %}
                 <div class="mt-1">
-                    <a href="/static/{{ item.photo_path }}" target="_blank">
-                        <img src="/static/{{ item.photo_path }}" class="vpk-item-photo" alt="фото">
+                    <a href="{{ media_url(item.photo_path) }}" target="_blank">
+                        <img src="{{ media_url(item.photo_path) }}" class="vpk-item-photo" alt="фото">
                     </a>
                 </div>
                 {% endif %}
