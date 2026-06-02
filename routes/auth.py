@@ -20,11 +20,6 @@ async def qr_page(request: Request):
     return templates.TemplateResponse("qr.html", {"request": request, "app_url": _APP_URL})
 
 
-@router.get("/demo", response_class=HTMLResponse)
-async def demo_page(request: Request):
-    return templates.TemplateResponse("demo.html", {"request": request})
-
-
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     if request.session.get("user"):
