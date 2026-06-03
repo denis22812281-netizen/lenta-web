@@ -128,7 +128,7 @@ async def smr_export(request: Request, db: Session = Depends(get_db),
                     elif "Открытие" in t.name and t.end_plan:
                         opening = t.end_plan.strftime("%d.%m.%Y")
 
-        row_fill = done_fill if (total and done == total) else PatternFill()
+        row_fill = done_fill if (total and done == total) else PatternFill(fill_type=None)
         row_font = Font(color="E2E8F0", size=10)
 
         vals = [proj.tk_number, proj.city or "—",
@@ -140,11 +140,19 @@ async def smr_export(request: Request, db: Session = Depends(get_db),
             c.alignment = center if ci > 3 else wrap
 
     # ── Листы по объектам ──
+    used_titles = set()
     for proj in projects:
         sch = schedules.get(proj.id)
         if not sch:
             continue
-        title = f"ТК {proj.tk_number}"[:31]
+        # К = Констракшн, Р = Реконструкция — уникальный префикс
+        prefix = "K" if proj.project_type == "Констракшн" else "R"
+        base   = f"{prefix} TK{proj.tk_number}"
+        title  = base[:31]
+        # Защита от дублей
+        if title in used_titles:
+            title = f"{base[:28]}_{len(used_titles)}"[:31]
+        used_titles.add(title)
         ws = wb.create_sheet(title=title)
 
         ws.column_dimensions["A"].width = 5
@@ -169,7 +177,7 @@ async def smr_export(request: Request, db: Session = Depends(get_db),
 
         for ri, task in enumerate(sch.tasks, 3):
             is_ms = task.is_milestone
-            rfill = msfill if is_ms else PatternFill()
+            rfill = msfill if is_ms else PatternFill(fill_type=None)
             rfont = msfont if is_ms else Font(color="E2E8F0", size=9)
 
             ws.cell(ri, 1, ri - 2).fill = rfill
@@ -200,10 +208,11 @@ async def smr_export(request: Request, db: Session = Depends(get_db),
 
     buf = io.BytesIO()
     wb.save(buf); buf.seek(0)
-    fname = f"SMR_графики_{date.today().strftime('%d.%m.%Y')}.xlsx"
+    # Имя файла только ASCII — кириллица в Content-Disposition ненадёжна
+    fname = f"SMR_schedules_{date.today().strftime('%Y-%m-%d')}.xlsx"
     return StreamingResponse(buf,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{fname}"'})
+        headers={"Content-Disposition": f"attachment; filename={fname}"})
 
 
 # ── Создать график по шаблону ─────────────────────────────────────────────────
