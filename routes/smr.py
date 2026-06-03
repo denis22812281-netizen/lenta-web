@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import templates, get_current_user
-from services.smr_template import SMR_TEMPLATE
+from services.smr_template import get_template
 from services.email_service import send_smr_confirmation, send_smr_task_done
 
 router = APIRouter()
@@ -25,17 +25,23 @@ APP_URL = os.getenv("APP_URL", "https://lenta-web-production.up.railway.app").rs
 
 @router.get("/smr", response_class=HTMLResponse)
 async def smr_list(request: Request, db: Session = Depends(get_db),
-                   search: str = "", manager_id: str = ""):
+                   search: str = "", manager_id: str = "", proj_type: str = ""):
     user = get_current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=302)
 
-    q = db.query(models.Project).filter(models.Project.project_type == "Констракшн")
+    q = db.query(models.Project).filter(
+        models.Project.project_type.in_(["Констракшн", "Реконструкция"])
+    )
+    if proj_type in ("Констракшн", "Реконструкция"):
+        q = q.filter(models.Project.project_type == proj_type)
     if search:
         q = q.filter(models.Project.tk_number.contains(search))
     if manager_id and manager_id.isdigit():
         q = q.filter(models.Project.manager_id == int(manager_id))
-    constr_projects = q.order_by(models.Project.end_date.nullslast()).all()
+    constr_projects = q.order_by(
+        models.Project.project_type, models.Project.end_date.nullslast()
+    ).all()
 
     schedules = {s.project_id: s for s in db.query(models.SmrSchedule).all()}
     managers  = db.query(models.Manager).order_by(models.Manager.name).all()
@@ -64,12 +70,14 @@ async def smr_export(request: Request, db: Session = Depends(get_db),
     if not user:
         return RedirectResponse("/login", status_code=302)
 
-    q = db.query(models.Project).filter(models.Project.project_type == "Констракшн")
+    q = db.query(models.Project).filter(
+        models.Project.project_type.in_(["Констракшн", "Реконструкция"])
+    )
     if search:
         q = q.filter(models.Project.tk_number.contains(search))
     if manager_id and manager_id.isdigit():
         q = q.filter(models.Project.manager_id == int(manager_id))
-    projects = q.order_by(models.Project.end_date.nullslast()).all()
+    projects = q.order_by(models.Project.project_type, models.Project.end_date.nullslast()).all()
     schedules = {s.project_id: s for s in db.query(models.SmrSchedule).all()}
 
     wb = Workbook()
@@ -228,7 +236,8 @@ async def smr_create(project_id: int, request: Request,
     db.add(schedule)
     db.flush()
 
-    for i, (name, s_day, e_day, is_ms) in enumerate(SMR_TEMPLATE):
+    template = get_template(proj.project_type)
+    for i, (name, s_day, e_day, is_ms) in enumerate(template):
         db.add(models.SmrTask(
             schedule_id=schedule.id,
             name=name,
