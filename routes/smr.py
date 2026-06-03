@@ -399,6 +399,54 @@ async def smr_send_confirm(task_id: int, request: Request,
 
 # ── Публичная страница подтверждения (без авторизации) ───────────────────────
 
+class _DemoTask:
+    id = 0; name = "Монтаж вентиляционной системы"; is_milestone = True
+    status = "Запланировано"; reject_comment = ""
+    end_plan = None
+    def __init__(self):
+        from datetime import date
+        self.end_plan = date.today()
+
+class _DemoProj:
+    tk_number = "651"; city = "Москва"; name = "Реконструкция ТК 651"
+
+class _DemoConf:
+    action = None; token = "demo"
+
+@router.get("/smr/confirm/demo", response_class=HTMLResponse)
+async def smr_confirm_demo(request: Request, action: str = "confirm"):
+    """Демо-страница подтверждения — для проверки UI без токена в БД."""
+    return templates.TemplateResponse("smr_confirm.html", {
+        "request": request,
+        "conf": _DemoConf(),
+        "task": _DemoTask(),
+        "proj": _DemoProj(),
+        "already_done": False,
+        "auto_reject": (action == "reject"),
+        "token": "demo",
+        "is_demo": True,
+    })
+
+@router.post("/smr/confirm/demo", response_class=HTMLResponse)
+async def smr_confirm_demo_post(request: Request,
+                                action: str = Form("confirm"),
+                                comment: str = Form("")):
+    """Демо POST — показывает результат без сохранения в БД."""
+    conf = _DemoConf()
+    conf.action = "confirmed" if action != "reject" else "rejected"
+    task = _DemoTask()
+    if action == "reject":
+        task.reject_comment = comment.strip()
+    return templates.TemplateResponse("smr_confirm.html", {
+        "request": request,
+        "conf": conf,
+        "task": task,
+        "proj": _DemoProj(),
+        "already_done": True,
+        "just_submitted": True,
+        "is_demo": True,
+    })
+
 @router.get("/smr/confirm/{token}", response_class=HTMLResponse)
 async def smr_confirm_page(token: str, request: Request,
                            action: str = "confirm",
