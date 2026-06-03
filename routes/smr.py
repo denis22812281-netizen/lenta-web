@@ -1,10 +1,13 @@
 """График СМР — создание, просмотр, управление задачами, email-подтверждения."""
-import os, secrets
+import io, os, secrets
 from datetime import date, timedelta, datetime
 from datetime import timedelta as td
 
 from fastapi import APIRouter, Request, Form, Depends, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
+from openpyxl import Workbook
+from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 from sqlalchemy.orm import Session
 
 import models
@@ -21,16 +24,21 @@ APP_URL = os.getenv("APP_URL", "https://lenta-web-production.up.railway.app").rs
 # ── Список всех графиков ─────────────────────────────────────────────────────
 
 @router.get("/smr", response_class=HTMLResponse)
-async def smr_list(request: Request, db: Session = Depends(get_db)):
+async def smr_list(request: Request, db: Session = Depends(get_db),
+                   search: str = "", manager_id: str = ""):
     user = get_current_user(request)
     if not user:
         return RedirectResponse("/login", status_code=302)
 
-    constr_projects = db.query(models.Project).filter(
-        models.Project.project_type == "Констракшн"
-    ).order_by(models.Project.end_date.nullslast()).all()
+    q = db.query(models.Project).filter(models.Project.project_type == "Констракшн")
+    if search:
+        q = q.filter(models.Project.tk_number.contains(search))
+    if manager_id and manager_id.isdigit():
+        q = q.filter(models.Project.manager_id == int(manager_id))
+    constr_projects = q.order_by(models.Project.end_date.nullslast()).all()
 
     schedules = {s.project_id: s for s in db.query(models.SmrSchedule).all()}
+    managers  = db.query(models.Manager).order_by(models.Manager.name).all()
 
     projects = []
     for proj in constr_projects:
@@ -42,7 +50,152 @@ async def smr_list(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("smr_list.html", {
         "request": request, "user": user,
         "projects": projects, "today": date.today(),
+        "managers": managers,
+        "search": search, "filter_manager_id": manager_id,
     })
+
+
+# ── Экспорт в Excel ──────────────────────────────────────────────────────────
+
+@router.get("/smr/export")
+async def smr_export(request: Request, db: Session = Depends(get_db),
+                     search: str = "", manager_id: str = ""):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+
+    q = db.query(models.Project).filter(models.Project.project_type == "Констракшн")
+    if search:
+        q = q.filter(models.Project.tk_number.contains(search))
+    if manager_id and manager_id.isdigit():
+        q = q.filter(models.Project.manager_id == int(manager_id))
+    projects = q.order_by(models.Project.end_date.nullslast()).all()
+    schedules = {s.project_id: s for s in db.query(models.SmrSchedule).all()}
+
+    wb = Workbook()
+
+    # ── Сводный лист ──
+    ws_sum = wb.active
+    ws_sum.title = "Сводка"
+
+    hfill = PatternFill(start_color="1A5C22", end_color="1A5C22", fill_type="solid")
+    hfont = Font(color="FFFFFF", bold=True, size=10)
+    msfill= PatternFill(start_color="3D3000", end_color="3D3000", fill_type="solid")
+    msfont= Font(color="FFD200", bold=True, size=10)
+    done_fill = PatternFill(start_color="0F2A12", end_color="0F2A12", fill_type="solid")
+    thin  = Side(style="thin", color="2D3748")
+    brd   = Border(left=thin, right=thin, top=thin, bottom=thin)
+    center= Alignment(horizontal="center", vertical="center", wrap_text=True)
+    wrap  = Alignment(vertical="center", wrap_text=True)
+
+    headers = ["ТК №", "Город", "Менеджер", "Всего этапов", "Выполнено",
+               "В работе", "Просрочено", "% выполнения",
+               "ВПК 1", "ВПК 2", "Открытие"]
+    col_w   = [10, 18, 22, 14, 12, 12, 12, 14, 14, 14, 14]
+
+    for ci, (h, w) in enumerate(zip(headers, col_w), 1):
+        c = ws_sum.cell(1, ci, h)
+        c.fill, c.font, c.alignment, c.border = hfill, hfont, center, brd
+        ws_sum.column_dimensions[get_column_letter(ci)].width = w
+    ws_sum.row_dimensions[1].height = 26
+    ws_sum.freeze_panes = "A2"
+
+    for ri, proj in enumerate(projects, 2):
+        sch   = schedules.get(proj.id)
+        total = len(sch.tasks) if sch else 0
+        done  = sum(1 for t in sch.tasks if t.status == "Выполнено") if sch else 0
+        work  = sum(1 for t in sch.tasks if t.status == "В работе")  if sch else 0
+        over  = sum(1 for t in sch.tasks if t.status == "Просрочено") if sch else 0
+        pct   = f"{int(done/total*100)}%" if total else "—"
+
+        # Даты ключевых вех
+        vpk1 = vpk2 = opening = "—"
+        if sch:
+            for t in sch.tasks:
+                if t.is_milestone:
+                    if "ВПК 1" in t.name and t.end_plan:
+                        vpk1 = t.end_plan.strftime("%d.%m.%Y")
+                    elif "ВПК 2" in t.name and t.end_plan:
+                        vpk2 = t.end_plan.strftime("%d.%m.%Y")
+                    elif "Открытие" in t.name and t.end_plan:
+                        opening = t.end_plan.strftime("%d.%m.%Y")
+
+        row_fill = done_fill if (total and done == total) else PatternFill()
+        row_font = Font(color="E2E8F0", size=10)
+
+        vals = [proj.tk_number, proj.city or "—",
+                proj.manager.name if proj.manager else "—",
+                total, done, work, over, pct, vpk1, vpk2, opening]
+        for ci, v in enumerate(vals, 1):
+            c = ws_sum.cell(ri, ci, v)
+            c.fill, c.font, c.border = row_fill, row_font, brd
+            c.alignment = center if ci > 3 else wrap
+
+    # ── Листы по объектам ──
+    for proj in projects:
+        sch = schedules.get(proj.id)
+        if not sch:
+            continue
+        title = f"ТК {proj.tk_number}"[:31]
+        ws = wb.create_sheet(title=title)
+
+        ws.column_dimensions["A"].width = 5
+        ws.column_dimensions["B"].width = 48
+        ws.column_dimensions["C"].width = 14
+        ws.column_dimensions["D"].width = 14
+        ws.column_dimensions["E"].width = 18
+
+        # Заголовок листа
+        ws.merge_cells("A1:E1")
+        c = ws.cell(1, 1, f"ТК {proj.tk_number}  {proj.city or ''}  {proj.manager.name if proj.manager else ''}")
+        c.fill = hfill; c.font = Font(color="FFD200", bold=True, size=12)
+        c.alignment = Alignment(horizontal="center", vertical="center")
+        ws.row_dimensions[1].height = 26
+
+        # Заголовки колонок
+        for ci, h in enumerate(["#", "Этап работ", "Начало (план)", "Окончание (план)", "Статус"], 1):
+            c = ws.cell(2, ci, h)
+            c.fill, c.font, c.alignment, c.border = hfill, hfont, center, brd
+        ws.row_dimensions[2].height = 22
+        ws.freeze_panes = "A3"
+
+        for ri, task in enumerate(sch.tasks, 3):
+            is_ms = task.is_milestone
+            rfill = msfill if is_ms else PatternFill()
+            rfont = msfont if is_ms else Font(color="E2E8F0", size=9)
+
+            ws.cell(ri, 1, ri - 2).fill = rfill
+            ws.cell(ri, 1).font = Font(color="94A3B8", size=9)
+            ws.cell(ri, 1).alignment = center
+            ws.cell(ri, 1).border = brd
+
+            c = ws.cell(ri, 2, ("◆ " if is_ms else "") + task.name)
+            c.fill, c.font, c.border = rfill, rfont, brd
+            c.alignment = wrap
+
+            for ci, val in enumerate([
+                task.start_plan.strftime("%d.%m.%Y") if task.start_plan else "—",
+                task.end_plan.strftime("%d.%m.%Y") if task.end_plan else "—",
+                task.status
+            ], 3):
+                c = ws.cell(ri, ci, val)
+                c.fill, c.font, c.border = rfill, rfont, brd
+                c.alignment = center
+
+            status_colors = {"Выполнено":"1A4D1F","В работе":"1E3A5F","Просрочено":"5F1E1E"}
+            if task.status in status_colors:
+                sf = PatternFill(start_color=status_colors[task.status],
+                                 end_color=status_colors[task.status], fill_type="solid")
+                ws.cell(ri, 5).fill = sf
+
+            ws.row_dimensions[ri].height = 16
+
+    buf = io.BytesIO()
+    wb.save(buf); buf.seek(0)
+    fname = f"SMR_графики_{date.today().strftime('%d.%m.%Y')}.xlsx"
+    return StreamingResponse(buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{fname}"'})
 
 
 # ── Создать график по шаблону ─────────────────────────────────────────────────

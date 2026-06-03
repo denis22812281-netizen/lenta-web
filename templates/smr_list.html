@@ -4,8 +4,43 @@
 
 {% block content %}
 
-<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-  <span class="text-muted small">Строительно-монтажные работы по объектам Констракшн</span>
+{# ── Фильтры ── #}
+<form method="get" class="d-flex flex-wrap gap-2 align-items-center mb-3">
+  <input type="text" name="search" value="{{ search }}"
+         class="form-control form-control-sm" style="width:150px"
+         placeholder="Поиск по ТК №">
+
+  <select name="manager_id" class="form-select form-select-sm" style="width:200px"
+          onchange="this.form.submit()">
+    <option value="">Все менеджеры</option>
+    {% for m in managers %}
+    <option value="{{ m.id }}" {% if filter_manager_id == m.id|string %}selected{% endif %}>
+      {{ m.name }}
+    </option>
+    {% endfor %}
+  </select>
+
+  <button type="submit" class="btn btn-sm btn-outline-success">
+    <i class="bi bi-search me-1"></i>Найти
+  </button>
+
+  {% if search or filter_manager_id %}
+  <a href="/smr" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-x me-1"></i>Сбросить
+  </a>
+  {% endif %}
+
+  <a href="/smr/export?search={{ search }}&manager_id={{ filter_manager_id }}"
+     class="btn btn-sm btn-outline-warning ms-auto">
+    <i class="bi bi-file-earmark-excel me-1"></i>Выгрузить в Excel
+  </a>
+</form>
+
+<div class="text-muted small mb-3">
+  Найдено объектов: <b>{{ projects | length }}</b>
+  {% set with_sch = projects | selectattr('schedule') | list | length %}
+  · с графиком: <b>{{ with_sch }}</b>
+  · без графика: <b>{{ projects | length - with_sch }}</b>
 </div>
 
 {% if not projects %}
