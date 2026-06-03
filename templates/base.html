@@ -48,7 +48,7 @@
         <a href="/tasks" class="nav-item {% if '/tasks' in request.url.path %}active{% endif %}">
             <i class="bi bi-check2-square"></i><span>Задачи</span>
         </a>
-        <a href="/construction" class="nav-item {% if '/smr/' in request.url.path %}active{% endif %}">
+        <a href="/smr" class="nav-item {% if request.url.path.startswith('/smr') %}active{% endif %}">
             <i class="bi bi-bar-chart-steps"></i><span>График СМР</span>
         </a>
         <a href="/chat" class="nav-item {% if '/chat' in request.url.path %}active{% endif %}" style="position:relative">

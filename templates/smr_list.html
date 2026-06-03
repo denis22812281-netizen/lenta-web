@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block page_title %}График СМР — Лента{% endblock %}
+{% block title %}<i class="bi bi-bar-chart-steps me-2"></i>График СМР{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+  <span class="text-muted small">Строительно-монтажные работы по объектам Констракшн</span>
+</div>
+
+{% if not projects %}
+<div class="data-card text-center py-5">
+  <i class="bi bi-buildings" style="font-size:3rem;opacity:.3"></i>
+  <p class="mt-3 text-muted">Нет активных проектов Констракшн</p>
+  <a href="/construction" class="btn btn-sm btn-outline-success">Перейти в Констракшн</a>
+</div>
+{% else %}
+<div class="row g-3">
+  {% for item in projects %}
+  {% set proj = item.proj %}
+  {% set sch  = item.schedule %}
+  {% set done = item.done %}
+  {% set total = item.total %}
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="data-card h-100">
+      <div class="data-card-header" style="{% if sch %}border-left:3px solid #3CB34A{% else %}border-left:3px solid #374151{% endif %}">
+        <span class="fw-bold">ТК {{ proj.tk_number }}{% if proj.city %} · {{ proj.city }}{% endif %}</span>
+        {% if sch %}
+        <span class="badge bg-success" style="font-size:.7rem">{{ done }}/{{ total }}</span>
+        {% else %}
+        <span class="badge bg-secondary" style="font-size:.7rem">Нет графика</span>
+        {% endif %}
+      </div>
+      <div class="p-3">
+        {% if proj.manager %}
+        <div class="text-muted small mb-2">
+          <i class="bi bi-person me-1"></i>{{ proj.manager.name }}
+        </div>
+        {% endif %}
+
+        {% if sch and total %}
+        {# Прогресс #}
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1" style="font-size:.75rem">
+            <span class="text-muted">Выполнение</span>
+            <span class="fw-bold">{{ ((done / total) * 100) | int }}%</span>
+          </div>
+          <div class="progress" style="height:6px;border-radius:3px">
+            <div class="progress-bar bg-success" style="width:{{ ((done / total) * 100) | int }}%"></div>
+          </div>
+        </div>
+
+        {# Ближайшие вехи #}
+        {% set milestones = sch.tasks | selectattr('is_milestone') | list %}
+        {% if milestones %}
+        <div class="mb-3">
+          {% for ms in milestones %}
+          <div class="d-flex justify-content-between align-items-center py-1"
+               style="border-bottom:1px solid rgba(255,255,255,.05);font-size:.78rem">
+            <span style="color:{% if ms.status=='Выполнено' %}#4ade80{% elif ms.status=='Просрочено' %}#f87171{% else %}#FFD200{% endif %}">
+              <i class="bi bi-diamond-fill me-1" style="font-size:.6rem"></i>{{ ms.name }}
+            </span>
+            <span class="text-muted">{{ ms.end_plan.strftime('%d.%m') if ms.end_plan else '—' }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% elif not sch %}
+        <p class="text-muted small mb-3">График не создан. Укажите дату старта:</p>
+        <form method="post" action="/smr/create/{{ proj.id }}" class="d-flex gap-2 mb-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+          <input type="date" name="start_date" class="form-control form-control-sm"
+                 value="{{ proj.start_date.isoformat() if proj.start_date else today.isoformat() }}" required>
+          <button class="btn btn-success btn-sm fw-bold px-3">
+            <i class="bi bi-plus-circle"></i>
+          </button>
+        </form>
+        {% endif %}
+
+        <a href="/smr/{{ proj.id }}" class="btn btn-sm w-100 {% if sch %}btn-outline-success{% else %}btn-outline-secondary{% endif %}">
+          <i class="bi bi-bar-chart-steps me-1"></i>
+          {% if sch %}Открыть график{% else %}Создать график{% endif %}
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

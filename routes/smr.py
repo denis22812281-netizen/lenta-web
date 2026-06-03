@@ -17,6 +17,33 @@ router = APIRouter()
 APP_URL = os.getenv("APP_URL", "https://lenta-web-production.up.railway.app").rstrip("/")
 
 
+# ── Список всех графиков ─────────────────────────────────────────────────────
+
+@router.get("/smr", response_class=HTMLResponse)
+async def smr_list(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+
+    constr_projects = db.query(models.Project).filter(
+        models.Project.project_type == "Констракшн"
+    ).order_by(models.Project.end_date.nullslast()).all()
+
+    schedules = {s.project_id: s for s in db.query(models.SmrSchedule).all()}
+
+    projects = []
+    for proj in constr_projects:
+        sch = schedules.get(proj.id)
+        done  = sum(1 for t in sch.tasks if t.status == "Выполнено") if sch else 0
+        total = len(sch.tasks) if sch else 0
+        projects.append({"proj": proj, "schedule": sch, "done": done, "total": total})
+
+    return templates.TemplateResponse("smr_list.html", {
+        "request": request, "user": user,
+        "projects": projects, "today": date.today(),
+    })
+
+
 # ── Создать график по шаблону ─────────────────────────────────────────────────
 
 @router.post("/smr/create/{project_id}")
