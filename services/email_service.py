@@ -429,6 +429,124 @@ def send_smr_confirmation(to_email: str, task_name: str, project_name: str,
     )
 
 
+def send_smr_progress_report(
+        to_email: str,
+        tk_number: str,
+        project_name: str,
+        city: str,
+        manager_name: str,
+        report_date: str,
+        tasks: list,          # list of dicts: {name, status, end_plan, is_milestone}
+        sent_by: str = "",
+) -> bool:
+    """
+    Отчёт о ходе выполнения графика СМР.
+    tasks — список всех задач с полями: name, status, end_plan, is_milestone.
+    """
+    done_tasks  = [t for t in tasks if t["status"] == "Выполнено"]
+    work_tasks  = [t for t in tasks if t["status"] == "В работе"]
+    over_tasks  = [t for t in tasks if t["status"] == "Просрочено"]
+    plan_tasks  = [t for t in tasks if t["status"] == "Запланировано"]
+    total       = len(tasks)
+    done_cnt    = len(done_tasks)
+    pct         = int(done_cnt / total * 100) if total else 0
+
+    # ── Строка задачи ──
+    def task_row(t, dot_color, alt_bg):
+        ms = t.get("is_milestone")
+        name_style = f"font-weight:{'800' if ms else '400'};color:{'#1A5C22' if ms else '#1f2937'};font-size:13px"
+        date_s = (f"<span style='color:#9ca3af;font-size:11px;float:right'>{t['end_plan']}</span>"
+                  if t.get("end_plan") else "")
+        ms_icon = "◆ " if ms else ""
+        return (
+            f'<tr style="background:{alt_bg}">'
+            f'<td style="padding:0;width:4px;background:{dot_color}"></td>'
+            f'<td style="padding:8px 12px">'
+            f'  <span style="{name_style}">{ms_icon}{t["name"]}</span>{date_s}'
+            f'</td>'
+            f'</tr>'
+        )
+
+    def section(label, items, dot_color, header_color, header_bg):
+        if not items:
+            return ""
+        rows = "".join(
+            task_row(t, dot_color, "#ffffff" if i % 2 == 0 else "#f9fafb")
+            for i, t in enumerate(items)
+        )
+        return f"""
+        <div style="margin-bottom:18px;border-radius:8px;overflow:hidden;
+                    border:1px solid #e5e7eb">
+          <div style="background:{header_bg};padding:9px 14px;display:flex;
+                      justify-content:space-between;align-items:center">
+            <span style="color:{header_color};font-weight:700;font-size:12px;
+                         text-transform:uppercase;letter-spacing:.8px">{label}</span>
+            <span style="background:{dot_color};color:#fff;font-size:11px;font-weight:700;
+                         padding:2px 8px;border-radius:10px">{len(items)}</span>
+          </div>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
+            {rows}
+          </table>
+        </div>"""
+
+    progress_color = "#1A5C22" if pct >= 80 else "#d97706" if pct >= 40 else "#dc2626"
+    progress_bar = (
+        f'<div style="margin:0 0 6px">'
+        f'  <div style="display:flex;justify-content:space-between;'
+        f'              font-size:11px;color:#6b7280;margin-bottom:5px">'
+        f'    <span>Выполнение графика</span>'
+        f'    <span style="font-weight:700;color:{progress_color}">{done_cnt} / {total} · {pct}%</span>'
+        f'  </div>'
+        f'  <div style="background:#e5e7eb;border-radius:6px;height:10px">'
+        f'    <div style="width:{pct}%;background:{progress_color};height:10px;border-radius:6px"></div>'
+        f'  </div>'
+        f'</div>'
+    )
+
+    content = f"""
+        <p style="font-size:16px;margin:0 0 16px">Добрый день.</p>
+
+        <table width="100%" cellpadding="0" cellspacing="0"
+               style="background:#f4faf5;border-left:4px solid #3CB34A;
+                      border-radius:0 10px 10px 0;margin-bottom:20px">
+          <tr>
+            <td style="padding:16px 20px">
+              <div style="font-size:22px;font-weight:900;color:#1A5C22;letter-spacing:.5px">
+                ТК {tk_number}
+              </div>
+              <div style="font-size:13px;color:#374151;margin-top:3px">
+                {project_name}{"  ·  " + city if city else ""}
+              </div>
+              <div style="font-size:11px;color:#6b7280;margin-top:2px">
+                Менеджер: {manager_name} &nbsp;·&nbsp; Дата: {report_date}
+              </div>
+            </td>
+            <td style="padding:16px 20px;text-align:right;vertical-align:middle">
+              <div style="font-size:32px;font-weight:900;color:{progress_color}">{pct}%</div>
+              <div style="font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">выполнено</div>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2" style="padding:0 20px 16px">
+              {progress_bar}
+            </td>
+          </tr>
+        </table>
+
+        {section("✅  Выполнено",    done_tasks, "#16a34a", "#15803d", "#f0fdf4")}
+        {section("🔄  В работе",     work_tasks, "#d97706", "#92400e", "#fffbeb")}
+        {section("❌  Просрочено",   over_tasks, "#dc2626", "#dc2626", "#fff5f5")}
+        {section("⏳  Запланировано",plan_tasks, "#94a3b8", "#475569", "#f8fafc")}
+
+        {f'<p style="color:#9ca3af;font-size:11px;margin-top:20px;border-top:1px solid #e5e7eb;padding-top:12px">Отправил: {sent_by}</p>' if sent_by else ""}
+    """
+    return send_email(
+        to_email,
+        f"График СМР · ТК {tk_number} · {done_cnt}/{total} выполнено",
+        _base_template(content, title=f"📊 График СМР · ТК {tk_number}"),
+    )
+
+
 def notify_deadline_tomorrow(to_email: str, manager_name: str, projects: list) -> bool:
     if not projects:
         return False

@@ -14,7 +14,7 @@ import models
 from database import get_db
 from deps import templates, get_current_user
 from services.smr_template import get_template
-from services.email_service import send_smr_confirmation, send_smr_task_done
+from services.email_service import send_smr_confirmation, send_smr_task_done, send_smr_progress_report
 
 router = APIRouter()
 
@@ -428,6 +428,53 @@ async def smr_confirm_page(token: str, request: Request,
         "proj": proj,
         "already_done": already_done,
     })
+
+
+# ── Отчёт о ходе выполнения графика ─────────────────────────────────────────
+
+@router.post("/api/smr/{project_id}/send-report")
+async def smr_send_report(project_id: int, request: Request,
+                          db: Session = Depends(get_db)):
+    """Отправляет отчёт по графику СМР на указанный email."""
+    user = get_current_user(request)
+    if not user:
+        return JSONResponse({"error": "Не авторизован"}, status_code=401)
+
+    data   = await request.json()
+    to_email = data.get("email", "").strip().lower()
+    if not to_email:
+        return JSONResponse({"error": "Email не указан"}, status_code=400)
+
+    proj = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not proj:
+        return JSONResponse({"error": "Проект не найден"}, status_code=404)
+
+    sch = db.query(models.SmrSchedule).filter(
+        models.SmrSchedule.project_id == project_id).first()
+    if not sch:
+        return JSONResponse({"error": "График не создан"}, status_code=404)
+
+    tasks = [
+        {
+            "name":        t.name,
+            "status":      t.status,
+            "end_plan":    t.end_plan.strftime("%d.%m.%Y") if t.end_plan else "",
+            "is_milestone": t.is_milestone,
+        }
+        for t in sch.tasks
+    ]
+
+    ok = send_smr_progress_report(
+        to_email=to_email,
+        tk_number=proj.tk_number,
+        project_name=proj.name,
+        city=proj.city or "",
+        manager_name=proj.manager.name if proj.manager else "—",
+        report_date=date.today().strftime("%d.%m.%Y"),
+        tasks=tasks,
+        sent_by=user.get("display_name", ""),
+    )
+    return {"ok": ok, "sent_to": to_email}
 
 
 # ── База контактов ───────────────────────────────────────────────────────────

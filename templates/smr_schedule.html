@@ -13,8 +13,11 @@
     <i class="bi bi-person-lines-fill me-1"></i><span class="d-none d-sm-inline">Контакты</span>
   </a>
   {% if schedule %}
+  <button class="btn btn-sm btn-outline-info ms-auto me-2" onclick="openReportModal()">
+    <i class="bi bi-send me-1"></i><span class="d-none d-sm-inline">Отправить отчёт</span>
+  </button>
   <form method="post" action="/smr/delete/{{ proj.id }}"
-        onsubmit="return confirm('Удалить весь график?')" class="ms-auto">
+        onsubmit="return confirm('Удалить весь график?')">
     <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
     <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i>Удалить</button>
   </form>
@@ -260,7 +263,45 @@
 {% endif %}
 
 
-{# ── Модал ── #}
+{# ── Модал отчёта ── #}
+<div class="modal fade" id="modalReport" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h6 class="modal-title fw-bold">
+          <i class="bi bi-send me-2 text-info"></i>Отправить отчёт по графику
+        </h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body pt-2">
+        <p class="small text-muted mb-3">
+          Письмо со списком всех этапов (выполнено / не выполнено) будет отправлено на указанный адрес.
+        </p>
+        <div class="smr-ac-wrap mb-2" id="reportAcWrap">
+          <input type="text" id="reportAcName" class="form-control form-control-sm"
+                 placeholder="Начните вводить фамилию..." autocomplete="off"
+                 oninput="acSearchReport(this.value)">
+          <div class="smr-ac-dropdown" id="reportAcDrop"></div>
+        </div>
+        <input type="email" id="reportEmail" class="form-control form-control-sm"
+               placeholder="или введите email вручную">
+        <div id="reportResult" class="small mt-2"></div>
+        <div class="mt-2" style="font-size:.72rem;color:#475569">
+          <i class="bi bi-info-circle me-1"></i>
+          <a href="/smr/contacts" target="_blank" class="text-success">Управление контактами</a>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Отмена</button>
+        <button class="btn btn-info btn-sm fw-bold" onclick="sendReport()">
+          <i class="bi bi-send me-1"></i>Отправить
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Модал конверта ── #}
 <div class="modal fade" id="modalConfirm" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -566,6 +607,62 @@ document.addEventListener('click', e => {
         if (d) d.style.display = 'none';
     });
 });
+
+// ── Автодополнение для модала отчёта ────────────────────────────────────────
+async function acSearchReport(q) {
+    clearTimeout(_acTimer);
+    const drop = document.getElementById('reportAcDrop');
+    if (!q || q.length < 1) { drop.style.display='none'; return; }
+    _acTimer = setTimeout(async () => {
+        const res  = await fetch(`/api/smr/contacts?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        drop.innerHTML = '';
+        if (!data.contacts.length) {
+            drop.innerHTML = `<div class="smr-ac-empty">Не найдено</div>`;
+        } else {
+            data.contacts.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'smr-ac-item';
+                div.innerHTML = `<div class="smr-ac-name">${escHtmlAc(c.name)}</div>
+                    <div class="smr-ac-sub smr-ac-email">${escHtmlAc(c.email)}</div>`;
+                div.addEventListener('mousedown', e => {
+                    e.preventDefault();
+                    document.getElementById('reportAcName').value = c.name;
+                    document.getElementById('reportEmail').value  = c.email;
+                    drop.style.display = 'none';
+                });
+                drop.appendChild(div);
+            });
+        }
+        drop.style.display = 'block';
+    }, 200);
+}
+
+function openReportModal() {
+    document.getElementById('reportAcName').value = '';
+    document.getElementById('reportEmail').value  = '';
+    document.getElementById('reportResult').innerHTML = '';
+    document.getElementById('reportAcDrop').style.display = 'none';
+    new bootstrap.Modal(document.getElementById('modalReport')).show();
+}
+
+async function sendReport() {
+    const email = document.getElementById('reportEmail').value.trim();
+    const res   = document.getElementById('reportResult');
+    if (!email) { res.innerHTML = '<span class="text-danger">Укажите email</span>'; return; }
+    res.innerHTML = '<span class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Отправляю...</span>';
+    const r    = await fetch(`/api/smr/{{ proj.id }}/send-report`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({email})
+    });
+    const data = await r.json();
+    if (data.ok) {
+        res.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>Отправлено на ${data.sent_to}</span>`;
+    } else {
+        res.innerHTML = `<span class="text-danger">${data.error || 'Ошибка отправки'}</span>`;
+    }
+}
 
 // ── Конец автодополнения ──────────────────────────────────────────────────────
 
