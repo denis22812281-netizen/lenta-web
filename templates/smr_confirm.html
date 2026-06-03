@@ -18,52 +18,81 @@
     box-shadow:0 4px 24px rgba(0,0,0,.10);
     overflow:hidden;
   }
-  .confirm-header {
-    background:#1A5C22; padding:20px 28px 16px;
-  }
-  .lenta-logo  { color:#FFD200; font-size:1.6rem; font-weight:900; letter-spacing:6px; }
-  .lenta-sub   { color:#a3d9a5; font-size:.7rem; letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
+  .confirm-header { background:#1A5C22; padding:20px 28px 16px; }
+  .lenta-logo { color:#FFD200; font-size:1.6rem; font-weight:900; letter-spacing:6px; }
+  .lenta-sub  { color:#a3d9a5; font-size:.7rem; letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
   .confirm-body { padding:28px; }
 
   .task-card {
     background:#f4faf5; border-left:4px solid #3CB34A;
-    border-radius:0 10px 10px 0; padding:14px 18px; margin-bottom:20px;
+    border-radius:0 10px 10px 0; padding:14px 18px; margin-bottom:24px;
   }
-  .task-tk   { font-size:1.1rem; font-weight:800; color:#1A5C22; }
-  .task-name { font-size:.95rem; font-weight:600; color:#1f2937; margin:4px 0; }
+  .task-type { font-size:.68rem; color:#6b7280; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+  .task-name { font-size:1rem; font-weight:700; color:#1A5C22; margin-bottom:6px; }
   .task-meta { font-size:.78rem; color:#6b7280; }
 
-  .btn-confirm {
-    background:#1A5C22; color:#fff; border:none;
-    font-weight:800; font-size:1rem; padding:14px 32px;
-    border-radius:50px; width:100%; cursor:pointer;
-    box-shadow:0 2px 12px rgba(26,92,34,.3); transition:.2s;
+  /* Кнопки выбора */
+  .choice-wrap { display:flex; gap:12px; }
+  .btn-yes {
+    flex:1; background:#1A5C22; color:#fff; border:none;
+    font-weight:800; font-size:.95rem; padding:14px 12px;
+    border-radius:50px; cursor:pointer; transition:.2s;
+    box-shadow:0 2px 10px rgba(26,92,34,.25);
   }
-  .btn-confirm:hover { background:#145020; }
+  .btn-yes:hover { background:#145020; }
+  .btn-no {
+    flex:1; background:#fff; color:#dc2626; border:2px solid #dc2626;
+    font-weight:700; font-size:.95rem; padding:14px 12px;
+    border-radius:50px; cursor:pointer; transition:.2s;
+  }
+  .btn-no:hover  { background:#fff5f5; }
+  .btn-no.active { background:#dc2626; color:#fff; }
 
-  .result-icon { font-size:3.5rem; display:block; text-align:center; margin-bottom:12px; }
-  .result-title { font-size:1.4rem; font-weight:800; text-align:center; margin-bottom:8px; }
-  .result-sub   { font-size:.88rem; color:#6b7280; text-align:center; margin-bottom:20px; }
-
-  /* Форма комментария */
-  .comment-form textarea {
+  /* Форма комментария — раскрывается вниз */
+  .comment-section {
+    overflow:hidden;
+    max-height:0;
+    transition:max-height .35s ease, opacity .25s ease, margin-top .25s ease;
+    opacity:0;
+    margin-top:0;
+  }
+  .comment-section.open {
+    max-height:400px;
+    opacity:1;
+    margin-top:16px;
+  }
+  .comment-label { font-size:.82rem; font-weight:600; color:#374151; margin-bottom:6px; display:block; }
+  .comment-section textarea {
     border:2px solid #e5e7eb; border-radius:10px;
-    font-size:.9rem; padding:12px; resize:vertical;
-    min-height:120px; width:100%;
+    font-size:.88rem; padding:12px; resize:vertical;
+    min-height:100px; width:100%;
     transition:border-color .15s;
+    font-family:inherit;
   }
-  .comment-form textarea:focus {
-    outline:none; border-color:#3CB34A;
-    box-shadow:0 0 0 3px rgba(60,179,74,.15);
+  .comment-section textarea:focus {
+    outline:none; border-color:#dc2626;
+    box-shadow:0 0 0 3px rgba(220,38,38,.12);
   }
-  .footer-note { font-size:.72rem; color:#9ca3af; text-align:center; margin-top:16px; }
+  .btn-submit {
+    width:100%; background:#dc2626; color:#fff; border:none;
+    font-weight:800; font-size:.95rem; padding:13px;
+    border-radius:50px; margin-top:12px; cursor:pointer; transition:.2s;
+    box-shadow:0 2px 10px rgba(220,38,38,.2);
+  }
+  .btn-submit:hover { background:#b91c1c; }
+
+  /* Результат */
+  .result-icon  { font-size:3rem; display:block; text-align:center; margin-bottom:10px; }
+  .result-title { font-size:1.3rem; font-weight:800; text-align:center; margin-bottom:6px; }
+  .result-sub   { font-size:.85rem; color:#6b7280; text-align:center; margin-bottom:20px; }
+
+  .footer-note { font-size:.7rem; color:#9ca3af; text-align:center; padding:0 0 20px; }
 </style>
 </head>
 <body>
 <div class="confirm-wrap">
 <div class="confirm-card">
 
-  {# ── Шапка ── #}
   <div class="confirm-header">
     <div class="lenta-logo">ЛЕНТА</div>
     <div class="lenta-sub">Система управления проектами · График СМР</div>
@@ -77,56 +106,23 @@
     <div class="result-title" style="color:#dc2626">Ошибка</div>
     <div class="result-sub">{{ error }}</div>
 
-    {# ── Уже ответил ── #}
+    {# ── Результат (уже ответил или только что отправил) ── #}
     {% elif already_done %}
-    <span class="result-icon">{% if conf.action == 'confirmed' %}✅{% else %}🔄{% endif %}</span>
-    <div class="result-title">Ответ уже зафиксирован</div>
-    <div class="result-sub">Вы ранее ответили на этот запрос.</div>
+    {% set confirmed = (conf.action == 'confirmed') %}
+    <span class="result-icon">{% if confirmed %}✅{% else %}❌{% endif %}</span>
+    <div class="result-title" style="color:{% if confirmed %}#15803d{% else %}#dc2626{% endif %}">
+      {% if confirmed %}Подтверждено{% else %}Не подтверждено{% endif %}
+    </div>
+    <div class="result-sub">
+      {% if just_submitted %}Ответ зафиксирован в системе. Спасибо.
+      {% else %}Вы уже ответили на этот запрос ранее.{% endif %}
+    </div>
     {% if task %}
     <div class="task-card">
       <div class="task-name">{{ task.name }}</div>
       {% if proj %}<div class="task-meta">ТК {{ proj.tk_number }}{% if proj.city %} · {{ proj.city }}{% endif %}</div>{% endif %}
-      <div class="task-meta mt-1">
-        {% if conf.action == 'confirmed' %}<span style="color:#16a34a;font-weight:600">✅ Выполнено</span>
-        {% else %}<span style="color:#dc2626;font-weight:600">❌ Не выполнено</span>{% endif %}
-      </div>
-    </div>
-    {% endif %}
-
-    {# ── Форма комментария (Не выполнено) ── #}
-    {% elif show_comment_form %}
-    <span class="result-icon">📝</span>
-    <div class="result-title" style="color:#dc2626">Не выполнено</div>
-    <div class="result-sub">Укажите причину или комментарий — он будет виден в графике СМР.</div>
-
-    {% if task %}
-    <div class="task-card">
-      <div class="task-name">{% if task.is_milestone %}◆ {% endif %}{{ task.name }}</div>
-      {% if proj %}<div class="task-meta">ТК {{ proj.tk_number }}{% if proj.city %} · {{ proj.city }}{% endif %}</div>{% endif %}
-      {% if task.end_plan %}<div class="task-meta">Дата: {{ task.end_plan.strftime('%d.%m.%Y') }}</div>{% endif %}
-    </div>
-    {% endif %}
-
-    <form method="post" action="/smr/confirm/{{ token }}" class="comment-form">
-      <label class="form-label fw-semibold mb-2" style="font-size:.9rem">
-        Причина / комментарий:
-      </label>
-      <textarea name="comment" placeholder="Например: задержка поставки оборудования, перенос на 5 дней..."
-                autofocus></textarea>
-      <button type="submit" class="btn-confirm mt-3">
-        <i class="bi bi-send me-2"></i>Отправить отчёт
-      </button>
-    </form>
-
-    {# ── Комментарий сохранён ── #}
-    {% elif comment_saved %}
-    <span class="result-icon">📋</span>
-    <div class="result-title" style="color:#dc2626">Отчёт отправлен</div>
-    <div class="result-sub">Комментарий сохранён и виден в графике СМР.</div>
-    {% if task %}
-    <div class="task-card">
-      <div class="task-name">{{ task.name }}</div>
-      {% if task.reject_comment %}
+      {% if task.end_plan %}<div class="task-meta">Плановая дата: {{ task.end_plan.strftime('%d.%m.%Y') }}</div>{% endif %}
+      {% if not confirmed and task.reject_comment %}
       <div class="task-meta mt-2" style="color:#374151">
         <i class="bi bi-chat-left-text me-1"></i>{{ task.reject_comment }}
       </div>
@@ -134,24 +130,90 @@
     </div>
     {% endif %}
 
-    {# ── Успешно Выполнено ── #}
-    {% else %}
-    <span class="result-icon">✅</span>
-    <div class="result-title" style="color:#15803d">Выполнено!</div>
-    <div class="result-sub">Статус зафиксирован в системе. Спасибо.</div>
+    {# ── Интерактивная форма ── #}
+    {% elif conf %}
     {% if task %}
     <div class="task-card">
+      <div class="task-type">{% if task.is_milestone %}◆ Ключевая веха{% else %}Этап работ{% endif %}</div>
       <div class="task-name">{{ task.name }}</div>
       {% if proj %}<div class="task-meta">ТК {{ proj.tk_number }}{% if proj.city %} · {{ proj.city }}{% endif %}</div>{% endif %}
-      {% if task.end_plan %}<div class="task-meta">Плановая дата: {{ task.end_plan.strftime('%d.%m.%Y') }}</div>{% endif %}
+      {% if task.end_plan %}<div class="task-meta">Плановая дата: <b>{{ task.end_plan.strftime('%d.%m.%Y') }}</b></div>{% endif %}
     </div>
     {% endif %}
+
+    <p style="font-size:.88rem;color:#374151;margin-bottom:16px">Подтвердите статус выполнения:</p>
+
+    <form method="post" action="/smr/confirm/{{ token }}" id="confirmForm">
+      <input type="hidden" name="action"  id="hiddenAction"  value="confirm">
+      <input type="hidden" name="comment" id="hiddenComment" value="">
+
+      <div class="choice-wrap">
+        <button type="button" class="btn-yes" onclick="submitConfirm()">
+          ✅ &nbsp;Подтверждаю
+        </button>
+        <button type="button" class="btn-no" id="btnNo" onclick="toggleReject()">
+          ❌ &nbsp;Не подтверждаю
+        </button>
+      </div>
+
+      <div class="comment-section" id="commentSection">
+        <label class="comment-label" for="commentText">
+          Укажите причину или комментарий:
+        </label>
+        <textarea id="commentText"
+                  placeholder="Например: задержка поставки оборудования, перенос на 5 дней..."
+                  oninput="document.getElementById('hiddenComment').value=this.value"></textarea>
+        <button type="button" class="btn-submit" onclick="submitReject()">
+          <i class="bi bi-send me-2"></i>Отправить отчёт
+        </button>
+      </div>
+    </form>
+
     {% endif %}
 
-  </div>{# /confirm-body #}
+  </div>
 
-  <div class="footer-note pb-3">Лента.PM · Управление строительными проектами</div>
+  <div class="footer-note">Лента.PM · Управление строительными проектами</div>
 </div>
 </div>
+
+<script>
+function submitConfirm() {
+    document.getElementById('hiddenAction').value = 'confirm';
+    document.getElementById('confirmForm').submit();
+}
+
+function submitReject() {
+    document.getElementById('hiddenAction').value  = 'reject';
+    document.getElementById('hiddenComment').value = document.getElementById('commentText').value;
+    document.getElementById('confirmForm').submit();
+}
+
+function toggleReject() {
+    const section = document.getElementById('commentSection');
+    const btn     = document.getElementById('btnNo');
+    const isOpen  = section.classList.contains('open');
+    if (isOpen) {
+        section.classList.remove('open');
+        btn.classList.remove('active');
+    } else {
+        section.classList.add('open');
+        btn.classList.add('active');
+        setTimeout(() => document.getElementById('commentText').focus(), 350);
+    }
+}
+
+{% if auto_reject %}
+document.addEventListener('DOMContentLoaded', function () {
+    const section = document.getElementById('commentSection');
+    const btn     = document.getElementById('btnNo');
+    if (section) {
+        section.classList.add('open');
+        btn && btn.classList.add('active');
+        setTimeout(() => document.getElementById('commentText').focus(), 400);
+    }
+});
+{% endif %}
+</script>
 </body>
 </html>

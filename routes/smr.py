@@ -403,6 +403,7 @@ async def smr_send_confirm(task_id: int, request: Request,
 async def smr_confirm_page(token: str, request: Request,
                            action: str = "confirm",
                            db: Session = Depends(get_db)):
+    """GET — всегда показывает интерактивную страницу. Никаких сайд-эффектов."""
     conf = db.query(models.SmrConfirmation).filter(
         models.SmrConfirmation.token == token).first()
 
@@ -411,35 +412,14 @@ async def smr_confirm_page(token: str, request: Request,
             "request": request, "error": "Ссылка недействительна или устарела."
         })
 
-    already_done = bool(conf.action)
     task = conf.task
     proj = task.schedule.project if task and task.schedule else None
 
-    # Если уже ответил — показываем результат
-    if already_done:
-        return templates.TemplateResponse("smr_confirm.html", {
-            "request": request, "conf": conf,
-            "task": task, "proj": proj, "already_done": True,
-        })
-
-    # Нажал "Выполнено" — сразу фиксируем
-    if action != "reject":
-        conf.action       = "confirmed"
-        conf.responded_at = datetime.utcnow()
-        if task:
-            task.status = "Выполнено"
-        db.commit()
-        return templates.TemplateResponse("smr_confirm.html", {
-            "request": request, "conf": conf,
-            "task": task, "proj": proj, "already_done": False,
-        })
-
-    # Нажал "Не выполнено" — показываем форму комментария
     return templates.TemplateResponse("smr_confirm.html", {
         "request": request, "conf": conf,
         "task": task, "proj": proj,
-        "already_done": False,
-        "show_comment_form": True,   # ← ключевой флаг
+        "already_done": bool(conf.action),
+        "auto_reject": (action == "reject"),  # JS сразу раскрывает форму
         "token": token,
     })
 
@@ -447,8 +427,9 @@ async def smr_confirm_page(token: str, request: Request,
 @router.post("/smr/confirm/{token}", response_class=HTMLResponse)
 async def smr_confirm_submit(token: str, request: Request,
                               db: Session = Depends(get_db),
+                              action: str = Form("confirm"),
                               comment: str = Form("")):
-    """POST — сохраняет комментарий при отклонении."""
+    """POST — фиксирует ответ (confirm или reject + комментарий)."""
     conf = db.query(models.SmrConfirmation).filter(
         models.SmrConfirmation.token == token).first()
 
@@ -461,18 +442,23 @@ async def smr_confirm_submit(token: str, request: Request,
     proj = task.schedule.project if task and task.schedule else None
 
     if not conf.action:
-        conf.action       = "rejected"
         conf.responded_at = datetime.utcnow()
-        if task:
-            task.status         = "Просрочено"
-            task.reject_comment = comment.strip()
+        if action == "reject":
+            conf.action = "rejected"
+            if task:
+                task.status         = "Просрочено"
+                task.reject_comment = comment.strip()
+        else:
+            conf.action = "confirmed"
+            if task:
+                task.status = "Выполнено"
         db.commit()
 
     return templates.TemplateResponse("smr_confirm.html", {
         "request": request, "conf": conf,
         "task": task, "proj": proj,
-        "already_done": False,
-        "comment_saved": True,
+        "already_done": True,
+        "just_submitted": True,
     })
 
 
