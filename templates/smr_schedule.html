@@ -252,6 +252,14 @@
         </button>
       </td>
     </tr>
+    {% if not task.is_milestone and task.reject_comment %}
+    <tr class="smr-tr-reject-comment">
+      <td></td>
+      <td colspan="5" class="smr-reject-comment-cell">
+        <i class="bi bi-chat-left-text me-1"></i>{{ task.reject_comment }}
+      </td>
+    </tr>
+    {% endif %}
     {% endif %}
 
     {% endfor %}
@@ -460,6 +468,10 @@
 .smr-ms-diamond      { color:#FFD200; font-size:.75rem; }
 .smr-ms-name-inline  { font-size:.88rem; font-weight:800; color:#FFD200; text-transform:uppercase; letter-spacing:.5px; }
 .smr-ms-date-inline  { font-size:.78rem; color:#94a3b8; }
+
+/* Комментарий отклонения */
+.smr-tr-reject-comment td { padding:0 12px 8px !important; border-top:none !important; }
+.smr-reject-comment-cell  { font-size:.75rem; color:#f87171; font-style:italic; }
 
 /* Email кнопка */
 .smr-email-btn {

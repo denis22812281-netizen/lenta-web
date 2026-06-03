@@ -415,28 +415,64 @@ async def smr_confirm_page(token: str, request: Request,
     task = conf.task
     proj = task.schedule.project if task and task.schedule else None
 
-    if not already_done:
-        is_confirm = (action != "reject")
-        conf.action       = "confirmed" if is_confirm else "rejected"
+    # Если уже ответил — показываем результат
+    if already_done:
+        return templates.TemplateResponse("smr_confirm.html", {
+            "request": request, "conf": conf,
+            "task": task, "proj": proj, "already_done": True,
+        })
+
+    # Нажал "Выполнено" — сразу фиксируем
+    if action != "reject":
+        conf.action       = "confirmed"
         conf.responded_at = datetime.utcnow()
-
-        # ── Меняем статус задачи ──────────────────────────────────────────────
         if task:
-            if is_confirm:
-                task.status = "Выполнено"
-            else:
-                # Не выполнено — если ещё не просрочено, ставим Просрочено
-                if task.status not in ("Выполнено",):
-                    task.status = "Просрочено"
+            task.status = "Выполнено"
+        db.commit()
+        return templates.TemplateResponse("smr_confirm.html", {
+            "request": request, "conf": conf,
+            "task": task, "proj": proj, "already_done": False,
+        })
 
+    # Нажал "Не выполнено" — показываем форму комментария
+    return templates.TemplateResponse("smr_confirm.html", {
+        "request": request, "conf": conf,
+        "task": task, "proj": proj,
+        "already_done": False,
+        "show_comment_form": True,   # ← ключевой флаг
+        "token": token,
+    })
+
+
+@router.post("/smr/confirm/{token}", response_class=HTMLResponse)
+async def smr_confirm_submit(token: str, request: Request,
+                              db: Session = Depends(get_db),
+                              comment: str = Form("")):
+    """POST — сохраняет комментарий при отклонении."""
+    conf = db.query(models.SmrConfirmation).filter(
+        models.SmrConfirmation.token == token).first()
+
+    if not conf:
+        return templates.TemplateResponse("smr_confirm.html", {
+            "request": request, "error": "Ссылка недействительна."
+        })
+
+    task = conf.task
+    proj = task.schedule.project if task and task.schedule else None
+
+    if not conf.action:
+        conf.action       = "rejected"
+        conf.responded_at = datetime.utcnow()
+        if task:
+            task.status         = "Просрочено"
+            task.reject_comment = comment.strip()
         db.commit()
 
     return templates.TemplateResponse("smr_confirm.html", {
-        "request": request,
-        "conf": conf,
-        "task": task,
-        "proj": proj,
-        "already_done": already_done,
+        "request": request, "conf": conf,
+        "task": task, "proj": proj,
+        "already_done": False,
+        "comment_saved": True,
     })
 
 

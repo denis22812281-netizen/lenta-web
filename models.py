@@ -298,6 +298,7 @@ class SmrTask(Base):
     notify_email1 = Column(String(200), default="")  # email ответственного 1
     notify_email2 = Column(String(200), default="")  # email ответственного 2
     notified_date = Column(Date, nullable=True)       # дата последней автоотправки
+    reject_comment = Column(Text, default="")         # комментарий при отклонении
     schedule     = relationship("SmrSchedule", back_populates="tasks")
     confirmations = relationship("SmrConfirmation", back_populates="task",
                                  cascade="all, delete-orphan")

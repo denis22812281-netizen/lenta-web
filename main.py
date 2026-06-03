@@ -329,6 +329,7 @@ async def startup():
                         uploaded_at TIMESTAMP DEFAULT NOW()
                     )""",
                     "ALTER TABLE smr_tasks ADD COLUMN IF NOT EXISTS notified_date DATE",
+                    "ALTER TABLE smr_tasks ADD COLUMN IF NOT EXISTS reject_comment TEXT DEFAULT ''",
                     """CREATE TABLE IF NOT EXISTS smr_contacts (
                         id SERIAL PRIMARY KEY,
                         name VARCHAR(100) NOT NULL,

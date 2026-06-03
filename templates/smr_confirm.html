@@ -1,85 +1,157 @@
 <!DOCTYPE html>
-<html lang="ru" data-bs-theme="dark">
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Подтверждение вехи — Лента.PM</title>
+<title>Подтверждение — Лента.PM</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
-  body { background:#0d1117; min-height:100vh; display:flex; align-items:center; justify-content:center; }
-  .confirm-card {
-    background:#161b22; border:1px solid #30363d; border-radius:16px;
-    padding:40px 36px; max-width:480px; width:100%; text-align:center;
+  body {
+    background:#f0f4f8; min-height:100vh;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Segoe UI', Arial, sans-serif;
   }
-  .lenta-logo { color:#FFD200; font-size:2rem; font-weight:900; letter-spacing:6px; }
-  .lenta-sub  { color:#3CB34A; font-size:.75rem; letter-spacing:2px; text-transform:uppercase; }
+  .confirm-wrap { max-width:520px; width:100%; padding:16px; }
+  .confirm-card {
+    background:#fff; border-radius:16px;
+    box-shadow:0 4px 24px rgba(0,0,0,.10);
+    overflow:hidden;
+  }
+  .confirm-header {
+    background:#1A5C22; padding:20px 28px 16px;
+  }
+  .lenta-logo  { color:#FFD200; font-size:1.6rem; font-weight:900; letter-spacing:6px; }
+  .lenta-sub   { color:#a3d9a5; font-size:.7rem; letter-spacing:2px; text-transform:uppercase; margin-top:2px; }
+  .confirm-body { padding:28px; }
+
+  .task-card {
+    background:#f4faf5; border-left:4px solid #3CB34A;
+    border-radius:0 10px 10px 0; padding:14px 18px; margin-bottom:20px;
+  }
+  .task-tk   { font-size:1.1rem; font-weight:800; color:#1A5C22; }
+  .task-name { font-size:.95rem; font-weight:600; color:#1f2937; margin:4px 0; }
+  .task-meta { font-size:.78rem; color:#6b7280; }
+
+  .btn-confirm {
+    background:#1A5C22; color:#fff; border:none;
+    font-weight:800; font-size:1rem; padding:14px 32px;
+    border-radius:50px; width:100%; cursor:pointer;
+    box-shadow:0 2px 12px rgba(26,92,34,.3); transition:.2s;
+  }
+  .btn-confirm:hover { background:#145020; }
+
+  .result-icon { font-size:3.5rem; display:block; text-align:center; margin-bottom:12px; }
+  .result-title { font-size:1.4rem; font-weight:800; text-align:center; margin-bottom:8px; }
+  .result-sub   { font-size:.88rem; color:#6b7280; text-align:center; margin-bottom:20px; }
+
+  /* Форма комментария */
+  .comment-form textarea {
+    border:2px solid #e5e7eb; border-radius:10px;
+    font-size:.9rem; padding:12px; resize:vertical;
+    min-height:120px; width:100%;
+    transition:border-color .15s;
+  }
+  .comment-form textarea:focus {
+    outline:none; border-color:#3CB34A;
+    box-shadow:0 0 0 3px rgba(60,179,74,.15);
+  }
+  .footer-note { font-size:.72rem; color:#9ca3af; text-align:center; margin-top:16px; }
 </style>
 </head>
 <body>
+<div class="confirm-wrap">
 <div class="confirm-card">
 
-  <div class="lenta-logo mb-1">ЛЕНТА</div>
-  <div class="lenta-sub mb-4">Система управления проектами</div>
-
-  {% if error %}
-  <div class="mb-3">
-    <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size:3rem"></i>
+  {# ── Шапка ── #}
+  <div class="confirm-header">
+    <div class="lenta-logo">ЛЕНТА</div>
+    <div class="lenta-sub">Система управления проектами · График СМР</div>
   </div>
-  <h5 class="text-danger mb-2">Ошибка</h5>
-  <p class="text-muted">{{ error }}</p>
 
-  {% elif already_done %}
-  <div class="mb-3">
-    <i class="bi bi-check-circle-fill text-success" style="font-size:3rem"></i>
-  </div>
-  <h5 class="mb-2">Уже получен ответ</h5>
-  <p class="text-muted mb-3">Вы уже ответили на этот запрос ранее.</p>
-  {% if task %}
-  <div class="bg-dark border border-secondary rounded p-3 text-start mb-3" style="font-size:.9rem">
-    <div class="fw-bold mb-1">{{ task.name }}</div>
-    {% if proj %}<div class="text-muted small">ТК {{ proj.tk_number }} · {{ proj.city or '' }}</div>{% endif %}
-    <div class="mt-2">
-      Ответ:
-      {% if conf.action == 'confirmed' %}
-      <span class="badge bg-success ms-1">Подтверждено</span>
-      {% else %}
-      <span class="badge bg-danger ms-1">Отклонено</span>
+  <div class="confirm-body">
+
+    {# ── Ошибка ── #}
+    {% if error %}
+    <span class="result-icon">⚠️</span>
+    <div class="result-title" style="color:#dc2626">Ошибка</div>
+    <div class="result-sub">{{ error }}</div>
+
+    {# ── Уже ответил ── #}
+    {% elif already_done %}
+    <span class="result-icon">{% if conf.action == 'confirmed' %}✅{% else %}🔄{% endif %}</span>
+    <div class="result-title">Ответ уже зафиксирован</div>
+    <div class="result-sub">Вы ранее ответили на этот запрос.</div>
+    {% if task %}
+    <div class="task-card">
+      <div class="task-name">{{ task.name }}</div>
+      {% if proj %}<div class="task-meta">ТК {{ proj.tk_number }}{% if proj.city %} · {{ proj.city }}{% endif %}</div>{% endif %}
+      <div class="task-meta mt-1">
+        {% if conf.action == 'confirmed' %}<span style="color:#16a34a;font-weight:600">✅ Выполнено</span>
+        {% else %}<span style="color:#dc2626;font-weight:600">❌ Не выполнено</span>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── Форма комментария (Не выполнено) ── #}
+    {% elif show_comment_form %}
+    <span class="result-icon">📝</span>
+    <div class="result-title" style="color:#dc2626">Не выполнено</div>
+    <div class="result-sub">Укажите причину или комментарий — он будет виден в графике СМР.</div>
+
+    {% if task %}
+    <div class="task-card">
+      <div class="task-name">{% if task.is_milestone %}◆ {% endif %}{{ task.name }}</div>
+      {% if proj %}<div class="task-meta">ТК {{ proj.tk_number }}{% if proj.city %} · {{ proj.city }}{% endif %}</div>{% endif %}
+      {% if task.end_plan %}<div class="task-meta">Дата: {{ task.end_plan.strftime('%d.%m.%Y') }}</div>{% endif %}
+    </div>
+    {% endif %}
+
+    <form method="post" action="/smr/confirm/{{ token }}" class="comment-form">
+      <label class="form-label fw-semibold mb-2" style="font-size:.9rem">
+        Причина / комментарий:
+      </label>
+      <textarea name="comment" placeholder="Например: задержка поставки оборудования, перенос на 5 дней..."
+                autofocus></textarea>
+      <button type="submit" class="btn-confirm mt-3">
+        <i class="bi bi-send me-2"></i>Отправить отчёт
+      </button>
+    </form>
+
+    {# ── Комментарий сохранён ── #}
+    {% elif comment_saved %}
+    <span class="result-icon">📋</span>
+    <div class="result-title" style="color:#dc2626">Отчёт отправлен</div>
+    <div class="result-sub">Комментарий сохранён и виден в графике СМР.</div>
+    {% if task %}
+    <div class="task-card">
+      <div class="task-name">{{ task.name }}</div>
+      {% if task.reject_comment %}
+      <div class="task-meta mt-2" style="color:#374151">
+        <i class="bi bi-chat-left-text me-1"></i>{{ task.reject_comment }}
+      </div>
       {% endif %}
     </div>
-  </div>
-  {% endif %}
-
-  {% elif conf %}
-  {% if conf.action == 'confirmed' %}
-  <div class="mb-3">
-    <i class="bi bi-check-circle-fill text-success" style="font-size:3.5rem"></i>
-  </div>
-  <h4 class="text-success mb-2">Подтверждено!</h4>
-  <p class="text-muted mb-3">Ваш ответ зафиксирован в системе.</p>
-  {% else %}
-  <div class="mb-3">
-    <i class="bi bi-x-circle-fill text-danger" style="font-size:3.5rem"></i>
-  </div>
-  <h4 class="text-danger mb-2">Отклонено</h4>
-  <p class="text-muted mb-3">Ваш ответ зафиксирован в системе.</p>
-  {% endif %}
-
-  {% if task %}
-  <div class="bg-dark border border-secondary rounded p-3 text-start" style="font-size:.9rem">
-    <div class="fw-bold mb-1">{{ task.name }}</div>
-    {% if proj %}
-    <div class="text-muted small">ТК {{ proj.tk_number }}{% if proj.city %} · {{ proj.city }}{% endif %}</div>
     {% endif %}
-    {% if task.end_plan %}
-    <div class="text-muted small mt-1">Плановая дата: {{ task.end_plan.strftime('%d.%m.%Y') }}</div>
+
+    {# ── Успешно Выполнено ── #}
+    {% else %}
+    <span class="result-icon">✅</span>
+    <div class="result-title" style="color:#15803d">Выполнено!</div>
+    <div class="result-sub">Статус зафиксирован в системе. Спасибо.</div>
+    {% if task %}
+    <div class="task-card">
+      <div class="task-name">{{ task.name }}</div>
+      {% if proj %}<div class="task-meta">ТК {{ proj.tk_number }}{% if proj.city %} · {{ proj.city }}{% endif %}</div>{% endif %}
+      {% if task.end_plan %}<div class="task-meta">Плановая дата: {{ task.end_plan.strftime('%d.%m.%Y') }}</div>{% endif %}
+    </div>
     {% endif %}
-  </div>
-  {% endif %}
+    {% endif %}
 
-  {% endif %}
+  </div>{# /confirm-body #}
 
-  <div class="mt-4" style="font-size:.75rem;color:#484f58">Лента.PM · Управление строительными проектами</div>
+  <div class="footer-note pb-3">Лента.PM · Управление строительными проектами</div>
+</div>
 </div>
 </body>
 </html>
