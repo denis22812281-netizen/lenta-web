@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+{% block page_title %}График СМР — ТК {{ proj.tk_number }}{% endblock %}
+{% block title %}<i class="bi bi-bar-chart-steps me-2"></i>График СМР · ТК {{ proj.tk_number }} {{ proj.city }}{% endblock %}
+
+{% block content %}
+
+{# ── Шапка ── #}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+  <a href="/projects/{{ proj.id }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>К проекту
+  </a>
+  <span class="text-muted small">ТК {{ proj.tk_number }}{% if proj.city %} · {{ proj.city }}{% endif %}</span>
+  {% if schedule %}
+  <form method="post" action="/smr/delete/{{ proj.id }}"
+        onsubmit="return confirm('Удалить весь график?')" class="ms-auto">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i>Удалить график</button>
+  </form>
+  {% endif %}
+</div>
+
+{# ── Нет графика → форма создания ── #}
+{% if not schedule %}
+<div class="data-card text-center py-5">
+  <i class="bi bi-bar-chart-steps" style="font-size:3rem;color:#3CB34A;opacity:.5"></i>
+  <h5 class="mt-3 mb-1">График СМР не создан</h5>
+  <p class="text-muted small mb-4">Укажите дату старта — система создаст все 44 этапа по типовому шаблону</p>
+  <form method="post" action="/smr/create/{{ proj.id }}" class="d-inline-flex gap-2 align-items-center">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+    <input type="date" name="start_date" class="form-control form-control-sm" style="width:160px"
+           value="{{ proj.start_date.isoformat() if proj.start_date else today.isoformat() }}" required>
+    <button class="btn btn-success btn-sm fw-bold">
+      <i class="bi bi-plus-circle me-1"></i>Создать по шаблону
+    </button>
+  </form>
+</div>
+
+{% else %}
+
+{# ── Статистика вверху ── #}
+{% set done_cnt  = schedule.tasks | selectattr('status','eq','Выполнено')    | list | length %}
+{% set work_cnt  = schedule.tasks | selectattr('status','eq','В работе')     | list | length %}
+{% set over_cnt  = schedule.tasks | selectattr('status','eq','Просрочено')   | list | length %}
+{% set total_cnt = schedule.tasks | list | length %}
+<div class="row g-2 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="data-card text-center py-2">
+      <div style="font-size:1.6rem;font-weight:800;color:#3CB34A">{{ done_cnt }}</div>
+      <div class="text-muted" style="font-size:.75rem">Выполнено</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="data-card text-center py-2">
+      <div style="font-size:1.6rem;font-weight:800;color:#2563eb">{{ work_cnt }}</div>
+      <div class="text-muted" style="font-size:.75rem">В работе</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="data-card text-center py-2">
+      <div style="font-size:1.6rem;font-weight:800;color:#dc2626">{{ over_cnt }}</div>
+      <div class="text-muted" style="font-size:.75rem">Просрочено</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="data-card text-center py-2">
+      <div style="font-size:1.6rem;font-weight:800">{{ total_cnt }}</div>
+      <div class="text-muted" style="font-size:.75rem">Всего этапов</div>
+    </div>
+  </div>
+</div>
+
+{# Прогресс-бар #}
+{% if total_cnt %}
+<div class="data-card p-2 mb-3">
+  <div class="d-flex justify-content-between mb-1" style="font-size:.78rem">
+    <span class="text-muted">Выполнение графика</span>
+    <span class="fw-bold">{{ ((done_cnt / total_cnt) * 100) | int }}%</span>
+  </div>
+  <div class="progress" style="height:8px;border-radius:4px">
+    <div class="progress-bar bg-success" style="width:{{ ((done_cnt / total_cnt) * 100) | int }}%"></div>
+  </div>
+</div>
+{% endif %}
+
+{# ── Мини-Gantt ── #}
+{% if gantt_start and gantt_end %}
+{% set total_days = (gantt_end - gantt_start).days + 1 %}
+<div class="data-card mb-3" style="overflow-x:auto">
+  <div style="font-size:.78rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:1px;padding:10px 14px 6px">
+    Диаграмма Ганта
+  </div>
+  <div style="min-width:700px;padding:0 14px 14px">
+    {# Шкала месяцев #}
+    <div style="display:flex;height:20px;margin-bottom:4px;margin-left:220px">
+      {% set cur = gantt_start %}
+      {% set px_per_day = 600 / total_days %}
+      {% for t in schedule.tasks if t.start_plan %}
+        {% break %}
+      {% endfor %}
+      {# Месяцы #}
+      {% set ns = namespace(d=gantt_start, x=0) %}
+      {% for _ in range(total_days) %}
+        {% if ns.d.day == 1 or loop.first %}
+        <div style="position:absolute;left:{{ (220 + ns.x * px_per_day) | int }}px;
+                    font-size:.65rem;color:#666;white-space:nowrap">
+          {{ ns.d.strftime('%b %Y') }}
+        </div>
+        {% endif %}
+        {% set ns.d = ns.d + timedelta(1) %}
+        {% set ns.x = ns.x + 1 %}
+      {% endfor %}
+    </div>
+
+    {# Строки задач #}
+    {% for task in schedule.tasks %}
+    {% if task.start_plan and task.end_plan %}
+    {% set s_off = (task.start_plan - gantt_start).days %}
+    {% set e_off = (task.end_plan   - gantt_start).days %}
+    {% set bar_w = [((e_off - s_off + 1) / total_days * 600) | int, 4] | max %}
+    {% set bar_l = (s_off / total_days * 600) | int %}
+    {% set is_today_in = task.start_plan <= today <= task.end_plan %}
+
+    {% if task.status == 'Выполнено' %}{% set bar_color = '#16a34a' %}
+    {% elif task.status == 'Просрочено' %}{% set bar_color = '#dc2626' %}
+    {% elif task.status == 'В работе' %}{% set bar_color = '#2563eb' %}
+    {% else %}{% set bar_color = '#374151' %}{% endif %}
+
+    <div style="display:flex;align-items:center;height:22px;margin-bottom:2px">
+      <div style="width:220px;flex-shrink:0;font-size:.72rem;
+                  color:{% if task.is_milestone %}#FFD200{% else %}#ccc{% endif %};
+                  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+                  padding-right:8px;font-weight:{% if task.is_milestone %}700{% else %}400{% endif %}">
+        {% if task.is_milestone %}<i class="bi bi-diamond-fill me-1" style="font-size:.6rem"></i>{% endif %}
+        {{ task.name }}
+      </div>
+      <div style="position:relative;flex:1;height:14px">
+        <div style="position:absolute;left:{{ bar_l }}px;width:{{ bar_w }}px;height:14px;
+                    background:{{ bar_color }};border-radius:3px;
+                    {% if task.is_milestone %}box-shadow:0 0 6px {{ bar_color }}60{% endif %}">
+        </div>
+        {# Сегодня #}
+        {% set today_x = ((today - gantt_start).days / total_days * 600) | int %}
+        <div style="position:absolute;left:{{ today_x }}px;top:0;width:1px;height:14px;
+                    background:#e74c3c;opacity:.6"></div>
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ── Таблица задач ── #}
+<div class="data-card">
+  <div class="table-responsive">
+  <table class="table table-hover table-sm mb-0 align-middle" style="font-size:.83rem">
+    <thead class="table-head">
+      <tr>
+        <th style="width:32px">#</th>
+        <th>Этап работ</th>
+        <th style="width:100px">Начало</th>
+        <th style="width:100px">Окончание</th>
+        <th style="width:120px">Статус</th>
+        <th style="width:70px" class="text-center">Уведомл.</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for task in schedule.tasks %}
+    {% set is_overdue = task.end_plan and task.end_plan < today and task.status not in ('Выполнено',) %}
+    <tr class="{% if task.is_milestone %}smr-milestone-row{% endif %}"
+        id="task-row-{{ task.id }}">
+      <td class="text-muted">{{ loop.index }}</td>
+      <td>
+        {% if task.is_milestone %}
+        <i class="bi bi-diamond-fill me-1" style="color:#FFD200;font-size:.7rem"></i>
+        <strong>{{ task.name }}</strong>
+        {% else %}
+        {{ task.name }}
+        {% endif %}
+      </td>
+      <td class="text-muted">{{ task.start_plan.strftime('%d.%m.%Y') if task.start_plan else '—' }}</td>
+      <td class="{% if is_overdue %}text-danger fw-bold{% else %}text-muted{% endif %}">
+        {{ task.end_plan.strftime('%d.%m.%Y') if task.end_plan else '—' }}
+        {% if is_overdue %}<i class="bi bi-exclamation-triangle-fill ms-1" style="font-size:.7rem"></i>{% endif %}
+      </td>
+      <td>
+        <select class="form-select form-select-sm smr-status-select"
+                data-task-id="{{ task.id }}"
+                style="font-size:.75rem;padding:2px 6px;
+                       border-color:{% if task.status=='Выполнено' %}#16a34a{% elif task.status=='В работе' %}#2563eb{% elif task.status=='Просрочено' %}#dc2626{% else %}#374151{% endif %}">
+          {% for s in ['Запланировано','В работе','Выполнено','Просрочено'] %}
+          <option value="{{ s }}" {% if task.status == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </td>
+      <td class="text-center">
+        {% if task.is_milestone %}
+        <button class="btn btn-sm btn-outline-warning py-0 px-2"
+                style="font-size:.7rem"
+                onclick="openConfirmModal({{ task.id }}, '{{ task.name | replace("'","\\'")|replace('"','\\"') }}',
+                         '{{ task.notify_email1 }}', '{{ task.notify_email2 }}')">
+          <i class="bi bi-envelope"></i>
+        </button>
+        {% else %}
+        <span class="text-muted">—</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+{% endif %}{# end if schedule #}
+
+
+{# ── Модал отправки подтверждения ── #}
+<div class="modal fade" id="modalConfirm" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title"><i class="bi bi-envelope-fill me-2 text-warning"></i>Запрос подтверждения</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="confirmTaskName" class="fw-bold mb-3"></div>
+        <div class="mb-2">
+          <label class="form-label small">Email ответственного 1</label>
+          <input type="email" id="confirmEmail1" class="form-control form-control-sm" placeholder="email@lenta.com">
+        </div>
+        <div class="mb-3">
+          <label class="form-label small">Email ответственного 2 (опционально)</label>
+          <input type="email" id="confirmEmail2" class="form-control form-control-sm" placeholder="email@lenta.com">
+        </div>
+        <div id="confirmResult" class="small"></div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Отмена</button>
+        <button class="btn btn-warning btn-sm fw-bold" onclick="sendConfirm()">
+          <i class="bi bi-send me-1"></i>Отправить
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<style>
+.smr-milestone-row td { background: rgba(255,210,0,.04) !important; }
+.smr-milestone-row td:first-child { border-left: 3px solid #FFD200; }
+</style>
+
+<script>
+let _confirmTaskId = null;
+
+function openConfirmModal(taskId, taskName, email1, email2) {
+    _confirmTaskId = taskId;
+    document.getElementById('confirmTaskName').textContent = taskName;
+    document.getElementById('confirmEmail1').value = email1 || '';
+    document.getElementById('confirmEmail2').value = email2 || '';
+    document.getElementById('confirmResult').innerHTML = '';
+    new bootstrap.Modal(document.getElementById('modalConfirm')).show();
+}
+
+async function sendConfirm() {
+    const e1 = document.getElementById('confirmEmail1').value.trim();
+    const e2 = document.getElementById('confirmEmail2').value.trim();
+    const res = document.getElementById('confirmResult');
+    if (!e1) { res.innerHTML = '<span class="text-danger">Введите хотя бы один email</span>'; return; }
+
+    // Сохраняем emails
+    await fetch(`/api/smr/task/${_confirmTaskId}/emails`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({email1: e1, email2: e2})
+    });
+
+    // Отправляем письма
+    const r = await fetch(`/api/smr/task/${_confirmTaskId}/send-confirm`, {
+        method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}'
+    });
+    const data = await r.json();
+    if (data.ok) {
+        res.innerHTML = `<span class="text-success"><i class="bi bi-check-circle me-1"></i>Отправлено на: ${data.sent.join(', ')}</span>`;
+    } else {
+        res.innerHTML = '<span class="text-danger">Ошибка отправки</span>';
+    }
+}
+
+// Смена статуса задачи
+document.querySelectorAll('.smr-status-select').forEach(sel => {
+    sel.addEventListener('change', async function() {
+        const taskId = this.dataset.taskId;
+        const status = this.value;
+        await fetch(`/api/smr/task/${taskId}/status`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({status})
+        });
+        // Обновляем цвет рамки
+        const colors = {
+            'Выполнено':  '#16a34a',
+            'В работе':   '#2563eb',
+            'Просрочено': '#dc2626',
+            'Запланировано': '#374151'
+        };
+        this.style.borderColor = colors[status] || '#374151';
+    });
+});
+</script>
+{% endblock %}

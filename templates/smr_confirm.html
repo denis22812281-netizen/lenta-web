@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Подтверждение вехи — Лента.PM</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+  body { background:#0d1117; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .confirm-card {
+    background:#161b22; border:1px solid #30363d; border-radius:16px;
+    padding:40px 36px; max-width:480px; width:100%; text-align:center;
+  }
+  .lenta-logo { color:#FFD200; font-size:2rem; font-weight:900; letter-spacing:6px; }
+  .lenta-sub  { color:#3CB34A; font-size:.75rem; letter-spacing:2px; text-transform:uppercase; }
+</style>
+</head>
+<body>
+<div class="confirm-card">
+
+  <div class="lenta-logo mb-1">ЛЕНТА</div>
+  <div class="lenta-sub mb-4">Система управления проектами</div>
+
+  {% if error %}
+  <div class="mb-3">
+    <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size:3rem"></i>
+  </div>
+  <h5 class="text-danger mb-2">Ошибка</h5>
+  <p class="text-muted">{{ error }}</p>
+
+  {% elif already_done %}
+  <div class="mb-3">
+    <i class="bi bi-check-circle-fill text-success" style="font-size:3rem"></i>
+  </div>
+  <h5 class="mb-2">Уже получен ответ</h5>
+  <p class="text-muted mb-3">Вы уже ответили на этот запрос ранее.</p>
+  {% if task %}
+  <div class="bg-dark border border-secondary rounded p-3 text-start mb-3" style="font-size:.9rem">
+    <div class="fw-bold mb-1">{{ task.name }}</div>
+    {% if proj %}<div class="text-muted small">ТК {{ proj.tk_number }} · {{ proj.city or '' }}</div>{% endif %}
+    <div class="mt-2">
+      Ответ:
+      {% if conf.action == 'confirmed' %}
+      <span class="badge bg-success ms-1">Подтверждено</span>
+      {% else %}
+      <span class="badge bg-danger ms-1">Отклонено</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% elif conf %}
+  {% if conf.action == 'confirmed' %}
+  <div class="mb-3">
+    <i class="bi bi-check-circle-fill text-success" style="font-size:3.5rem"></i>
+  </div>
+  <h4 class="text-success mb-2">Подтверждено!</h4>
+  <p class="text-muted mb-3">Ваш ответ зафиксирован в системе.</p>
+  {% else %}
+  <div class="mb-3">
+    <i class="bi bi-x-circle-fill text-danger" style="font-size:3.5rem"></i>
+  </div>
+  <h4 class="text-danger mb-2">Отклонено</h4>
+  <p class="text-muted mb-3">Ваш ответ зафиксирован в системе.</p>
+  {% endif %}
+
+  {% if task %}
+  <div class="bg-dark border border-secondary rounded p-3 text-start" style="font-size:.9rem">
+    <div class="fw-bold mb-1">{{ task.name }}</div>
+    {% if proj %}
+    <div class="text-muted small">ТК {{ proj.tk_number }}{% if proj.city %} · {{ proj.city }}{% endif %}</div>
+    {% endif %}
+    {% if task.end_plan %}
+    <div class="text-muted small mt-1">Плановая дата: {{ task.end_plan.strftime('%d.%m.%Y') }}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% endif %}
+
+  <div class="mt-4" style="font-size:.75rem;color:#484f58">Лента.PM · Управление строительными проектами</div>
+</div>
+</body>
+</html>

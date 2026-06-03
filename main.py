@@ -160,11 +160,12 @@ from routes.chat      import router as chat_router
 from routes.ai        import router as ai_router
 from routes.api       import router as api_router
 from routes.sync      import router as sync_router
+from routes.smr       import router as smr_router
 
 for r in [auth_router, webauthn_router, dashboard_router, projects_router, sections_router,
           kso_router, tasks_router, managers_router, deadlines_router,
           vpk_router, stats_router, admin_router, chat_router,
-          ai_router, api_router, sync_router]:
+          ai_router, api_router, sync_router, smr_router]:
     app.include_router(r)
 
 
@@ -262,6 +263,33 @@ async def startup():
                         photo_path VARCHAR(300) NOT NULL,
                         uploaded_by VARCHAR(100) DEFAULT '',
                         uploaded_at TIMESTAMP DEFAULT NOW()
+                    )""",
+                    """CREATE TABLE IF NOT EXISTS smr_schedules (
+                        id SERIAL PRIMARY KEY,
+                        project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE NOT NULL UNIQUE,
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        updated_at TIMESTAMP DEFAULT NOW()
+                    )""",
+                    """CREATE TABLE IF NOT EXISTS smr_tasks (
+                        id SERIAL PRIMARY KEY,
+                        schedule_id INTEGER REFERENCES smr_schedules(id) ON DELETE CASCADE NOT NULL,
+                        name TEXT NOT NULL,
+                        "order" INTEGER DEFAULT 0,
+                        start_plan DATE,
+                        end_plan DATE,
+                        is_milestone BOOLEAN DEFAULT FALSE,
+                        status VARCHAR(30) DEFAULT 'Запланировано',
+                        notify_email1 VARCHAR(200) DEFAULT '',
+                        notify_email2 VARCHAR(200) DEFAULT ''
+                    )""",
+                    """CREATE TABLE IF NOT EXISTS smr_confirmations (
+                        id SERIAL PRIMARY KEY,
+                        task_id INTEGER REFERENCES smr_tasks(id) ON DELETE CASCADE NOT NULL,
+                        token VARCHAR(64) UNIQUE NOT NULL,
+                        email VARCHAR(200) DEFAULT '',
+                        action VARCHAR(20) DEFAULT '',
+                        responded_at TIMESTAMP,
+                        created_at TIMESTAMP DEFAULT NOW()
                     )""",
                     """CREATE TABLE IF NOT EXISTS audit_logs (
                         id SERIAL PRIMARY KEY,

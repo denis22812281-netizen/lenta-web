@@ -362,6 +362,51 @@ def notify_task_completed(to_email: str, creator_name: str,
     )
 
 
+def send_smr_confirmation(to_email: str, task_name: str, project_name: str,
+                          tk_number: str, plan_date: str,
+                          confirm_url: str, reject_url: str) -> bool:
+    """Письмо с кнопками Подтвердить / Отклонить для вехи графика СМР."""
+    content = f"""
+        <h2 style="color:#1a2e1c">Подтверждение вехи — График СМР</h2>
+        <p style="font-size:16px">Добрый день.</p>
+        <p>Вас просят подтвердить выполнение этапа:</p>
+        <div style="background:#f4faf5;border-left:4px solid #3CB34A;
+                    padding:14px 18px;margin:16px 0;border-radius:0 8px 8px 0">
+          <b style="font-size:16px">{task_name}</b><br>
+          <span style="color:#666;font-size:13px">ТК {tk_number} · {project_name}</span><br>
+          <span style="color:#666;font-size:13px">Плановая дата: <b>{plan_date}</b></span>
+        </div>
+        <table cellpadding="0" cellspacing="0" style="margin:24px auto">
+          <tr>
+            <td style="padding-right:12px">
+              <a href="{confirm_url}"
+                 style="display:inline-block;background:#16a34a;color:#fff;
+                        font-weight:700;font-size:15px;padding:14px 32px;
+                        border-radius:50px;text-decoration:none">
+                ✅ Подтвердить
+              </a>
+            </td>
+            <td>
+              <a href="{reject_url}"
+                 style="display:inline-block;background:#dc2626;color:#fff;
+                        font-weight:700;font-size:15px;padding:14px 32px;
+                        border-radius:50px;text-decoration:none">
+                ❌ Отклонить
+              </a>
+            </td>
+          </tr>
+        </table>
+        <p style="color:#999;font-size:12px;text-align:center">
+          Если нажать кнопку несколько раз — ошибки не будет, учитывается первый ответ.
+        </p>
+    """
+    return send_email(
+        to_email,
+        f"Подтверждение: {task_name} — ТК {tk_number}",
+        _base_template(content, title="📋 График СМР · Подтверждение вехи"),
+    )
+
+
 def notify_deadline_tomorrow(to_email: str, manager_name: str, projects: list) -> bool:
     if not projects:
         return False

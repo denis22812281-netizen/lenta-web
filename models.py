@@ -261,6 +261,50 @@ class TaskNotification(Base):
     task = relationship("Task")
 
 
+class SmrSchedule(Base):
+    """График СМР — привязан к одному проекту."""
+    __tablename__ = "smr_schedules"
+    id         = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, unique=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    project    = relationship("Project")
+    tasks      = relationship("SmrTask", back_populates="schedule",
+                              cascade="all, delete-orphan", order_by="SmrTask.order")
+
+
+class SmrTask(Base):
+    """Одна задача/веха в графике СМР."""
+    __tablename__ = "smr_tasks"
+    id           = Column(Integer, primary_key=True)
+    schedule_id  = Column(Integer, ForeignKey("smr_schedules.id", ondelete="CASCADE"), nullable=False)
+    name         = Column(Text, nullable=False)
+    order        = Column(Integer, default=0)
+    start_plan   = Column(Date, nullable=True)
+    end_plan     = Column(Date, nullable=True)
+    is_milestone = Column(Boolean, default=False)   # ключевая веха (ВПК 1, ВПК 2, Открытие)
+    status       = Column(String(30), default="Запланировано")  # Запланировано / В работе / Выполнено / Просрочено
+    notify_email1 = Column(String(200), default="")  # email ответственного 1
+    notify_email2 = Column(String(200), default="")  # email ответственного 2
+    schedule     = relationship("SmrSchedule", back_populates="tasks")
+    confirmations = relationship("SmrConfirmation", back_populates="task",
+                                 cascade="all, delete-orphan")
+    __table_args__ = (Index("ix_smr_task_schedule", "schedule_id"),)
+
+
+class SmrConfirmation(Base):
+    """Подтверждение/отклонение вехи по email-ссылке."""
+    __tablename__ = "smr_confirmations"
+    id         = Column(Integer, primary_key=True)
+    task_id    = Column(Integer, ForeignKey("smr_tasks.id", ondelete="CASCADE"), nullable=False)
+    token      = Column(String(64), unique=True, nullable=False)
+    email      = Column(String(200), default="")
+    action     = Column(String(20), default="")   # "confirmed" / "rejected"
+    responded_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    task       = relationship("SmrTask", back_populates="confirmations")
+
+
 class AuditLog(Base):
     __tablename__ = "audit_logs"
     id         = Column(Integer, primary_key=True)
