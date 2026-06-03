@@ -362,6 +362,28 @@ def notify_task_completed(to_email: str, creator_name: str,
     )
 
 
+def send_smr_task_done(to_email: str, task_name: str, project_name: str,
+                       tk_number: str, plan_date: str, completed_by: str) -> bool:
+    """Отчёт о выполнении этапа графика СМР."""
+    content = f"""
+        <h2 style="color:#15803d">Этап выполнен — График СМР</h2>
+        <p style="font-size:16px">Добрый день.</p>
+        <p>Этап работ отмечен как выполненный:</p>
+        <div style="background:#f0fdf4;border-left:4px solid #16a34a;
+                    padding:14px 18px;margin:16px 0;border-radius:0 8px 8px 0">
+          <b style="font-size:16px">✅ {task_name}</b><br>
+          <span style="color:#666;font-size:13px">ТК {tk_number} · {project_name}</span><br>
+          <span style="color:#666;font-size:13px">Плановая дата: <b>{plan_date}</b></span>
+        </div>
+        <p style="color:#555;font-size:14px">Отметил: <b>{completed_by}</b></p>
+    """
+    return send_email(
+        to_email,
+        f"✅ Выполнено: {task_name} — ТК {tk_number}",
+        _base_template(content, title="✅ График СМР · Этап выполнен"),
+    )
+
+
 def send_smr_confirmation(to_email: str, task_name: str, project_name: str,
                           tk_number: str, plan_date: str,
                           confirm_url: str, reject_url: str) -> bool:

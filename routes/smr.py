@@ -10,7 +10,7 @@ import models
 from database import get_db
 from deps import templates, get_current_user
 from services.smr_template import SMR_TEMPLATE
-from services.email_service import send_smr_confirmation
+from services.email_service import send_smr_confirmation, send_smr_task_done
 
 router = APIRouter()
 
@@ -107,8 +107,28 @@ async def smr_task_status(task_id: int, request: Request,
     task = db.query(models.SmrTask).filter(models.SmrTask.id == task_id).first()
     if not task:
         return JSONResponse({"error": "Не найдено"}, status_code=404)
-    task.status = data.get("status", task.status)
+
+    old_status = task.status
+    new_status  = data.get("status", task.status)
+    task.status = new_status
     db.commit()
+
+    # При выполнении — отправляем отчёт получателям задачи
+    if new_status == "Выполнено" and old_status != "Выполнено":
+        proj = task.schedule.project
+        plan_date = task.end_plan.strftime("%d.%m.%Y") if task.end_plan else "—"
+        completed_by = user.get("display_name", "")
+        for email in [task.notify_email1, task.notify_email2]:
+            if email:
+                send_smr_task_done(
+                    to_email=email,
+                    task_name=task.name,
+                    project_name=proj.name,
+                    tk_number=proj.tk_number,
+                    plan_date=plan_date,
+                    completed_by=completed_by,
+                )
+
     return {"ok": True, "status": task.status}
 
 

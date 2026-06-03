@@ -194,16 +194,12 @@
         </select>
       </td>
       <td class="text-center">
-        {% if task.is_milestone %}
-        <button class="btn btn-sm btn-outline-warning py-0 px-2"
+        <button class="btn btn-sm py-0 px-2 {% if task.notify_email1 %}btn-outline-success{% else %}btn-outline-secondary{% endif %}"
                 style="font-size:.7rem"
                 onclick="openConfirmModal({{ task.id }}, '{{ task.name | replace("'","\\'")|replace('"','\\"') }}',
-                         '{{ task.notify_email1 }}', '{{ task.notify_email2 }}')">
-          <i class="bi bi-envelope"></i>
+                         '{{ task.notify_email1 }}', '{{ task.notify_email2 }}', {{ 'true' if task.is_milestone else 'false' }})">
+          <i class="bi bi-envelope{% if task.notify_email1 %}-check{% endif %}"></i>
         </button>
-        {% else %}
-        <span class="text-muted">—</span>
-        {% endif %}
       </td>
     </tr>
     {% endfor %}
@@ -220,25 +216,31 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title"><i class="bi bi-envelope-fill me-2 text-warning"></i>Запрос подтверждения</h5>
+        <h5 class="modal-title" id="confirmModalTitle">
+          <i class="bi bi-envelope-fill me-2 text-warning"></i>Получатель уведомлений
+        </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <div id="confirmTaskName" class="fw-bold mb-3"></div>
+        <div id="confirmTaskName" class="fw-bold mb-1 text-muted small"></div>
+        <div id="confirmHint" class="small text-muted mb-3"></div>
         <div class="mb-2">
-          <label class="form-label small">Email ответственного 1</label>
+          <label class="form-label small">Email получателя 1</label>
           <input type="email" id="confirmEmail1" class="form-control form-control-sm" placeholder="email@lenta.com">
         </div>
         <div class="mb-3">
-          <label class="form-label small">Email ответственного 2 (опционально)</label>
+          <label class="form-label small">Email получателя 2 (опционально)</label>
           <input type="email" id="confirmEmail2" class="form-control form-control-sm" placeholder="email@lenta.com">
         </div>
         <div id="confirmResult" class="small"></div>
       </div>
-      <div class="modal-footer border-0 pt-0">
-        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Отмена</button>
-        <button class="btn btn-warning btn-sm fw-bold" onclick="sendConfirm()">
-          <i class="bi bi-send me-1"></i>Отправить
+      <div class="modal-footer border-0 pt-0 gap-2">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Закрыть</button>
+        <button class="btn btn-outline-success btn-sm fw-bold" onclick="saveEmails()">
+          <i class="bi bi-save me-1"></i>Сохранить
+        </button>
+        <button class="btn btn-warning btn-sm fw-bold" id="btnSendConfirm" onclick="sendConfirm()">
+          <i class="bi bi-send me-1"></i>Отправить сейчас
         </button>
       </div>
     </div>
@@ -253,14 +255,44 @@
 
 <script>
 let _confirmTaskId = null;
+let _confirmIsMilestone = false;
 
-function openConfirmModal(taskId, taskName, email1, email2) {
+function openConfirmModal(taskId, taskName, email1, email2, isMilestone) {
     _confirmTaskId = taskId;
+    _confirmIsMilestone = isMilestone;
     document.getElementById('confirmTaskName').textContent = taskName;
     document.getElementById('confirmEmail1').value = email1 || '';
     document.getElementById('confirmEmail2').value = email2 || '';
     document.getElementById('confirmResult').innerHTML = '';
+    const hint = document.getElementById('confirmHint');
+    const btn  = document.getElementById('btnSendConfirm');
+    if (isMilestone) {
+        hint.textContent = 'Ключевая веха — можно запросить подтверждение по email.';
+        btn.style.display = '';
+    } else {
+        hint.textContent = 'При смене статуса на "Выполнено" — письмо уйдёт автоматически.';
+        btn.style.display = 'none';
+    }
     new bootstrap.Modal(document.getElementById('modalConfirm')).show();
+}
+
+async function saveEmails() {
+    const e1 = document.getElementById('confirmEmail1').value.trim();
+    const e2 = document.getElementById('confirmEmail2').value.trim();
+    const res = document.getElementById('confirmResult');
+    await fetch(`/api/smr/task/${_confirmTaskId}/emails`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({email1: e1, email2: e2})
+    });
+    res.innerHTML = '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Сохранено</span>';
+    // Обновляем иконку кнопки в строке
+    const btn = document.querySelector(`[onclick*="openConfirmModal(${_confirmTaskId},"]`);
+    if (btn && e1) {
+        btn.classList.remove('btn-outline-secondary');
+        btn.classList.add('btn-outline-success');
+        btn.innerHTML = '<i class="bi bi-envelope-check"></i>';
+    }
 }
 
 async function sendConfirm() {
@@ -269,14 +301,10 @@ async function sendConfirm() {
     const res = document.getElementById('confirmResult');
     if (!e1) { res.innerHTML = '<span class="text-danger">Введите хотя бы один email</span>'; return; }
 
-    // Сохраняем emails
     await fetch(`/api/smr/task/${_confirmTaskId}/emails`, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
+        method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({email1: e1, email2: e2})
     });
-
-    // Отправляем письма
     const r = await fetch(`/api/smr/task/${_confirmTaskId}/send-confirm`, {
         method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}'
     });
