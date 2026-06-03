@@ -510,6 +510,49 @@ async def smr_confirm_submit(token: str, request: Request,
     })
 
 
+# ── Временный: тестовая отправка реального письма подтверждения ──────────────
+_TEST_CONFIRM_SECRET = os.getenv("ADMIN_PHONE", "")
+
+@router.get("/api/smr/send-test-confirm")
+async def smr_send_test_confirm(secret: str = "", task_id: int = 0,
+                                 db: Session = Depends(get_db)):
+    """Создаёт реальный токен подтверждения и шлёт письмо. Только для теста."""
+    if not secret or secret != _TEST_CONFIRM_SECRET:
+        return JSONResponse({"error": "forbidden"}, status_code=403)
+
+    from services.email_service import send_smr_deadline_notification
+    APP_URL = os.getenv("APP_URL", "https://lenta-web-production.up.railway.app").rstrip("/")
+
+    task = db.query(models.SmrTask).filter(models.SmrTask.id == task_id).first()
+    if not task:
+        # Найти первую задачу у которой есть end_plan
+        task = db.query(models.SmrTask).filter(
+            models.SmrTask.end_plan != None
+        ).first()
+    if not task:
+        return JSONResponse({"error": "нет задач в БД"}, status_code=404)
+
+    proj = task.schedule.project if task.schedule else None
+    token = secrets.token_hex(32)
+    db.add(models.SmrConfirmation(task_id=task.id, token=token,
+                                   email="denis.mesmer@lenta.com"))
+    db.commit()
+
+    send_smr_deadline_notification(
+        to_email="denis.mesmer@lenta.com",
+        task_name=task.name,
+        project_name=proj.name if proj else "—",
+        tk_number=proj.tk_number if proj else "—",
+        plan_date=task.end_plan.strftime("%d.%m.%Y") if task.end_plan else "—",
+        is_milestone=task.is_milestone,
+        confirm_url=f"{APP_URL}/smr/confirm/{token}",
+        reject_url=f"{APP_URL}/smr/confirm/{token}?action=reject",
+    )
+    return JSONResponse({"ok": True, "task": task.name,
+                         "tk": proj.tk_number if proj else "—",
+                         "token": token})
+
+
 # ── Отчёт о ходе выполнения графика ─────────────────────────────────────────
 
 @router.post("/api/smr/{project_id}/send-report")
