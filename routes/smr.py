@@ -1,6 +1,7 @@
 """График СМР — создание, просмотр, управление задачами, email-подтверждения."""
 import os, secrets
 from datetime import date, timedelta, datetime
+from datetime import timedelta as td
 
 from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
@@ -119,6 +120,7 @@ async def smr_view(project_id: int, request: Request,
         "today": today,
         "gantt_start": gantt_start,
         "gantt_end":   gantt_end,
+        "timedelta": timedelta,
     })
 
 

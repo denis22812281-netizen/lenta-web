@@ -90,25 +90,17 @@
     Диаграмма Ганта
   </div>
   <div style="min-width:700px;padding:0 14px 14px">
-    {# Шкала месяцев #}
-    <div style="display:flex;height:20px;margin-bottom:4px;margin-left:220px">
-      {% set cur = gantt_start %}
-      {% set px_per_day = 600 / total_days %}
-      {% for t in schedule.tasks if t.start_plan %}
-        {% break %}
-      {% endfor %}
-      {# Месяцы #}
-      {% set ns = namespace(d=gantt_start, x=0) %}
-      {% for _ in range(total_days) %}
-        {% if ns.d.day == 1 or loop.first %}
-        <div style="position:absolute;left:{{ (220 + ns.x * px_per_day) | int }}px;
-                    font-size:.65rem;color:#666;white-space:nowrap">
-          {{ ns.d.strftime('%b %Y') }}
-        </div>
-        {% endif %}
-        {% set ns.d = ns.d + timedelta(1) %}
-        {% set ns.x = ns.x + 1 %}
-      {% endfor %}
+    {# Шкала: начало и конец #}
+    <div style="position:relative;height:20px;margin-bottom:4px;margin-left:220px">
+      <div style="position:absolute;left:0;font-size:.65rem;color:#666">
+        {{ gantt_start.strftime('%d.%m.%Y') }}
+      </div>
+      <div style="position:absolute;left:280px;font-size:.65rem;color:#666">
+        {{ (gantt_start + timedelta(days=(total_days//2))).strftime('%d.%m.%Y') }}
+      </div>
+      <div style="position:absolute;right:0;font-size:.65rem;color:#666">
+        {{ gantt_end.strftime('%d.%m.%Y') }}
+      </div>
     </div>
 
     {# Строки задач #}
