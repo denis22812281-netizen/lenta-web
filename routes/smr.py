@@ -412,14 +412,24 @@ async def smr_confirm_page(token: str, request: Request,
         })
 
     already_done = bool(conf.action)
-
-    if not already_done:
-        conf.action       = "confirmed" if action != "reject" else "rejected"
-        conf.responded_at = datetime.utcnow()
-        db.commit()
-
     task = conf.task
     proj = task.schedule.project if task and task.schedule else None
+
+    if not already_done:
+        is_confirm = (action != "reject")
+        conf.action       = "confirmed" if is_confirm else "rejected"
+        conf.responded_at = datetime.utcnow()
+
+        # ── Меняем статус задачи ──────────────────────────────────────────────
+        if task:
+            if is_confirm:
+                task.status = "Выполнено"
+            else:
+                # Не выполнено — если ещё не просрочено, ставим Просрочено
+                if task.status not in ("Выполнено",):
+                    task.status = "Просрочено"
+
+        db.commit()
 
     return templates.TemplateResponse("smr_confirm.html", {
         "request": request,

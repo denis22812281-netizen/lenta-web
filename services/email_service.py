@@ -547,6 +547,87 @@ def send_smr_progress_report(
     )
 
 
+def send_smr_deadline_notification(
+        to_email: str,
+        task_name: str,
+        project_name: str,
+        tk_number: str,
+        plan_date: str,
+        is_milestone: bool,
+        confirm_url: str,
+        reject_url: str,
+) -> bool:
+    """
+    Автоматическое письмо при наступлении даты задачи.
+    Две кнопки: Выполнено / Не выполнено.
+    """
+    ms_label = "Ключевая веха" if is_milestone else "Этап работ"
+    ms_style = "color:#FFD200;font-weight:800" if is_milestone else "color:#1A5C22;font-weight:700"
+    ms_icon  = "◆ " if is_milestone else ""
+
+    content = f"""
+        <p style="font-size:16px;margin:0 0 16px">Добрый день.</p>
+
+        <p style="margin-bottom:12px">
+          Сегодня наступила плановая дата выполнения этапа:
+        </p>
+
+        <table width="100%" cellpadding="0" cellspacing="0"
+               style="background:#f4faf5;border-left:4px solid #3CB34A;
+                      border-radius:0 10px 10px 0;margin-bottom:24px">
+          <tr>
+            <td style="padding:16px 20px">
+              <div style="font-size:11px;color:#6b7280;text-transform:uppercase;
+                          letter-spacing:1px;margin-bottom:6px">{ms_label}</div>
+              <div style="{ms_style};font-size:17px">{ms_icon}{task_name}</div>
+              <div style="margin-top:10px;font-size:13px;color:#374151">
+                <b>ТК {tk_number}</b> · {project_name}
+              </div>
+              <div style="margin-top:4px;font-size:12px;color:#6b7280">
+                Плановая дата: <b>{plan_date}</b>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+        <p style="font-size:14px;color:#374151;margin-bottom:20px">
+          Подтвердите статус выполнения этапа:
+        </p>
+
+        <table cellpadding="0" cellspacing="0" style="margin:0 auto 20px">
+          <tr>
+            <td style="padding-right:12px">
+              <a href="{confirm_url}"
+                 style="display:inline-block;background:#1A5C22;color:#ffffff;
+                        font-weight:800;font-size:15px;padding:14px 32px;
+                        border-radius:50px;text-decoration:none;
+                        border:2px solid #3CB34A">
+                ✅ &nbsp;Выполнено
+              </a>
+            </td>
+            <td>
+              <a href="{reject_url}"
+                 style="display:inline-block;background:#ffffff;color:#dc2626;
+                        font-weight:700;font-size:15px;padding:14px 32px;
+                        border-radius:50px;text-decoration:none;
+                        border:2px solid #dc2626">
+                ❌ &nbsp;Не выполнено
+              </a>
+            </td>
+          </tr>
+        </table>
+
+        <p style="color:#9ca3af;font-size:11px;text-align:center;margin-top:8px">
+          Нажмите один раз — система зафиксирует ответ автоматически.
+        </p>
+    """
+    subject = f"{'◆ Веха: ' if is_milestone else ''}{task_name} — ТК {tk_number} · {plan_date}"
+    return send_email(
+        to_email, subject,
+        _base_template(content, title=f"📅 Плановая дата наступила · ТК {tk_number}"),
+    )
+
+
 def notify_deadline_tomorrow(to_email: str, manager_name: str, projects: list) -> bool:
     if not projects:
         return False

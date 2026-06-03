@@ -38,6 +38,7 @@ from config import MANAGERS_SEED
 from deps import limiter
 from services.excel_import import import_reconstruct_excel, import_construction_excel, parse_excel_file
 from services.online import ONLINE_USERS
+from services.email_service import send_smr_deadline_notification
 
 logger = logging.getLogger(__name__)
 
@@ -209,6 +210,69 @@ async def auto_sync_loop():
             logger.warning("[auto_sync_loop] ошибка: %s", e)
 
 
+# ─── Авто-уведомления по графику СМР ─────────────────────────────────────────
+
+async def smr_notification_loop():
+    """
+    Каждый час проверяет задачи графика СМР, у которых end_plan = сегодня.
+    Если у задачи указан notify_email1/email2 и ещё не отправляли сегодня —
+    шлёт письмо с кнопками Выполнено / Не выполнено.
+    """
+    import secrets as _sec
+    _APP_URL = os.getenv("APP_URL", "https://lenta-web-production.up.railway.app").rstrip("/")
+
+    while True:
+        await asyncio.sleep(3600)   # раз в час
+        try:
+            from datetime import date as _date
+            today = _date.today()
+            db = database.SessionLocal()
+            try:
+                tasks = db.query(models.SmrTask).filter(
+                    models.SmrTask.end_plan == today,
+                    models.SmrTask.status != "Выполнено",
+                    (models.SmrTask.notified_date == None) |
+                    (models.SmrTask.notified_date < today),
+                ).all()
+
+                for task in tasks:
+                    emails = [e for e in [task.notify_email1, task.notify_email2] if e]
+                    if not emails:
+                        continue
+                    proj = task.schedule.project if task.schedule else None
+                    if not proj:
+                        continue
+
+                    for email in emails:
+                        token   = _sec.token_hex(32)
+                        db.add(models.SmrConfirmation(
+                            task_id=task.id, token=token, email=email))
+                        db.flush()
+                        send_smr_deadline_notification(
+                            to_email=email,
+                            task_name=task.name,
+                            project_name=proj.name,
+                            tk_number=proj.tk_number,
+                            plan_date=task.end_plan.strftime("%d.%m.%Y"),
+                            is_milestone=task.is_milestone,
+                            confirm_url=f"{_APP_URL}/smr/confirm/{token}",
+                            reject_url=f"{_APP_URL}/smr/confirm/{token}?action=reject",
+                        )
+
+                    task.notified_date = today
+
+                db.commit()
+                if tasks:
+                    logger.warning("smr_notification_loop: отправлено уведомлений по %d задачам", len(tasks))
+            except Exception as e:
+                db.rollback()
+                logger.warning("smr_notification_loop error: %s", e)
+            finally:
+                db.close()
+        except Exception as e:
+            logger.warning("smr_notification_loop outer error: %s", e)
+
+
 # ─── Startup ─────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 async def startup():
@@ -264,6 +328,7 @@ async def startup():
                         uploaded_by VARCHAR(100) DEFAULT '',
                         uploaded_at TIMESTAMP DEFAULT NOW()
                     )""",
+                    "ALTER TABLE smr_tasks ADD COLUMN IF NOT EXISTS notified_date DATE",
                     """CREATE TABLE IF NOT EXISTS smr_contacts (
                         id SERIAL PRIMARY KEY,
                         name VARCHAR(100) NOT NULL,
@@ -469,3 +534,4 @@ async def startup():
         db.close()
 
     asyncio.create_task(auto_sync_loop())
+    asyncio.create_task(smr_notification_loop())

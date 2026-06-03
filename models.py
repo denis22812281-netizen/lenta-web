@@ -297,6 +297,7 @@ class SmrTask(Base):
     status       = Column(String(30), default="Запланировано")  # Запланировано / В работе / Выполнено / Просрочено
     notify_email1 = Column(String(200), default="")  # email ответственного 1
     notify_email2 = Column(String(200), default="")  # email ответственного 2
+    notified_date = Column(Date, nullable=True)       # дата последней автоотправки
     schedule     = relationship("SmrSchedule", back_populates="tasks")
     confirmations = relationship("SmrConfirmation", back_populates="task",
                                  cascade="all, delete-orphan")
