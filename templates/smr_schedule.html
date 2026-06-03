@@ -398,10 +398,75 @@
 .smr-email-btn {
   background:transparent; border:1px solid #334155; color:#64748b;
   font-size:.75rem; padding:3px 8px; border-radius:6px; transition:.15s;
+  min-width:34px; min-height:34px; display:inline-flex; align-items:center; justify-content:center;
 }
 .smr-email-btn:hover { border-color:#3CB34A; color:#3CB34A; }
 .smr-email-set       { border-color:#16a34a60; color:#4ade80; }
 .smr-email-set:hover { border-color:#4ade80; color:#4ade80; }
+
+/* ── МОБИЛЬНАЯ ВЕРСИЯ ── */
+@media (max-width: 767px) {
+
+  /* Шапка — вертикально */
+  .smr-header { flex-direction:column; gap:12px; padding:16px; text-align:center; }
+  .smr-header-left, .smr-header-right { width:100%; }
+  .smr-pct, .smr-pct-label { text-align:center; }
+  .smr-city { justify-content:center; flex-wrap:wrap; }
+  .smr-tk   { font-size:1.3rem; }
+  .smr-pct  { font-size:1.8rem; }
+
+  /* Статы — 2x2 (уже есть col-6, но уменьшим паддинг) */
+  .smr-stat { padding:12px 8px; }
+  .smr-stat-num   { font-size:1.5rem; }
+  .smr-stat-label { font-size:.65rem; }
+
+  /* Вехи — 2 в ряд */
+  .smr-milestones-block { padding:14px; }
+  .smr-ms-card { min-width:calc(50% - 6px); flex:0 0 calc(50% - 6px); padding:12px 8px; }
+  .smr-ms-icon { font-size:1.4rem; margin-bottom:6px; }
+  .smr-ms-name { font-size:.72rem; }
+  .smr-ms-date { font-size:.68rem; }
+
+  /* Ганта — скрываем на мобильном (слишком узко) */
+  .smr-gantt-wrap { display:none; }
+
+  /* Таблица */
+  .smr-table-wrap { border-radius:10px; }
+  .smr-table thead th { font-size:.65rem; padding:8px 6px; letter-spacing:0; }
+  .smr-table tbody td { padding:8px 6px; }
+
+  /* Скрываем колонку "Начало" на мобильном — "Окончание" важнее */
+  .smr-table th:nth-child(3),
+  .smr-table td:nth-child(3) { display:none; }
+
+  /* Скрываем # на мобильном */
+  .smr-table th:nth-child(1),
+  .smr-table td:nth-child(1) { display:none; }
+
+  .smr-task-name { font-size:.78rem; }
+  .smr-ms-name-inline { font-size:.8rem; letter-spacing:0; }
+  .smr-date-cell { font-size:.72rem; }
+
+  /* Статус — меньше */
+  .smr-status-select { font-size:.72rem !important; padding:3px 4px !important; }
+
+  /* Email кнопка — крупнее для тачскрина */
+  .smr-email-btn { min-width:38px; min-height:38px; font-size:.85rem; }
+
+  /* Кнопки навигации */
+  .smr-header + div .btn,
+  .d-flex .btn { min-height:38px; }
+}
+
+@media (max-width: 400px) {
+  /* Очень маленькие экраны */
+  .smr-ms-card { min-width:100%; flex:0 0 100%; }
+  .smr-milestones-row { gap:8px; }
+
+  /* Веха в таблице — только название и статус */
+  .smr-tr-milestone td:nth-child(3),
+  .smr-tr-milestone td:nth-child(4) { display:none; }
+}
 </style>
 
 <script>

@@ -5,47 +5,69 @@
 {% block content %}
 
 {# ── Фильтры ── #}
-<form method="get" class="d-flex flex-wrap gap-2 align-items-center mb-3">
-  <input type="text" name="search" value="{{ search }}"
-         class="form-control form-control-sm" style="width:150px"
-         placeholder="Поиск по ТК №">
+<form method="get" class="smr-filter-form mb-3">
+  <div class="smr-filter-row">
+    <input type="text" name="search" value="{{ search }}"
+           class="form-control form-control-sm smr-filter-input"
+           placeholder="ТК №">
 
-  <select name="proj_type" class="form-select form-select-sm" style="width:160px"
-          onchange="this.form.submit()">
-    <option value="">Все типы</option>
-    <option value="Констракшн"    {% if request.query_params.get('proj_type') == 'Констракшн' %}selected{% endif %}>
-      Констракшн
-    </option>
-    <option value="Реконструкция" {% if request.query_params.get('proj_type') == 'Реконструкция' %}selected{% endif %}>
-      Реконструкция
-    </option>
-  </select>
+    <select name="proj_type" class="form-select form-select-sm smr-filter-input"
+            onchange="this.form.submit()">
+      <option value="">Все типы</option>
+      <option value="Констракшн"    {% if request.query_params.get('proj_type') == 'Констракшн' %}selected{% endif %}>Констракшн</option>
+      <option value="Реконструкция" {% if request.query_params.get('proj_type') == 'Реконструкция' %}selected{% endif %}>Реконструкция</option>
+    </select>
 
-  <select name="manager_id" class="form-select form-select-sm" style="width:200px"
-          onchange="this.form.submit()">
-    <option value="">Все менеджеры</option>
-    {% for m in managers %}
-    <option value="{{ m.id }}" {% if filter_manager_id == m.id|string %}selected{% endif %}>
-      {{ m.name }}
-    </option>
-    {% endfor %}
-  </select>
+    <select name="manager_id" class="form-select form-select-sm smr-filter-input"
+            onchange="this.form.submit()">
+      <option value="">Все менеджеры</option>
+      {% for m in managers %}
+      <option value="{{ m.id }}" {% if filter_manager_id == m.id|string %}selected{% endif %}>{{ m.name }}</option>
+      {% endfor %}
+    </select>
 
-  <button type="submit" class="btn btn-sm btn-outline-success">
-    <i class="bi bi-search me-1"></i>Найти
-  </button>
+    <button type="submit" class="btn btn-sm btn-outline-success smr-filter-btn">
+      <i class="bi bi-search me-1"></i>Найти
+    </button>
 
-  {% if search or filter_manager_id %}
-  <a href="/smr" class="btn btn-sm btn-outline-secondary">
-    <i class="bi bi-x me-1"></i>Сбросить
-  </a>
-  {% endif %}
+    {% if search or filter_manager_id %}
+    <a href="/smr" class="btn btn-sm btn-outline-secondary smr-filter-btn">
+      <i class="bi bi-x"></i>
+    </a>
+    {% endif %}
+  </div>
 
   <a href="/smr/export?search={{ search }}&manager_id={{ filter_manager_id }}"
-     class="btn btn-sm btn-outline-warning ms-auto">
+     class="btn btn-sm btn-outline-warning smr-export-btn">
     <i class="bi bi-file-earmark-excel me-1"></i>Выгрузить в Excel
   </a>
 </form>
+
+<style>
+.smr-filter-form { display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; }
+.smr-filter-row  { display:flex; flex-wrap:wrap; gap:8px; align-items:center; flex:1; }
+.smr-filter-input { min-height:36px; }
+.smr-filter-btn  { min-height:36px; }
+.smr-export-btn  { min-height:36px; }
+
+@media (min-width: 576px) {
+  .smr-filter-input:first-child { width:120px; flex:0 0 120px; }
+  .smr-filter-input:nth-child(2){ width:150px; flex:0 0 150px; }
+  .smr-filter-input:nth-child(3){ width:190px; flex:0 0 190px; }
+  .smr-export-btn { margin-left:auto; }
+}
+
+@media (max-width: 575px) {
+  .smr-filter-form { flex-direction:column; }
+  .smr-filter-row  { flex-direction:column; width:100%; }
+  .smr-filter-input { width:100% !important; }
+  .smr-filter-btn  { flex:1; min-height:42px; }
+  .smr-export-btn  { width:100%; min-height:42px; text-align:center; }
+
+  /* Карточки — увеличиваем кнопку открытия */
+  .data-card .btn.w-100 { min-height:42px; font-size:.9rem; }
+}
+</style>
 
 <div class="text-muted small mb-3">
   Найдено объектов: <b>{{ projects | length }}</b>
