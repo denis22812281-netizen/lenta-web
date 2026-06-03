@@ -402,18 +402,20 @@ def send_smr_confirmation(to_email: str, task_name: str, project_name: str,
           <tr>
             <td style="padding-right:12px">
               <a href="{confirm_url}"
-                 style="display:inline-block;background:#16a34a;color:#fff;
-                        font-weight:700;font-size:15px;padding:14px 32px;
-                        border-radius:50px;text-decoration:none">
-                ✅ Подтвердить
+                 style="display:inline-block;background:#1A5C22;color:#fff;
+                        font-weight:800;font-size:15px;padding:14px 32px;
+                        border-radius:50px;text-decoration:none;
+                        border:2px solid #3CB34A">
+                ✅ &nbsp;Подтверждаю
               </a>
             </td>
             <td>
               <a href="{reject_url}"
-                 style="display:inline-block;background:#dc2626;color:#fff;
+                 style="display:inline-block;background:#ffffff;color:#dc2626;
                         font-weight:700;font-size:15px;padding:14px 32px;
-                        border-radius:50px;text-decoration:none">
-                ❌ Отклонить
+                        border-radius:50px;text-decoration:none;
+                        border:2px solid #dc2626">
+                ❌ &nbsp;Не подтверждаю
               </a>
             </td>
           </tr>
@@ -602,7 +604,7 @@ def send_smr_deadline_notification(
                         font-weight:800;font-size:15px;padding:14px 32px;
                         border-radius:50px;text-decoration:none;
                         border:2px solid #3CB34A">
-                ✅ &nbsp;Выполнено
+                ✅ &nbsp;Подтверждаю
               </a>
             </td>
             <td>
@@ -611,7 +613,7 @@ def send_smr_deadline_notification(
                         font-weight:700;font-size:15px;padding:14px 32px;
                         border-radius:50px;text-decoration:none;
                         border:2px solid #dc2626">
-                ❌ &nbsp;Не выполнено
+                ❌ &nbsp;Не подтверждаю
               </a>
             </td>
           </tr>
