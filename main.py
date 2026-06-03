@@ -264,6 +264,13 @@ async def startup():
                         uploaded_by VARCHAR(100) DEFAULT '',
                         uploaded_at TIMESTAMP DEFAULT NOW()
                     )""",
+                    """CREATE TABLE IF NOT EXISTS smr_contacts (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR(100) NOT NULL,
+                        email VARCHAR(200) NOT NULL,
+                        position VARCHAR(150) DEFAULT '',
+                        created_at TIMESTAMP DEFAULT NOW()
+                    )""",
                     """CREATE TABLE IF NOT EXISTS smr_schedules (
                         id SERIAL PRIMARY KEY,
                         project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE NOT NULL UNIQUE,

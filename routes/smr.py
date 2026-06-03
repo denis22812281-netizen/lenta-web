@@ -430,6 +430,65 @@ async def smr_confirm_page(token: str, request: Request,
     })
 
 
+# ── База контактов ───────────────────────────────────────────────────────────
+
+@router.get("/smr/contacts", response_class=HTMLResponse)
+async def smr_contacts(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    contacts = db.query(models.SmrContact).order_by(models.SmrContact.name).all()
+    return templates.TemplateResponse("smr_contacts.html", {
+        "request": request, "user": user, "contacts": contacts,
+    })
+
+
+@router.post("/smr/contacts/add")
+async def smr_contact_add(request: Request, db: Session = Depends(get_db),
+                           name: str = Form(...), email: str = Form(...),
+                           position: str = Form("")):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    db.add(models.SmrContact(
+        name=name.strip(),
+        email=email.strip().lower(),
+        position=position.strip(),
+    ))
+    db.commit()
+    return RedirectResponse("/smr/contacts", status_code=303)
+
+
+@router.post("/smr/contacts/{contact_id}/delete")
+async def smr_contact_delete(contact_id: int, request: Request,
+                              db: Session = Depends(get_db)):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    c = db.query(models.SmrContact).filter(models.SmrContact.id == contact_id).first()
+    if c:
+        db.delete(c)
+        db.commit()
+    return RedirectResponse("/smr/contacts", status_code=303)
+
+
+@router.get("/api/smr/contacts")
+async def smr_contacts_search(request: Request, db: Session = Depends(get_db),
+                               q: str = ""):
+    """Поиск контактов по имени — для автодополнения."""
+    user = get_current_user(request)
+    if not user:
+        return JSONResponse({"contacts": []})
+    query = db.query(models.SmrContact)
+    if q and len(q) >= 1:
+        query = query.filter(models.SmrContact.name.ilike(f"%{q}%"))
+    contacts = query.order_by(models.SmrContact.name).limit(10).all()
+    return JSONResponse({"contacts": [
+        {"id": c.id, "name": c.name, "email": c.email, "position": c.position}
+        for c in contacts
+    ]})
+
+
 # ── Удалить график ────────────────────────────────────────────────────────────
 
 @router.post("/smr/delete/{project_id}")

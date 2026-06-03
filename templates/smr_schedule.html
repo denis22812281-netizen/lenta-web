@@ -9,6 +9,9 @@
   <a href="/projects/{{ proj.id }}" class="btn btn-sm btn-outline-secondary">
     <i class="bi bi-arrow-left me-1"></i>К проекту
   </a>
+  <a href="/smr/contacts" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-person-lines-fill me-1"></i><span class="d-none d-sm-inline">Контакты</span>
+  </a>
   {% if schedule %}
   <form method="post" action="/smr/delete/{{ proj.id }}"
         onsubmit="return confirm('Удалить весь график?')" class="ms-auto">
@@ -270,15 +273,38 @@
       <div class="modal-body pt-2">
         <div id="confirmTaskName" class="small fw-semibold mb-1" style="color:#FFD200"></div>
         <div id="confirmHint" class="small text-muted mb-3"></div>
-        <div class="mb-2">
-          <label class="form-label small mb-1">Email получателя 1</label>
-          <input type="email" id="confirmEmail1" class="form-control form-control-sm" placeholder="email@lenta.com">
-        </div>
+
+        {# Получатель 1 #}
         <div class="mb-3">
-          <label class="form-label small mb-1">Email получателя 2 (необязательно)</label>
-          <input type="email" id="confirmEmail2" class="form-control form-control-sm" placeholder="email@lenta.com">
+          <label class="form-label small mb-1">Получатель 1</label>
+          <div class="smr-ac-wrap" id="acWrap1">
+            <input type="text" id="acName1" class="form-control form-control-sm"
+                   placeholder="Начните вводить фамилию..." autocomplete="off"
+                   oninput="acSearch(1, this.value)">
+            <div class="smr-ac-dropdown" id="acDrop1"></div>
+          </div>
+          <input type="email" id="confirmEmail1" class="form-control form-control-sm mt-1"
+                 placeholder="email@lenta.com" readonly>
         </div>
+
+        {# Получатель 2 #}
+        <div class="mb-3">
+          <label class="form-label small mb-1">Получатель 2 <span class="text-muted">(необязательно)</span></label>
+          <div class="smr-ac-wrap" id="acWrap2">
+            <input type="text" id="acName2" class="form-control form-control-sm"
+                   placeholder="Начните вводить фамилию..." autocomplete="off"
+                   oninput="acSearch(2, this.value)">
+            <div class="smr-ac-dropdown" id="acDrop2"></div>
+          </div>
+          <input type="email" id="confirmEmail2" class="form-control form-control-sm mt-1"
+                 placeholder="email@lenta.com" readonly>
+        </div>
+
         <div id="confirmResult" class="small mt-1"></div>
+        <div class="mt-2" style="font-size:.72rem;color:#475569">
+          <i class="bi bi-info-circle me-1"></i>
+          Нет в списке? <a href="/smr/contacts" target="_blank" class="text-success">Добавить контакт</a>
+        </div>
       </div>
       <div class="modal-footer border-0 pt-0 gap-2">
         <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Закрыть</button>
@@ -404,6 +430,25 @@
 .smr-email-set       { border-color:#16a34a60; color:#4ade80; }
 .smr-email-set:hover { border-color:#4ade80; color:#4ade80; }
 
+/* ── Автодополнение ── */
+.smr-ac-wrap { position:relative; }
+.smr-ac-dropdown {
+  display:none; position:absolute; left:0; right:0; top:calc(100% + 2px);
+  background:#1e293b; border:1px solid #3CB34A60; border-radius:8px;
+  z-index:1060; max-height:220px; overflow-y:auto;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);
+}
+.smr-ac-item {
+  padding:10px 12px; cursor:pointer; border-bottom:1px solid #2d3748;
+  transition:.12s;
+}
+.smr-ac-item:last-child { border-bottom:none; }
+.smr-ac-item:hover, .smr-ac-item.active { background:#2d3f50; }
+.smr-ac-name     { font-size:.85rem; font-weight:600; color:#e2e8f0; }
+.smr-ac-sub      { font-size:.72rem; color:#64748b; margin-top:2px; }
+.smr-ac-email    { color:#3CB34A; }
+.smr-ac-empty    { padding:12px; font-size:.8rem; color:#64748b; text-align:center; }
+
 /* ── МОБИЛЬНАЯ ВЕРСИЯ ── */
 @media (max-width: 767px) {
 
@@ -470,6 +515,60 @@
 </style>
 
 <script>
+// ── Автодополнение контактов ──────────────────────────────────────────────────
+let _acTimer = null;
+
+async function acSearch(slot, q) {
+    clearTimeout(_acTimer);
+    const drop  = document.getElementById(`acDrop${slot}`);
+    const email = document.getElementById(`confirmEmail${slot}`);
+    if (!q || q.length < 1) {
+        drop.style.display = 'none';
+        email.value = '';
+        return;
+    }
+    _acTimer = setTimeout(async () => {
+        const res  = await fetch(`/api/smr/contacts?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        drop.innerHTML = '';
+        if (!data.contacts.length) {
+            drop.innerHTML = `<div class="smr-ac-empty">Не найдено. <a href="/smr/contacts" target="_blank" class="text-success">Добавить</a></div>`;
+        } else {
+            data.contacts.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'smr-ac-item';
+                div.innerHTML = `<div class="smr-ac-name">${escHtmlAc(c.name)}</div>
+                    <div class="smr-ac-sub">
+                      <span class="smr-ac-email">${escHtmlAc(c.email)}</span>
+                      ${c.position ? ' · ' + escHtmlAc(c.position) : ''}
+                    </div>`;
+                div.addEventListener('mousedown', e => {
+                    e.preventDefault();
+                    document.getElementById(`acName${slot}`).value  = c.name;
+                    document.getElementById(`confirmEmail${slot}`).value = c.email;
+                    drop.style.display = 'none';
+                });
+                drop.appendChild(div);
+            });
+        }
+        drop.style.display = 'block';
+    }, 200);
+}
+
+function escHtmlAc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Закрываем дропдаун при клике вне
+document.addEventListener('click', e => {
+    ['acDrop1','acDrop2'].forEach(id => {
+        const d = document.getElementById(id);
+        if (d) d.style.display = 'none';
+    });
+});
+
+// ── Конец автодополнения ──────────────────────────────────────────────────────
+
 let _confirmTaskId = null;
 let _confirmIsMilestone = false;
 
@@ -477,8 +576,15 @@ function openConfirmModal(taskId, taskName, email1, email2, isMilestone) {
     _confirmTaskId = taskId;
     _confirmIsMilestone = isMilestone;
     document.getElementById('confirmTaskName').textContent = taskName;
+    // email-поля readonly — заполняем напрямую
     document.getElementById('confirmEmail1').value = email1 || '';
     document.getElementById('confirmEmail2').value = email2 || '';
+    // Поля имени очищаем (поиск снова)
+    document.getElementById('acName1').value = email1 ? '(выбрано)' : '';
+    document.getElementById('acName2').value = email2 ? '(выбрано)' : '';
+    // Скрываем дропдауны
+    document.getElementById('acDrop1').style.display = 'none';
+    document.getElementById('acDrop2').style.display = 'none';
     document.getElementById('confirmResult').innerHTML = '';
     const hint = document.getElementById('confirmHint');
     const btn  = document.getElementById('btnSendConfirm');
@@ -492,6 +598,11 @@ function openConfirmModal(taskId, taskName, email1, email2, isMilestone) {
 async function saveEmails() {
     const e1 = document.getElementById('confirmEmail1').value.trim();
     const e2 = document.getElementById('confirmEmail2').value.trim();
+    if (!e1) {
+        document.getElementById('confirmResult').innerHTML =
+            '<span class="text-danger">Выберите получателя из списка</span>';
+        return;
+    }
     await fetch(`/api/smr/task/${_confirmTaskId}/emails`, {
         method:'POST', headers:{'Content-Type':'application/json'},
         body:JSON.stringify({email1:e1, email2:e2})
@@ -499,7 +610,7 @@ async function saveEmails() {
     document.getElementById('confirmResult').innerHTML =
         '<span class="text-success"><i class="bi bi-check-circle me-1"></i>Сохранено</span>';
     const btn = document.querySelector(`[onclick*="openConfirmModal(${_confirmTaskId},"]`);
-    if (btn && e1) {
+    if (btn) {
         btn.classList.add('smr-email-set');
         btn.innerHTML = '<i class="bi bi-envelope-check"></i>';
     }

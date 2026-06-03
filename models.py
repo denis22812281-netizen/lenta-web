@@ -261,6 +261,17 @@ class TaskNotification(Base):
     task = relationship("Task")
 
 
+class SmrContact(Base):
+    """База контактов для уведомлений по графику СМР."""
+    __tablename__ = "smr_contacts"
+    id         = Column(Integer, primary_key=True)
+    name       = Column(String(100), nullable=False)   # Фамилия Имя
+    email      = Column(String(200), nullable=False)
+    position   = Column(String(150), default="")       # Должность / роль
+    created_at = Column(DateTime, default=datetime.utcnow)
+    __table_args__ = (Index("ix_smr_contact_name", "name"),)
+
+
 class SmrSchedule(Base):
     """График СМР — привязан к одному проекту."""
     __tablename__ = "smr_schedules"
