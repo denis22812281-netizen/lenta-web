@@ -86,15 +86,19 @@ async def smr_export(request: Request, db: Session = Depends(get_db),
     ws_sum = wb.active
     ws_sum.title = "Сводка"
 
-    hfill = PatternFill(start_color="1A5C22", end_color="1A5C22", fill_type="solid")
-    hfont = Font(color="FFFFFF", bold=True, size=10)
-    msfill= PatternFill(start_color="3D3000", end_color="3D3000", fill_type="solid")
-    msfont= Font(color="FFD200", bold=True, size=10)
-    done_fill = PatternFill(start_color="0F2A12", end_color="0F2A12", fill_type="solid")
-    thin  = Side(style="thin", color="2D3748")
-    brd   = Border(left=thin, right=thin, top=thin, bottom=thin)
-    center= Alignment(horizontal="center", vertical="center", wrap_text=True)
-    wrap  = Alignment(vertical="center", wrap_text=True)
+    # Стили — светлый фон для читаемости в Excel
+    hfill     = PatternFill(start_color="1A5C22", end_color="1A5C22", fill_type="solid")
+    hfont     = Font(color="FFFFFF", bold=True, size=11)
+    msfill    = PatternFill(start_color="FFF3CD", end_color="FFF3CD", fill_type="solid")
+    msfont    = Font(color="7B4400", bold=True, size=10)
+    done_fill = PatternFill(start_color="D4EDDA", end_color="D4EDDA", fill_type="solid")
+    work_fill = PatternFill(start_color="D1ECF1", end_color="D1ECF1", fill_type="solid")
+    over_fill = PatternFill(start_color="F8D7DA", end_color="F8D7DA", fill_type="solid")
+    norm_font = Font(color="212529", size=10)
+    thin      = Side(style="thin", color="BBBBBB")
+    brd       = Border(left=thin, right=thin, top=thin, bottom=thin)
+    center    = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    wrap      = Alignment(vertical="center", wrap_text=True)
 
     headers = ["ТК №", "Город", "Менеджер", "Всего этапов", "Выполнено",
                "В работе", "Просрочено", "% выполнения",
@@ -129,14 +133,13 @@ async def smr_export(request: Request, db: Session = Depends(get_db),
                         opening = t.end_plan.strftime("%d.%m.%Y")
 
         row_fill = done_fill if (total and done == total) else PatternFill(fill_type=None)
-        row_font = Font(color="E2E8F0", size=10)
 
         vals = [proj.tk_number, proj.city or "—",
                 proj.manager.name if proj.manager else "—",
                 total, done, work, over, pct, vpk1, vpk2, opening]
         for ci, v in enumerate(vals, 1):
             c = ws_sum.cell(ri, ci, v)
-            c.fill, c.font, c.border = row_fill, row_font, brd
+            c.fill, c.font, c.border = row_fill, norm_font, brd
             c.alignment = center if ci > 3 else wrap
 
     # ── Листы по объектам ──
@@ -163,8 +166,10 @@ async def smr_export(request: Request, db: Session = Depends(get_db),
 
         # Заголовок листа
         ws.merge_cells("A1:E1")
-        c = ws.cell(1, 1, f"ТК {proj.tk_number}  {proj.city or ''}  {proj.manager.name if proj.manager else ''}")
-        c.fill = hfill; c.font = Font(color="FFD200", bold=True, size=12)
+        header_text = f"ТК {proj.tk_number}  {proj.city or ''}  {proj.manager.name if proj.manager else ''}"
+        c = ws.cell(1, 1, header_text)
+        c.fill = hfill
+        c.font = Font(color="FFFFFF", bold=True, size=12)
         c.alignment = Alignment(horizontal="center", vertical="center")
         ws.row_dimensions[1].height = 26
 
@@ -176,33 +181,34 @@ async def smr_export(request: Request, db: Session = Depends(get_db),
         ws.freeze_panes = "A3"
 
         for ri, task in enumerate(sch.tasks, 3):
-            is_ms = task.is_milestone
-            rfill = msfill if is_ms else PatternFill(fill_type=None)
-            rfont = msfont if is_ms else Font(color="E2E8F0", size=9)
+            is_ms    = task.is_milestone
+            rfill    = msfill if is_ms else PatternFill(fill_type=None)
+            rfont    = msfont if is_ms else norm_font
+            num_font = Font(color="888888", size=9) if not is_ms else msfont
 
-            ws.cell(ri, 1, ri - 2).fill = rfill
-            ws.cell(ri, 1).font = Font(color="94A3B8", size=9)
-            ws.cell(ri, 1).alignment = center
-            ws.cell(ri, 1).border = brd
+            n = ws.cell(ri, 1, ri - 2)
+            n.fill, n.font, n.alignment, n.border = rfill, num_font, center, brd
 
-            c = ws.cell(ri, 2, ("◆ " if is_ms else "") + task.name)
-            c.fill, c.font, c.border = rfill, rfont, brd
-            c.alignment = wrap
+            c = ws.cell(ri, 2, ("◆ " if is_ms else "  ") + task.name)
+            c.fill, c.font, c.border, c.alignment = rfill, rfont, brd, wrap
 
             for ci, val in enumerate([
                 task.start_plan.strftime("%d.%m.%Y") if task.start_plan else "—",
-                task.end_plan.strftime("%d.%m.%Y") if task.end_plan else "—",
+                task.end_plan.strftime("%d.%m.%Y")   if task.end_plan   else "—",
                 task.status
             ], 3):
                 c = ws.cell(ri, ci, val)
-                c.fill, c.font, c.border = rfill, rfont, brd
-                c.alignment = center
+                c.fill, c.font, c.border, c.alignment = rfill, rfont, brd, center
 
-            status_colors = {"Выполнено":"1A4D1F","В работе":"1E3A5F","Просрочено":"5F1E1E"}
-            if task.status in status_colors:
-                sf = PatternFill(start_color=status_colors[task.status],
-                                 end_color=status_colors[task.status], fill_type="solid")
-                ws.cell(ri, 5).fill = sf
+            # Статус — цвет ячейки
+            status_fills = {
+                "Выполнено":   done_fill,
+                "В работе":    work_fill,
+                "Просрочено":  over_fill,
+            }
+            if task.status in status_fills:
+                ws.cell(ri, 5).fill = status_fills[task.status]
+                ws.cell(ri, 5).font = norm_font
 
             ws.row_dimensions[ri].height = 16
 
