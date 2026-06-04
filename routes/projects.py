@@ -10,7 +10,7 @@ from openpyxl.styles import PatternFill, Font, Alignment
 
 import models
 from database import get_db
-from deps import templates, require_login
+from deps import templates, require_login, limiter
 from config import PROJECT_TYPES, STATUSES, STAGE_NAMES
 from services.excel_import import parse_excel_file, import_reconstruct_excel, import_construction_excel
 from utils.files import read_limited
@@ -173,6 +173,7 @@ _MAX_EXCEL_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
 @router.post("/projects/import-excel")
+@limiter.limit("5/minute")
 async def import_excel(request: Request, db: Session = Depends(get_db),
                        user: dict = Depends(require_login),
                        file: UploadFile = File(...), manager_id: str = Form("")):
@@ -188,6 +189,7 @@ async def import_excel(request: Request, db: Session = Depends(get_db),
 
 
 @router.post("/import-excel-section")
+@limiter.limit("5/minute")
 async def import_excel_section(request: Request, db: Session = Depends(get_db),
                                 user: dict = Depends(require_login),
                                 file: UploadFile = File(...),
