@@ -3,22 +3,19 @@ import os
 from datetime import date
 
 from fastapi import APIRouter, Request, Depends, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 import openpyxl
 
 import models
 from database import get_db
-from deps import templates, get_current_user
+from deps import templates, get_current_user, require_login
 
 router = APIRouter()
 
 
 @router.get("/ai", response_class=HTMLResponse)
-async def ai_page(request: Request):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def ai_page(request: Request, user: dict = Depends(require_login)):
     return templates.TemplateResponse("ai_chat.html", {"request": request, "user": user})
 
 

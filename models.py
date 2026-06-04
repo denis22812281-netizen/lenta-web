@@ -128,6 +128,7 @@ class VpkReport(Base):
                          cascade="all, delete-orphan")
     reads = relationship("VpkReportRead", back_populates="report",
                          cascade="all, delete-orphan")
+    __table_args__ = (Index("ix_vpk_report_submitted_at", "submitted_at"),)
 
 
 class VpkReportRead(Base):
@@ -164,6 +165,7 @@ class AiChatMessage(Base):
     text = Column(Text, nullable=False)
     provider = Column(String(30), default="groq")
     created_at = Column(DateTime, default=datetime.utcnow)
+    __table_args__ = (Index("ix_ai_chat_user_name", "user_name"),)
 
 
 class ChatMessage(Base):
@@ -176,8 +178,9 @@ class ChatMessage(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     is_read = Column(Boolean, default=False)
     __table_args__ = (
-        Index("ix_chat_receiver",  "receiver_name"),
-        Index("ix_chat_is_read",   "is_read"),
+        Index("ix_chat_receiver",    "receiver_name"),
+        Index("ix_chat_is_read",     "is_read"),
+        Index("ix_chat_sender_name", "sender_name"),
     )
 
 

@@ -10,9 +10,10 @@ from openpyxl.styles import PatternFill, Font, Alignment
 
 import models
 from database import get_db
-from deps import templates, get_current_user
+from deps import templates, require_login
 from config import PROJECT_TYPES, STATUSES, STAGE_NAMES
 from services.excel_import import parse_excel_file, import_reconstruct_excel, import_construction_excel
+from utils.files import read_limited
 
 router = APIRouter()
 
@@ -21,11 +22,9 @@ router = APIRouter()
 
 @router.get("/projects", response_class=HTMLResponse)
 async def projects_list(request: Request, db: Session = Depends(get_db),
+                        user: dict = Depends(require_login),
                         manager_id: str = None, status: str = None,
                         project_type: str = None, search: str = None):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
     q = db.query(models.Project)
     if manager_id and str(manager_id).isdigit():
         q = q.filter(models.Project.manager_id == int(manager_id))
@@ -48,15 +47,13 @@ async def projects_list(request: Request, db: Session = Depends(get_db),
 
 @router.post("/projects/create")
 async def create_project(request: Request, db: Session = Depends(get_db),
+                         user: dict = Depends(require_login),
                          name: str = Form(...), tk_number: str = Form(""),
                          city: str = Form(""), project_type: str = Form(""),
                          manager_id: str = Form(""), status: str = Form("Активный"),
                          stage: str = Form(""), start_date: str = Form(""),
                          end_date: str = Form(""), description: str = Form(""),
                          budget: str = Form("")):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
     db.add(models.Project(
         name=name, tk_number=tk_number, city=city, project_type=project_type,
         manager_id=int(manager_id) if manager_id else None,
@@ -70,10 +67,8 @@ async def create_project(request: Request, db: Session = Depends(get_db),
 
 
 @router.get("/projects/{project_id}", response_class=HTMLResponse)
-async def project_detail(request: Request, project_id: int, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def project_detail(request: Request, project_id: int, db: Session = Depends(get_db),
+                         user: dict = Depends(require_login)):
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404)
@@ -88,15 +83,13 @@ async def project_detail(request: Request, project_id: int, db: Session = Depend
 
 @router.post("/projects/{project_id}/update")
 async def update_project(project_id: int, request: Request, db: Session = Depends(get_db),
+                         user: dict = Depends(require_login),
                          name: str = Form(...), tk_number: str = Form(""),
                          city: str = Form(""), project_type: str = Form(""),
                          manager_id: str = Form(""), status: str = Form("Активный"),
                          stage: str = Form(""), start_date: str = Form(""),
                          end_date: str = Form(""), description: str = Form(""),
                          budget: str = Form("")):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
     p = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not p:
         raise HTTPException(status_code=404)
@@ -112,10 +105,8 @@ async def update_project(project_id: int, request: Request, db: Session = Depend
 
 
 @router.post("/projects/{project_id}/delete")
-async def delete_project(project_id: int, request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def delete_project(project_id: int, request: Request, db: Session = Depends(get_db),
+                         user: dict = Depends(require_login)):
     p = db.query(models.Project).filter(models.Project.id == project_id).first()
     if p:
         db.delete(p)
@@ -127,11 +118,9 @@ async def delete_project(project_id: int, request: Request, db: Session = Depend
 
 @router.post("/projects/{project_id}/stages/add")
 async def add_stage(project_id: int, request: Request, db: Session = Depends(get_db),
+                    user: dict = Depends(require_login),
                     name: str = Form(...), start_date: str = Form(""),
                     end_date: str = Form(""), stage_status: str = Form("Запланировано")):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
     order = db.query(models.ProjectStage).filter(
         models.ProjectStage.project_id == project_id).count()
     db.add(models.ProjectStage(
@@ -145,10 +134,8 @@ async def add_stage(project_id: int, request: Request, db: Session = Depends(get
 
 
 @router.post("/stages/{stage_id}/delete")
-async def delete_stage(stage_id: int, request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def delete_stage(stage_id: int, request: Request, db: Session = Depends(get_db),
+                       user: dict = Depends(require_login)):
     s = db.query(models.ProjectStage).filter(models.ProjectStage.id == stage_id).first()
     project_id = s.project_id if s else None
     if s:
@@ -161,15 +148,13 @@ async def delete_stage(stage_id: int, request: Request, db: Session = Depends(ge
 
 @router.post("/section/create-project")
 async def section_create_project(request: Request, db: Session = Depends(get_db),
+                                  user: dict = Depends(require_login),
                                   name: str = Form(...), tk_number: str = Form(""),
                                   city: str = Form(""), project_type: str = Form(...),
                                   manager_id: str = Form(""), status: str = Form("Активный"),
                                   stage: str = Form(""), start_date: str = Form(""),
                                   end_date: str = Form(""), description: str = Form(""),
                                   budget: str = Form(""), redirect_to: str = Form("/")):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
     db.add(models.Project(
         name=name, tk_number=tk_number, city=city, project_type=project_type,
         manager_id=int(manager_id) if manager_id else None,
@@ -189,12 +174,11 @@ _MAX_EXCEL_BYTES = 10 * 1024 * 1024  # 10 MB
 
 @router.post("/projects/import-excel")
 async def import_excel(request: Request, db: Session = Depends(get_db),
+                       user: dict = Depends(require_login),
                        file: UploadFile = File(...), manager_id: str = Form("")):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    content = await file.read()
-    if len(content) > _MAX_EXCEL_BYTES:
+    try:
+        content = await read_limited(file, _MAX_EXCEL_BYTES)
+    except ValueError:
         return RedirectResponse("/projects?error=Файл слишком большой (макс 10 МБ)", status_code=303)
     try:
         result = parse_excel_file(content, "", int(manager_id) if manager_id else None, db)
@@ -205,15 +189,14 @@ async def import_excel(request: Request, db: Session = Depends(get_db),
 
 @router.post("/import-excel-section")
 async def import_excel_section(request: Request, db: Session = Depends(get_db),
+                                user: dict = Depends(require_login),
                                 file: UploadFile = File(...),
                                 project_type: str = Form(""),
                                 manager_id: str = Form(""),
                                 redirect_to: str = Form("/")):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    content = await file.read()
-    if len(content) > _MAX_EXCEL_BYTES:
+    try:
+        content = await read_limited(file, _MAX_EXCEL_BYTES)
+    except ValueError:
         return RedirectResponse(f"{redirect_to}?error=Файл слишком большой (макс 10 МБ)", status_code=303)
     try:
         if project_type == "Реконструкция":

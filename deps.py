@@ -1,4 +1,5 @@
 from fastapi import Request, HTTPException
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -18,10 +19,19 @@ def get_current_user(request: Request):
     return request.session.get("user")
 
 
-def require_login(request: Request):
+def require_login(request: Request) -> dict:
+    """FastAPI Dependency: возвращает пользователя или редиректит на /login."""
     user = request.session.get("user")
     if not user:
         raise HTTPException(status_code=302, headers={"Location": "/login"})
+    return user
+
+
+def require_admin(request: Request) -> dict:
+    """FastAPI Dependency: требует is_admin, иначе редирект на /."""
+    user = require_login(request)
+    if not user.get("is_admin"):
+        raise HTTPException(status_code=302, headers={"Location": "/"})
     return user
 
 

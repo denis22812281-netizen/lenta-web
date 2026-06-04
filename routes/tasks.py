@@ -9,10 +9,11 @@ from sqlalchemy.orm import Session, joinedload
 
 import models
 from database import get_db
-from deps import templates, get_current_user
+from deps import templates, get_current_user, require_login
 from config import PRIORITIES, TASK_STATUSES
 from services.email_service import notify_task_assigned, notify_task_status_changed, notify_task_completed
 from services.cloud_storage import upload_photo
+from utils.files import read_limited
 
 _TASK_REPORT_EMAILS = []
 for _entry in os.getenv("TASK_REPORT_EMAILS", "").split(","):
@@ -30,10 +31,8 @@ router = APIRouter()
 
 @router.get("/tasks", response_class=HTMLResponse)
 async def tasks_view(request: Request, db: Session = Depends(get_db),
-                     manager_id: str = None, status: str = None):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+                     manager_id: str = None, status: str = None,
+                     user: dict = Depends(require_login)):
     my_name  = user.get("display_name", "")
     is_admin = user.get("is_admin", False)
     my_manager = db.query(models.Manager).filter(models.Manager.name == my_name).first()
@@ -76,10 +75,8 @@ async def tasks_view(request: Request, db: Session = Depends(get_db),
 async def create_task(request: Request, db: Session = Depends(get_db),
                       title: str = Form(...), description: str = Form(""),
                       project_id: str = Form(""), assignee_id: str = Form(""),
-                      deadline: str = Form(""), priority: str = Form("Средний")):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+                      deadline: str = Form(""), priority: str = Form("Средний"),
+                      user: dict = Depends(require_login)):
     creator = user.get("display_name", "")
     task = models.Task(
         title=title, description=description,
@@ -118,10 +115,8 @@ async def create_task(request: Request, db: Session = Depends(get_db),
 @router.post("/tasks/{task_id}/update-status")
 async def update_task_status(task_id: int, request: Request, db: Session = Depends(get_db),
                              status: str = Form(...), completion_comment: str = Form(""),
-                             photos: list[UploadFile] = File(default=[])):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+                             photos: list[UploadFile] = File(default=[]),
+                             user: dict = Depends(require_login)):
     t = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not t:
         return RedirectResponse("/tasks", status_code=303)
@@ -143,8 +138,9 @@ async def update_task_status(task_id: int, request: Request, db: Session = Depen
             ext = Path(ph.filename).suffix.lower() or ".jpg"
             if ext not in _ALLOWED_EXT:
                 continue
-            raw = await ph.read()
-            if len(raw) > _MAX_SIZE:
+            try:
+                raw = await read_limited(ph, _MAX_SIZE)
+            except ValueError:
                 continue
             fname = f"{task_id}_{int(datetime.utcnow().timestamp())}_{ph.filename[:20]}{ext}"
             fname = "".join(c if c.isalnum() or c in "._-" else "_" for c in fname)
@@ -209,10 +205,8 @@ async def update_task_status(task_id: int, request: Request, db: Session = Depen
 
 
 @router.post("/tasks/{task_id}/delete")
-async def delete_task(task_id: int, request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def delete_task(task_id: int, request: Request, db: Session = Depends(get_db),
+                      user: dict = Depends(require_login)):
     t = db.query(models.Task).filter(models.Task.id == task_id).first()
     if t:
         db.delete(t)

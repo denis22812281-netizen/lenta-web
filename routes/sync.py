@@ -3,21 +3,20 @@ from pathlib import Path
 
 from fastapi import APIRouter, Request, Form, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
+
 from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, get_current_user
+from deps import templates, require_login
 from services.excel_import import parse_excel_file
 
 router = APIRouter()
 
 
 @router.get("/sync-settings", response_class=HTMLResponse)
-async def sync_settings(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def sync_settings(request: Request, db: Session = Depends(get_db),
+                        user: dict = Depends(require_login)):
     configs = {cfg.project_type: cfg for cfg in db.query(models.SyncConfig).all()}
     return templates.TemplateResponse("sync_settings.html", {
         "request": request, "user": user,
@@ -27,10 +26,8 @@ async def sync_settings(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/sync-settings/save")
-async def save_sync_settings(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def save_sync_settings(request: Request, db: Session = Depends(get_db),
+                              user: dict = Depends(require_login)):
     form = await request.form()
     for ptype in ["Реконструкция", "Констракшн", "КСО"]:
         key = ptype.lower().replace(" ", "_")
@@ -53,10 +50,8 @@ async def save_sync_settings(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/sync-settings/run-now")
 async def run_sync_now(request: Request, db: Session = Depends(get_db),
-                       project_type: str = Form(...)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+                       project_type: str = Form(...),
+                       user: dict = Depends(require_login)):
     cfg = db.query(models.SyncConfig).filter(
         models.SyncConfig.project_type == project_type).first()
     if cfg and cfg.file_path:

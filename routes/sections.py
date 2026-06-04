@@ -8,9 +8,10 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, get_current_user
+from deps import templates, require_login
 from config import STATUSES
 from services.excel_import import import_reconstruct_excel, import_construction_excel
+from utils.files import read_limited
 
 router = APIRouter()
 
@@ -40,19 +41,15 @@ def _section_response(request, user, q_type, title, icon, color, url, db):
 
 
 @router.get("/reconstruct", response_class=HTMLResponse)
-async def reconstruct_view(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def reconstruct_view(request: Request, db: Session = Depends(get_db),
+                           user: dict = Depends(require_login)):
     return _section_response(request, user, "Реконструкция",
                               "Реконструкции", "bi-building-fill", "red", "/reconstruct", db)
 
 
 @router.get("/construction", response_class=HTMLResponse)
-async def construction_view(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def construction_view(request: Request, db: Session = Depends(get_db),
+                            user: dict = Depends(require_login)):
     return _section_response(request, user, "Констракшн",
                               "Констракшн", "bi-buildings-fill", "blue", "/construction", db)
 
@@ -60,10 +57,7 @@ async def construction_view(request: Request, db: Session = Depends(get_db)):
 # ─── Специализированный импорт ────────────────────────────────────────────────
 
 @router.get("/import-reconstruct", response_class=HTMLResponse)
-async def import_reconstruct_page(request: Request):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def import_reconstruct_page(request: Request, user: dict = Depends(require_login)):
     return templates.TemplateResponse("import_reconstruct.html", {
         "request": request, "user": user,
         "section_title": "Реконструкции",
@@ -80,12 +74,11 @@ _MAX_EXCEL_BYTES = _MAX_EXCEL_MB * 1024 * 1024
 
 @router.post("/import-reconstruct")
 async def do_import_reconstruct(request: Request, db: Session = Depends(get_db),
+                                 user: dict = Depends(require_login),
                                  file: UploadFile = File(...)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    content = await file.read()
-    if len(content) > _MAX_EXCEL_BYTES:
+    try:
+        content = await read_limited(file, _MAX_EXCEL_BYTES)
+    except ValueError:
         return RedirectResponse(
             f"/import-reconstruct?error=Файл слишком большой (макс {_MAX_EXCEL_MB} МБ)",
             status_code=303)
@@ -99,10 +92,7 @@ async def do_import_reconstruct(request: Request, db: Session = Depends(get_db),
 
 
 @router.get("/import-construction", response_class=HTMLResponse)
-async def import_construction_page(request: Request):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def import_construction_page(request: Request, user: dict = Depends(require_login)):
     return templates.TemplateResponse("import_reconstruct.html", {
         "request": request, "user": user,
         "section_title": "Констракшн",
@@ -115,12 +105,11 @@ async def import_construction_page(request: Request):
 
 @router.post("/import-construction")
 async def do_import_construction(request: Request, db: Session = Depends(get_db),
+                                  user: dict = Depends(require_login),
                                   file: UploadFile = File(...)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    content = await file.read()
-    if len(content) > _MAX_EXCEL_BYTES:
+    try:
+        content = await read_limited(file, _MAX_EXCEL_BYTES)
+    except ValueError:
         return RedirectResponse(
             f"/import-construction?error=Файл слишком большой (макс {_MAX_EXCEL_MB} МБ)",
             status_code=303)
@@ -138,9 +127,9 @@ async def do_import_construction(request: Request, db: Session = Depends(get_db)
 # ─── Административные операции очистки (только admin) ────────────────────────
 
 @router.post("/projects/clear-all")
-async def clear_all_projects(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user or not user.get("is_admin"):
+async def clear_all_projects(request: Request, db: Session = Depends(get_db),
+                              user: dict = Depends(require_login)):
+    if not user.get("is_admin"):
         return RedirectResponse("/", status_code=302)
     for p in db.query(models.Project).filter(
             models.Project.project_type.in_(["Реконструкция", "Констракшн"])).all():
@@ -150,9 +139,9 @@ async def clear_all_projects(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/construction/clear-all")
-async def clear_all_construction(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user or not user.get("is_admin"):
+async def clear_all_construction(request: Request, db: Session = Depends(get_db),
+                                  user: dict = Depends(require_login)):
+    if not user.get("is_admin"):
         return RedirectResponse("/login", status_code=302)
     for p in db.query(models.Project).filter(
             models.Project.project_type == "Констракшн").all():
@@ -164,9 +153,9 @@ async def clear_all_construction(request: Request, db: Session = Depends(get_db)
 
 
 @router.post("/construction/delete-non-2026")
-async def delete_construction_non_2026(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user or not user.get("is_admin"):
+async def delete_construction_non_2026(request: Request, db: Session = Depends(get_db),
+                                        user: dict = Depends(require_login)):
+    if not user.get("is_admin"):
         return RedirectResponse("/login", status_code=302)
     from datetime import date as date_cls
     d1 = db.query(models.Project).filter(
@@ -185,9 +174,9 @@ async def delete_construction_non_2026(request: Request, db: Session = Depends(g
 
 
 @router.post("/reconstruct/delete-tk-prefix")
-async def delete_tk_prefix(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user or not user.get("is_admin"):
+async def delete_tk_prefix(request: Request, db: Session = Depends(get_db),
+                            user: dict = Depends(require_login)):
+    if not user.get("is_admin"):
         return RedirectResponse("/login", status_code=302)
     projects = db.query(models.Project).filter(
         models.Project.project_type == "Реконструкция",

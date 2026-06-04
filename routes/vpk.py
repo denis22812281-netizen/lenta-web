@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, get_current_user
+from deps import templates, get_current_user, require_login
 from services.email_service import notify_vpk_report
 from services.cloud_storage import upload_photo
 
@@ -37,10 +37,8 @@ router = APIRouter()
 # ─── ВПК ─────────────────────────────────────────────────────────────────────
 
 @router.get("/vpk", response_class=HTMLResponse)
-async def vpk_page(request: Request, db: Session = Depends(get_db), tab: str = "vpk1"):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def vpk_page(request: Request, db: Session = Depends(get_db),
+                   user: dict = Depends(require_login), tab: str = "vpk1"):
     projects  = db.query(models.Project).filter(
         models.Project.project_type == "Констракшн").order_by(models.Project.tk_number).all()
     criteria1 = db.query(models.VpkCriterion).filter(
@@ -64,10 +62,8 @@ async def vpk_page(request: Request, db: Session = Depends(get_db), tab: str = "
 
 
 @router.post("/vpk/submit")
-async def vpk_submit(request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def vpk_submit(request: Request, background_tasks: BackgroundTasks,
+                     db: Session = Depends(get_db), user: dict = Depends(require_login)):
     form      = await request.form()
     project_id = form.get("project_id")
     vpk_type   = int(form.get("vpk_type", 1))
@@ -185,10 +181,8 @@ async def vpk_unread(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/reports", response_class=HTMLResponse)
 async def reports_page(request: Request, db: Session = Depends(get_db),
+                       user: dict = Depends(require_login),
                        vpk_type: str = "", manager_name: str = ""):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
     q = db.query(models.VpkReport).order_by(models.VpkReport.submitted_at.desc())
     if vpk_type in ("1", "2"):
         q = q.filter(models.VpkReport.vpk_type == int(vpk_type))
@@ -205,10 +199,8 @@ async def reports_page(request: Request, db: Session = Depends(get_db),
 
 @router.get("/reports/export")
 async def reports_export(request: Request, db: Session = Depends(get_db),
+                         user: dict = Depends(require_login),
                          date_from: str = "", date_to: str = "", vpk_type: str = ""):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
     q = db.query(models.VpkReport).order_by(models.VpkReport.submitted_at.desc())
     if vpk_type in ("1", "2"):
         q = q.filter(models.VpkReport.vpk_type == int(vpk_type))
@@ -262,9 +254,9 @@ async def reports_export(request: Request, db: Session = Depends(get_db),
 
 
 @router.post("/reports/clear-all")
-async def clear_all_reports(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user or not user.get("is_admin"):
+async def clear_all_reports(request: Request, db: Session = Depends(get_db),
+                             user: dict = Depends(require_login)):
+    if not user.get("is_admin"):
         return RedirectResponse("/reports", status_code=302)
     db.query(models.VpkReportItem).delete()
     db.query(models.VpkReport).delete()

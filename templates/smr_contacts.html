@@ -21,6 +21,9 @@
       </div>
       <form method="post" action="/smr/contacts/add" class="p-3">
         <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+        {% if error %}
+        <div class="alert alert-danger py-2 small">{{ error }}</div>
+        {% endif %}
         <div class="mb-3">
           <label class="form-label small fw-semibold">Фамилия Имя <span class="text-danger">*</span></label>
           <input type="text" name="name" class="form-control form-control-sm"

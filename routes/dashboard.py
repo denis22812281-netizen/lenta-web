@@ -1,22 +1,20 @@
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Request, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 import models
 from database import get_db
-from deps import templates, get_current_user
+from deps import templates, require_login
 
 router = APIRouter()
 
 
 @router.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def dashboard(request: Request, db: Session = Depends(get_db),
+                    user: dict = Depends(require_login)):
     today = date.today()
     total_projects  = db.query(models.Project).count()
     active_projects = db.query(models.Project).filter(models.Project.status == "Активный").count()

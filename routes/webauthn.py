@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, get_current_user
+from deps import templates, get_current_user, require_login
 
 router = APIRouter()
 
@@ -34,10 +34,8 @@ def _origin(request: Request) -> str:
 # ─── Страница настройки ───────────────────────────────────────────────────────
 
 @router.get("/webauthn/setup", response_class=HTMLResponse)
-async def webauthn_setup(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def webauthn_setup(request: Request, db: Session = Depends(get_db),
+                         user: dict = Depends(require_login)):
     creds = db.query(models.WebAuthnCredential).filter(
         models.WebAuthnCredential.user_id == user["id"]).all()
     return templates.TemplateResponse("webauthn_setup.html", {

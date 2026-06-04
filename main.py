@@ -116,19 +116,24 @@ class AuditMiddleware(BaseHTTPMiddleware):
             user = request.session.get("user")
             if not user:
                 return response
-            db = database.SessionLocal()
-            try:
-                db.add(models.AuditLog(
-                    user_name=user.get("display_name", ""),
-                    user_phone=user.get("phone", ""),
-                    path=path,
-                    ip=request.client.host if request.client else "",
-                ))
-                db.commit()
-            except Exception:
-                db.rollback()
-            finally:
-                db.close()
+            user_name  = user.get("display_name", "")
+            user_phone = user.get("phone", "")
+            ip         = request.client.host if request.client else ""
+
+            def _write():
+                db = database.SessionLocal()
+                try:
+                    db.add(models.AuditLog(
+                        user_name=user_name, user_phone=user_phone,
+                        path=path, ip=ip,
+                    ))
+                    db.commit()
+                except Exception:
+                    db.rollback()
+                finally:
+                    db.close()
+
+            asyncio.get_event_loop().run_in_executor(None, _write)
         except Exception:
             pass
         return response
@@ -328,6 +333,9 @@ async def startup():
                         uploaded_by VARCHAR(100) DEFAULT '',
                         uploaded_at TIMESTAMP DEFAULT NOW()
                     )""",
+                    "CREATE INDEX IF NOT EXISTS ix_chat_sender_name ON chat_messages (sender_name)",
+                    "CREATE INDEX IF NOT EXISTS ix_vpk_report_submitted_at ON vpk_reports (submitted_at)",
+                    "CREATE INDEX IF NOT EXISTS ix_ai_chat_user_name ON ai_chat_messages (user_name)",
                     "ALTER TABLE smr_tasks ADD COLUMN IF NOT EXISTS notified_date DATE",
                     "ALTER TABLE smr_tasks ADD COLUMN IF NOT EXISTS reject_comment TEXT DEFAULT ''",
                     """CREATE TABLE IF NOT EXISTS smr_contacts (
@@ -410,6 +418,9 @@ async def startup():
                         uploaded_by VARCHAR(100) DEFAULT '',
                         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )""",
+                    "CREATE INDEX IF NOT EXISTS ix_chat_sender_name ON chat_messages (sender_name)",
+                    "CREATE INDEX IF NOT EXISTS ix_vpk_report_submitted_at ON vpk_reports (submitted_at)",
+                    "CREATE INDEX IF NOT EXISTS ix_ai_chat_user_name ON ai_chat_messages (user_name)",
                 ]:
                     try:
                         conn.exec_driver_sql(sql)

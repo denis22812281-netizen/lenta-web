@@ -1,7 +1,6 @@
 """График СМР — создание, просмотр, управление задачами, email-подтверждения."""
 import io, os, secrets
 from datetime import date, timedelta, datetime
-from datetime import timedelta as td
 
 from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
@@ -12,7 +11,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, get_current_user
+from deps import templates, get_current_user, require_login
 from services.smr_template import get_template
 from services.email_service import send_smr_confirmation, send_smr_task_done, send_smr_progress_report
 
@@ -25,10 +24,8 @@ APP_URL = os.getenv("APP_URL", "https://lenta-web-production.up.railway.app").rs
 
 @router.get("/smr", response_class=HTMLResponse)
 async def smr_list(request: Request, db: Session = Depends(get_db),
-                   search: str = "", manager_id: str = "", proj_type: str = ""):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+                   search: str = "", manager_id: str = "", proj_type: str = "",
+                   user: dict = Depends(require_login)):
 
     q = db.query(models.Project).filter(
         models.Project.project_type.in_(["Констракшн", "Реконструкция"])
@@ -65,10 +62,8 @@ async def smr_list(request: Request, db: Session = Depends(get_db),
 
 @router.get("/smr/export")
 async def smr_export(request: Request, db: Session = Depends(get_db),
-                     search: str = "", manager_id: str = ""):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+                     search: str = "", manager_id: str = "",
+                     user: dict = Depends(require_login)):
 
     q = db.query(models.Project).filter(
         models.Project.project_type.in_(["Констракшн", "Реконструкция"])
@@ -226,10 +221,8 @@ async def smr_export(request: Request, db: Session = Depends(get_db),
 @router.post("/smr/create/{project_id}")
 async def smr_create(project_id: int, request: Request,
                      start_date: str = Form(...),
-                     db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+                     db: Session = Depends(get_db),
+                     user: dict = Depends(require_login)):
 
     proj = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not proj:
@@ -270,10 +263,8 @@ async def smr_create(project_id: int, request: Request,
 
 @router.get("/smr/{project_id}", response_class=HTMLResponse)
 async def smr_view(project_id: int, request: Request,
-                   db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+                   db: Session = Depends(get_db),
+                   user: dict = Depends(require_login)):
 
     proj = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not proj:
@@ -521,7 +512,6 @@ async def smr_send_test_confirm(secret: str = "", task_id: int = 0,
         return JSONResponse({"error": "forbidden"}, status_code=403)
 
     from services.email_service import send_smr_deadline_notification
-    APP_URL = os.getenv("APP_URL", "https://lenta-web-production.up.railway.app").rstrip("/")
 
     task = db.query(models.SmrTask).filter(models.SmrTask.id == task_id).first()
     if not task:
@@ -533,13 +523,13 @@ async def smr_send_test_confirm(secret: str = "", task_id: int = 0,
         return JSONResponse({"error": "нет задач в БД"}, status_code=404)
 
     proj = task.schedule.project if task.schedule else None
+    test_email = os.getenv("TEST_EMAIL", "denis.mesmer@lenta.com")
     token = secrets.token_hex(32)
-    db.add(models.SmrConfirmation(task_id=task.id, token=token,
-                                   email="denis.mesmer@lenta.com"))
+    db.add(models.SmrConfirmation(task_id=task.id, token=token, email=test_email))
     db.commit()
 
     send_smr_deadline_notification(
-        to_email="denis.mesmer@lenta.com",
+        to_email=test_email,
         task_name=task.name,
         project_name=proj.name if proj else "—",
         tk_number=proj.tk_number if proj else "—",
@@ -603,10 +593,8 @@ async def smr_send_report(project_id: int, request: Request,
 # ── База контактов ───────────────────────────────────────────────────────────
 
 @router.get("/smr/contacts", response_class=HTMLResponse)
-async def smr_contacts(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def smr_contacts(request: Request, db: Session = Depends(get_db),
+                       user: dict = Depends(require_login)):
     contacts = db.query(models.SmrContact).order_by(models.SmrContact.name).all()
     return templates.TemplateResponse("smr_contacts.html", {
         "request": request, "user": user, "contacts": contacts,
@@ -616,13 +604,19 @@ async def smr_contacts(request: Request, db: Session = Depends(get_db)):
 @router.post("/smr/contacts/add")
 async def smr_contact_add(request: Request, db: Session = Depends(get_db),
                            name: str = Form(...), email: str = Form(...),
-                           position: str = Form("")):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+                           position: str = Form(""),
+                           user: dict = Depends(require_login)):
+    email_clean = email.strip().lower()
+    parts = email_clean.split("@")
+    if len(parts) != 2 or not parts[0] or "." not in parts[1]:
+        contacts = db.query(models.SmrContact).order_by(models.SmrContact.name).all()
+        return templates.TemplateResponse("smr_contacts.html", {
+            "request": request, "user": user, "contacts": contacts,
+            "error": "Некорректный email",
+        })
     db.add(models.SmrContact(
         name=name.strip(),
-        email=email.strip().lower(),
+        email=email_clean,
         position=position.strip(),
     ))
     db.commit()
@@ -631,10 +625,8 @@ async def smr_contact_add(request: Request, db: Session = Depends(get_db),
 
 @router.post("/smr/contacts/{contact_id}/delete")
 async def smr_contact_delete(contact_id: int, request: Request,
-                              db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+                              db: Session = Depends(get_db),
+                              user: dict = Depends(require_login)):
     c = db.query(models.SmrContact).filter(models.SmrContact.id == contact_id).first()
     if c:
         db.delete(c)
@@ -663,10 +655,8 @@ async def smr_contacts_search(request: Request, db: Session = Depends(get_db),
 
 @router.post("/smr/delete/{project_id}")
 async def smr_delete(project_id: int, request: Request,
-                     db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+                     db: Session = Depends(get_db),
+                     user: dict = Depends(require_login)):
     sch = db.query(models.SmrSchedule).filter(
         models.SmrSchedule.project_id == project_id).first()
     if sch:

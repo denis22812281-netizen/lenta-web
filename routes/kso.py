@@ -9,17 +9,16 @@ import openpyxl
 
 import models
 from database import get_db
-from deps import templates, get_current_user
+from deps import templates, get_current_user, require_login, require_admin
 from utils.excel import match_manager
+from utils.files import read_limited
 
 router = APIRouter()
 
 
 @router.get("/kso", response_class=HTMLResponse)
-async def kso_view(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def kso_view(request: Request, db: Session = Depends(get_db),
+                   user: dict = Depends(require_login)):
     manager_id = request.query_params.get("manager_id")
     search = request.query_params.get("search")
     tab = request.query_params.get("tab", "objects")
@@ -46,11 +45,12 @@ async def kso_view(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/kso/import")
 async def kso_import(request: Request, db: Session = Depends(get_db),
-                     file: UploadFile = File(...)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    content = await file.read()
+                     file: UploadFile = File(...),
+                     user: dict = Depends(require_login)):
+    try:
+        content = await read_limited(file, 10 * 1024 * 1024)
+    except ValueError as e:
+        return RedirectResponse(f"/kso?error={str(e)[:80]}&tab=objects", status_code=303)
     try:
         wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
         ws = wb.worksheets[0]
@@ -114,10 +114,8 @@ async def kso_comment(obj_id: int, request: Request, db: Session = Depends(get_d
 
 
 @router.post("/kso/objects/{obj_id}/delete")
-async def kso_delete_object(obj_id: int, request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user or not user.get("is_admin"):
-        return RedirectResponse("/kso", status_code=302)
+async def kso_delete_object(obj_id: int, request: Request, db: Session = Depends(get_db),
+                             user: dict = Depends(require_admin)):
     obj = db.query(models.KsoObject).filter(models.KsoObject.id == obj_id).first()
     if obj:
         db.delete(obj)
@@ -127,16 +125,15 @@ async def kso_delete_object(obj_id: int, request: Request, db: Session = Depends
 
 @router.post("/kso/schedules/upload")
 async def kso_schedule_upload(request: Request, db: Session = Depends(get_db),
-                               file: UploadFile = File(...), description: str = Form("")):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+                               file: UploadFile = File(...), description: str = Form(""),
+                               user: dict = Depends(require_login)):
     _ALLOWED_KSO = {".pdf", ".xlsx", ".xls", ".doc", ".docx", ".jpg", ".jpeg", ".png"}
     ext = Path(file.filename or "").suffix.lower()
     if ext not in _ALLOWED_KSO:
         return RedirectResponse("/kso?tab=schedules&msg=Недопустимый тип файла", status_code=303)
-    content = await file.read()
-    if len(content) > 50 * 1024 * 1024:  # 50 MB
+    try:
+        content = await read_limited(file, 50 * 1024 * 1024)
+    except ValueError:
         return RedirectResponse("/kso?tab=schedules&msg=Файл слишком большой (макс 50MB)", status_code=303)
     save_dir = Path("static/uploads/kso")
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -151,15 +148,24 @@ async def kso_schedule_upload(request: Request, db: Session = Depends(get_db),
     return RedirectResponse("/kso?tab=schedules&msg=Файл загружен", status_code=303)
 
 
+_KSO_UPLOAD_DIR = Path("static/uploads/kso")
+
+
+def _safe_kso_path(filename: str) -> Path:
+    upload_dir = _KSO_UPLOAD_DIR.resolve()
+    path = (upload_dir / filename).resolve()
+    if not path.is_relative_to(upload_dir):
+        raise HTTPException(status_code=400, detail="Недопустимый путь файла")
+    return path
+
+
 @router.get("/kso/schedules/{sch_id}/download")
-async def kso_schedule_download(sch_id: int, request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def kso_schedule_download(sch_id: int, request: Request, db: Session = Depends(get_db),
+                                 user: dict = Depends(require_login)):
     sch = db.query(models.KsoSchedule).filter(models.KsoSchedule.id == sch_id).first()
     if not sch:
         raise HTTPException(status_code=404)
-    path = Path(f"static/uploads/kso/{sch.filename}")
+    path = _safe_kso_path(sch.filename)
     if not path.exists():
         raise HTTPException(status_code=404, detail="Файл не найден")
     return StreamingResponse(open(path, "rb"),
@@ -167,15 +173,16 @@ async def kso_schedule_download(sch_id: int, request: Request, db: Session = Dep
 
 
 @router.post("/kso/schedules/{sch_id}/delete")
-async def kso_schedule_delete(sch_id: int, request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def kso_schedule_delete(sch_id: int, request: Request, db: Session = Depends(get_db),
+                               user: dict = Depends(require_login)):
     sch = db.query(models.KsoSchedule).filter(models.KsoSchedule.id == sch_id).first()
     if sch:
-        path = Path(f"static/uploads/kso/{sch.filename}")
-        if path.exists():
-            path.unlink()
+        try:
+            path = _safe_kso_path(sch.filename)
+            if path.exists():
+                path.unlink()
+        except HTTPException:
+            pass
         db.delete(sch)
         db.commit()
     return RedirectResponse("/kso?tab=schedules", status_code=303)

@@ -1,22 +1,20 @@
 from datetime import date
 
 from fastapi import APIRouter, Request, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, get_current_user
+from deps import templates, require_login
 
 router = APIRouter()
 
 
 @router.get("/deadlines", response_class=HTMLResponse)
 async def deadlines(request: Request, db: Session = Depends(get_db),
-                    manager_id: str = None, view: str = "all"):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+                    manager_id: str = None, view: str = "all",
+                    user: dict = Depends(require_login)):
     today = date.today()
     pq = db.query(models.Project).filter(
         models.Project.status != "Завершён",

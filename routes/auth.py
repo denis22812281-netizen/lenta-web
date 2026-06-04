@@ -102,11 +102,11 @@ async def create_password(request: Request, db: Session = Depends(get_db),
         models.PhoneWhitelist.phone == normalized).first()
     if not wl:
         return RedirectResponse("/login", status_code=302)
-    if len(password) < 6:
+    if len(password) < 8:
         return templates.TemplateResponse("login.html", {
             "request": request, "step": "create_password",
             "phone": normalized, "display_name": wl.display_name,
-            "error": "Пароль должен быть не менее 6 символов",
+            "error": "Пароль должен быть не менее 8 символов",
         })
     if password != password2:
         return templates.TemplateResponse("login.html", {

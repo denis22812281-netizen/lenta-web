@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 
 import models
 from database import get_db
-from deps import templates, get_current_user
+from deps import templates, get_current_user, require_login, require_admin
 from utils.phone import normalize_phone
 from services.online import ONLINE_USERS, ONLINE_TIMEOUT
 from services.cloud_storage import upload_photo
@@ -16,10 +16,8 @@ router = APIRouter()
 
 
 @router.get("/managers", response_class=HTMLResponse)
-async def managers_view(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def managers_view(request: Request, db: Session = Depends(get_db),
+                        user: dict = Depends(require_login)):
     today = date.today()
     _order = [
         "Месмер Денис", "Митько Роберт", "Ловчиков Александр",
@@ -70,10 +68,8 @@ async def managers_view(request: Request, db: Session = Depends(get_db)):
 @router.post("/managers/add")
 async def add_manager(request: Request, db: Session = Depends(get_db),
                       name: str = Form(...), phone: str = Form(""),
-                      email: str = Form(""), is_leader: str = Form("")):
-    user = get_current_user(request)
-    if not user or not user.get("is_admin"):
-        return RedirectResponse("/managers", status_code=302)
+                      email: str = Form(""), is_leader: str = Form(""),
+                      user: dict = Depends(require_admin)):
     mgr = models.Manager(name=name.strip(), is_leader=bool(is_leader),
                          email=email.strip().lower() if email.strip() else "")
     db.add(mgr)
@@ -89,10 +85,8 @@ async def add_manager(request: Request, db: Session = Depends(get_db),
 
 
 @router.post("/managers/{manager_id}/delete")
-async def delete_manager(manager_id: int, request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user or not user.get("is_admin"):
-        return RedirectResponse("/managers", status_code=302)
+async def delete_manager(manager_id: int, request: Request, db: Session = Depends(get_db),
+                         user: dict = Depends(require_admin)):
     mgr = db.query(models.Manager).filter(models.Manager.id == manager_id).first()
     if mgr:
         for p in mgr.projects:
@@ -114,7 +108,11 @@ async def update_manager_email(manager_id: int, request: Request,
     mgr = db.query(models.Manager).filter(models.Manager.id == manager_id).first()
     if not mgr:
         return {"error": "Менеджер не найден"}
-    mgr.email = data.get("email", "").strip().lower()
+    email = data.get("email", "").strip().lower()
+    parts = email.split("@")
+    if email and (len(parts) != 2 or not parts[0] or "." not in parts[1]):
+        return {"error": "Некорректный email"}
+    mgr.email = email
     db.commit()
     return {"ok": True, "email": mgr.email}
 
@@ -122,9 +120,9 @@ async def update_manager_email(manager_id: int, request: Request,
 @router.post("/managers/{manager_id}/photo")
 async def upload_manager_photo(manager_id: int, request: Request,
                                 file: UploadFile = File(...),
-                                db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user or user.get("display_name") != "Месмер Денис":
+                                db: Session = Depends(get_db),
+                                user: dict = Depends(require_login)):
+    if user.get("display_name") != "Месмер Денис" and not user.get("is_admin"):
         return RedirectResponse("/managers", status_code=302)
     mgr = db.query(models.Manager).filter(models.Manager.id == manager_id).first()
     if not mgr:

@@ -10,16 +10,15 @@ import openpyxl
 
 import models
 from database import get_db
-from deps import templates, get_current_user
+from deps import templates, get_current_user, require_login
+from utils.files import read_limited
 
 router = APIRouter()
 
 
 @router.get("/stats", response_class=HTMLResponse)
-async def stats_page(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def stats_page(request: Request, db: Session = Depends(get_db),
+                     user: dict = Depends(require_login)):
     today    = date.today()
     managers = db.query(models.Manager).all()
     projects = db.query(models.Project).filter(
@@ -83,6 +82,8 @@ async def save_delay_reason(project_id: int, request: Request, db: Session = Dep
     user = get_current_user(request)
     if not user:
         return {"error": "Не авторизован"}
+    if not user.get("is_admin"):
+        return {"error": "Нет доступа"}
     data = await request.json()
     p = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not p:
@@ -95,11 +96,12 @@ async def save_delay_reason(project_id: int, request: Request, db: Session = Dep
 
 @router.post("/stats/upload")
 async def stats_upload(request: Request, db: Session = Depends(get_db),
+                       user: dict = Depends(require_login),
                        file: UploadFile = File(...)):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    content = await file.read()
+    try:
+        content = await read_limited(file, 10 * 1024 * 1024)
+    except ValueError:
+        return RedirectResponse("/stats?error=Файл слишком большой (макс 10 МБ)", status_code=303)
     try:
         from utils.excel import safe_date
         wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
@@ -130,10 +132,8 @@ async def stats_upload(request: Request, db: Session = Depends(get_db),
 
 @router.get("/stats/export")
 async def stats_export(request: Request, db: Session = Depends(get_db),
+                       user: dict = Depends(require_login),
                        date_from: str = "", date_to: str = ""):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
     today_date = date.today()
     q = db.query(models.Project).filter(
         models.Project.project_type == "Констракшн",

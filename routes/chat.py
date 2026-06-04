@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, get_current_user
+from deps import templates, get_current_user, require_login
 from services.online import ONLINE_USERS, ONLINE_TIMEOUT
 from services.cloud_storage import upload_photo, media_url
 
@@ -16,10 +16,8 @@ router = APIRouter()
 
 
 @router.get("/chat", response_class=HTMLResponse)
-async def chat_page(request: Request, db: Session = Depends(get_db), partner: str = ""):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
+async def chat_page(request: Request, db: Session = Depends(get_db), partner: str = "",
+                    user: dict = Depends(require_login)):
     _order = [
         "Месмер Денис", "Митько Роберт", "Ловчиков Александр",
         "Валеев Борис", "Косило Сергей", "Студеникин Сергей",
@@ -116,7 +114,7 @@ async def chat_send_photo(request: Request, db: Session = Depends(get_db),
         ext = '.jpg'
     fname = (f"{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_"
              f"{user.get('display_name','u').replace(' ','_')}{ext}")
-    stored = upload_photo(await file.read(), "chat", fname)
+    stored = upload_photo(await file.read(), "chat", fname)  # noqa: chat photos are small
     msg = models.ChatMessage(
         sender_name=user.get("display_name", ""),
         receiver_name=partner, text=text or "",
