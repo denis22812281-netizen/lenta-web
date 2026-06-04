@@ -137,6 +137,32 @@
     </div>
 </div>
 
+<!-- Нижняя навигация — только мобиль -->
+<nav class="bottom-nav-mobile" id="bottom-nav">
+    <a href="/" class="bnav-item {% if request.url.path == '/' %}active{% endif %}">
+        <i class="bi bi-speedometer2"></i>
+        <span class="bnav-label">Дашборд</span>
+    </a>
+    <a href="/deadlines" class="bnav-item {% if '/deadlines' in request.url.path %}active{% endif %}">
+        <i class="bi bi-clock-history"></i>
+        <span class="bnav-label">Дедлайны</span>
+        <span class="bnav-badge" id="bnav-notif-badge"></span>
+    </a>
+    <a href="/vpk" class="bnav-item {% if request.url.path.startswith('/vpk') %}active{% endif %}">
+        <i class="bi bi-clipboard2-check-fill"></i>
+        <span class="bnav-label">ВПК</span>
+        <span class="bnav-badge" id="bnav-vpk-badge"></span>
+    </a>
+    <a href="/managers" class="bnav-item {% if '/managers' in request.url.path %}active{% endif %}">
+        <i class="bi bi-people-fill"></i>
+        <span class="bnav-label">Менеджеры</span>
+    </a>
+    <a href="/smr" class="bnav-item {% if request.url.path.startswith('/smr') %}active{% endif %}">
+        <i class="bi bi-bar-chart-steps"></i>
+        <span class="bnav-label">СМР</span>
+    </a>
+</nav>
+
 <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-box" style="z-index:9999"></div>
 
 <script src="/static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
@@ -341,15 +367,13 @@
             const data = await r.json();
             const reports = data.reports || [];
             const badge = document.getElementById('vpk-badge');
-            if (badge) {
-                if (reports.length > 0) {
-                    badge.textContent = reports.length;
-                    badge.classList.remove('d-none');
-                    badge.style.display = 'flex';
-                } else {
-                    badge.classList.add('d-none');
-                    badge.style.display = 'none';
-                }
+            const bnavVpk = document.getElementById('bnav-vpk-badge');
+            if (reports.length > 0) {
+                if (badge) { badge.textContent = reports.length; badge.classList.remove('d-none'); badge.style.display = 'flex'; }
+                if (bnavVpk) { bnavVpk.textContent = reports.length; bnavVpk.classList.add('show'); }
+            } else {
+                if (badge) { badge.classList.add('d-none'); badge.style.display = 'none'; }
+                if (bnavVpk) { bnavVpk.classList.remove('show'); }
             }
             reports.forEach((rpt, i) => {
                 const key = 'vpk_notif_' + rpt.id;

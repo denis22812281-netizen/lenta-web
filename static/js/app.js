@@ -179,13 +179,13 @@ async function checkDeadlines(force = false) {
 
         const total = data.overdue_tasks.length + data.urgent_tasks.length + data.urgent_projects.length;
         const badge = document.getElementById('notif-badge');
-        if (badge) {
-            if (total > 0) {
-                badge.textContent = total;
-                badge.classList.remove('d-none');
-            } else {
-                badge.classList.add('d-none');
-            }
+        const bnavNotif = document.getElementById('bnav-notif-badge');
+        if (total > 0) {
+            if (badge) { badge.textContent = total; badge.classList.remove('d-none'); }
+            if (bnavNotif) { bnavNotif.textContent = total; bnavNotif.classList.add('show'); }
+        } else {
+            if (badge) { badge.classList.add('d-none'); }
+            if (bnavNotif) { bnavNotif.classList.remove('show'); }
         }
 
         const today = new Date().toDateString();

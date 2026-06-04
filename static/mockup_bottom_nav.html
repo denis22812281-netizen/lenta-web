@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Макет — Нижняя навигация Лента.PM</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1a2e;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+
+  h2 {
+    color: #fff;
+    text-align: center;
+    width: 100%;
+    font-size: 20px;
+    margin-bottom: 8px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    opacity: .7;
+  }
+  .sub {
+    color: rgba(255,255,255,.4);
+    text-align: center;
+    width: 100%;
+    font-size: 12px;
+    margin-bottom: 30px;
+  }
+
+  /* Телефон */
+  .phone {
+    width: 375px;
+    height: 750px;
+    background: #0f172a;
+    border-radius: 40px;
+    border: 3px solid #334155;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.05);
+    display: flex;
+    flex-direction: column;
+  }
+  .phone-label {
+    color: rgba(255,255,255,.45);
+    font-size: 11px;
+    text-align: center;
+    margin-top: 8px;
+    letter-spacing: 1px;
+  }
+
+  /* Notch */
+  .notch {
+    width: 120px; height: 24px;
+    background: #000;
+    border-radius: 0 0 16px 16px;
+    margin: 0 auto;
+    flex-shrink: 0;
+  }
+
+  /* Topbar */
+  .topbar {
+    background: #1e293b;
+    border-bottom: 1px solid #2d3f2e;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .hamburger {
+    font-size: 20px;
+    color: #94a3b8;
+  }
+  .topbar-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e2e8f0;
+    flex: 1;
+  }
+  .topbar-date {
+    font-size: 11px;
+    color: #64748b;
+  }
+
+  /* Контент */
+  .content {
+    flex: 1;
+    overflow: hidden;
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stat-card {
+    background: #1e293b;
+    border-radius: 10px;
+    padding: 12px;
+    border-top: 3px solid #3CB34A;
+  }
+  .stat-card.red  { border-top-color: #ef4444; }
+  .stat-card.yellow { border-top-color: #FFD200; }
+  .stat-card.green2 { border-top-color: #22c55e; }
+  .stat-num   { font-size: 26px; font-weight: 800; color: #e2e8f0; line-height: 1; }
+  .stat-label { font-size: 9px; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: .5px; }
+
+  .data-card {
+    background: #1e293b;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .data-card-header {
+    padding: 8px 12px;
+    background: #162032;
+    font-size: 10px;
+    font-weight: 700;
+    color: #3CB34A;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid #2d3f2e;
+  }
+  .row-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid #1e3a2f;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .row-item:last-child { border-bottom: none; }
+  .row-dot { width: 8px; height: 8px; border-radius: 50%; background: #3CB34A; flex-shrink: 0; }
+  .row-dot.red { background: #ef4444; }
+  .row-dot.yellow { background: #FFD200; }
+  .row-name { font-size: 11px; color: #e2e8f0; flex: 1; }
+  .row-badge {
+    font-size: 9px; font-weight: 700;
+    padding: 2px 6px; border-radius: 10px;
+    background: #052e16; color: #86efac;
+  }
+  .row-badge.red { background: #450a0a; color: #fca5a5; }
+  .row-badge.yellow { background: #422006; color: #fde68a; }
+
+  /* ═══ НИЖНЯЯ НАВИГАЦИЯ ═══ */
+  .bottom-nav {
+    background: #0D2010;
+    border-top: 1px solid rgba(60,179,74,.3);
+    display: flex;
+    align-items: center;
+    height: 58px;
+    flex-shrink: 0;
+    padding: 0 4px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,.4);
+  }
+  .nav-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 2px;
+    cursor: pointer;
+    transition: all .15s;
+    border-radius: 10px;
+    position: relative;
+  }
+  .nav-tab i {
+    font-size: 20px;
+    color: rgba(255,255,255,.4);
+  }
+  .nav-tab span {
+    font-size: 9px;
+    color: rgba(255,255,255,.35);
+    letter-spacing: .3px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .nav-tab.active i   { color: #3CB34A; }
+  .nav-tab.active span { color: #3CB34A; }
+  .nav-tab.active::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 24px; height: 3px;
+    background: #3CB34A;
+    border-radius: 2px 2px 0 0;
+  }
+  .nav-badge {
+    position: absolute;
+    top: 4px; right: 50%;
+    transform: translateX(10px);
+    background: #dc2626;
+    color: #fff;
+    border-radius: 50%;
+    width: 14px; height: 14px;
+    font-size: 8px;
+    font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Второй телефон — другой активный экран */
+  .phone2 .data-card { margin-bottom: 8px; }
+
+  /* Легенда */
+  .legend {
+    color: rgba(255,255,255,.5);
+    font-size: 11px;
+    text-align: center;
+    width: 375px;
+    line-height: 1.7;
+  }
+  .legend strong { color: #3CB34A; }
+
+  @media print {
+    body { background: #fff; padding: 20px; }
+    .phone { box-shadow: 0 0 0 2px #ccc; }
+    h2 { color: #1a1a2e; }
+    .sub, .phone-label, .legend { color: #666; }
+  }
+</style>
+<!-- Bootstrap Icons CDN -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+
+<h2>ЛЕНТА.PM — НИЖНЯЯ НАВИГАЦИЯ</h2>
+<p class="sub">Мобильная версия · Фиксированная панель снизу · Видна на экранах &lt; 992px</p>
+
+<!-- Телефон 1: Дашборд активен -->
+<div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="topbar">
+      <div class="hamburger"><i class="bi bi-list"></i></div>
+      <div class="topbar-title">Дашборд</div>
+      <div class="topbar-date">чт, 4 июня 2026</div>
+    </div>
+    <div class="content">
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-num">48</div>
+          <div class="stat-label">Всего проектов</div>
+        </div>
+        <div class="stat-card green2">
+          <div class="stat-num">31</div>
+          <div class="stat-label">Активных</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-num">7</div>
+          <div class="stat-label">На этой неделе</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-num">3</div>
+          <div class="stat-label">Просрочено</div>
+        </div>
+      </div>
+      <div class="data-card">
+        <div class="data-card-header"><i class="bi bi-building-fill me-1"></i>Ближайшие дедлайны</div>
+        <div class="row-item">
+          <div class="row-dot red"></div>
+          <div class="row-name">ТК 651 Москва</div>
+          <div class="row-badge red">Просрочено</div>
+        </div>
+        <div class="row-item">
+          <div class="row-dot yellow"></div>
+          <div class="row-name">ТК 720 Казань</div>
+          <div class="row-badge yellow">2 дня</div>
+        </div>
+        <div class="row-item">
+          <div class="row-dot"></div>
+          <div class="row-name">ТК 538 Самара</div>
+          <div class="row-badge">14 дней</div>
+        </div>
+        <div class="row-item">
+          <div class="row-dot"></div>
+          <div class="row-name">ТК 870 Воронеж</div>
+          <div class="row-badge">21 день</div>
+        </div>
+      </div>
+      <div class="data-card">
+        <div class="data-card-header"><i class="bi bi-clipboard2-check me-1"></i>Задачи на сегодня</div>
+        <div class="row-item">
+          <div class="row-dot red"></div>
+          <div class="row-name">Согласовать смету ТК 651</div>
+          <div class="row-badge red">Срочно</div>
+        </div>
+        <div class="row-item">
+          <div class="row-dot yellow"></div>
+          <div class="row-name">Отправить отчёт ВПК2</div>
+          <div class="row-badge yellow">Сегодня</div>
+        </div>
+      </div>
+    </div>
+    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
+    <nav class="bottom-nav">
+      <div class="nav-tab active">
+        <i class="bi bi-speedometer2"></i>
+        <span>Дашборд</span>
+      </div>
+      <div class="nav-tab">
+        <i class="bi bi-clock-history"></i>
+        <span>Дедлайны</span>
+        <div class="nav-badge">3</div>
+      </div>
+      <div class="nav-tab">
+        <i class="bi bi-clipboard2-check-fill"></i>
+        <span>ВПК</span>
+        <div class="nav-badge">2</div>
+      </div>
+      <div class="nav-tab">
+        <i class="bi bi-check2-square"></i>
+        <span>Задачи</span>
+      </div>
+      <div class="nav-tab">
+        <i class="bi bi-bar-chart-steps"></i>
+        <span>СМР</span>
+      </div>
+    </nav>
+  </div>
+  <div class="phone-label">Дашборд активен · бейджи на Дедлайны и ВПК</div>
+</div>
+
+<!-- Телефон 2: СМР активен -->
+<div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="topbar">
+      <div class="hamburger"><i class="bi bi-list"></i></div>
+      <div class="topbar-title"><i class="bi bi-bar-chart-steps" style="color:#3CB34A"></i> &nbsp;График СМР · ТК 720</div>
+      <div class="topbar-date">73%</div>
+    </div>
+    <div class="content">
+      <div class="stat-row">
+        <div class="stat-card green2">
+          <div class="stat-num">32</div>
+          <div class="stat-label">Выполнено</div>
+        </div>
+        <div class="stat-card" style="border-top-color:#2563eb">
+          <div class="stat-num">6</div>
+          <div class="stat-label">В работе</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-num">2</div>
+          <div class="stat-label">Просрочено</div>
+        </div>
+        <div class="stat-card yellow">
+          <div class="stat-num">44</div>
+          <div class="stat-label">Всего</div>
+        </div>
+      </div>
+      <div class="data-card">
+        <div class="data-card-header"><i class="bi bi-diamond-fill me-1"></i>Ключевые вехи</div>
+        <div class="row-item">
+          <div class="row-dot"></div>
+          <div class="row-name">Выход на СМР</div>
+          <div class="row-badge">Выполнено</div>
+        </div>
+        <div class="row-item">
+          <div class="row-dot yellow"></div>
+          <div class="row-name">ВПК 1</div>
+          <div class="row-badge yellow">В работе</div>
+        </div>
+        <div class="row-item">
+          <div class="row-dot red"></div>
+          <div class="row-name">Открытие</div>
+          <div class="row-badge red">Просрочено</div>
+        </div>
+      </div>
+      <div class="data-card" style="flex:1">
+        <div class="data-card-header"><i class="bi bi-list-task me-1"></i>Этапы работ</div>
+        <div class="row-item">
+          <div class="row-dot"></div>
+          <div class="row-name">01. Подготовительные работы</div>
+          <div class="row-badge">Готово</div>
+        </div>
+        <div class="row-item">
+          <div class="row-dot" style="background:#2563eb"></div>
+          <div class="row-name">02. Демонтаж</div>
+          <div class="row-badge" style="background:#0c1a3a;color:#60a5fa">В работе</div>
+        </div>
+        <div class="row-item">
+          <div class="row-dot" style="background:#475569"></div>
+          <div class="row-name">03. Перекрытия</div>
+          <div class="row-badge" style="background:#1e293b;color:#64748b">Ожидание</div>
+        </div>
+      </div>
+    </div>
+    <!-- НИЖНЯЯ НАВИГАЦИЯ -->
+    <nav class="bottom-nav">
+      <div class="nav-tab">
+        <i class="bi bi-speedometer2"></i>
+        <span>Дашборд</span>
+      </div>
+      <div class="nav-tab">
+        <i class="bi bi-clock-history"></i>
+        <span>Дедлайны</span>
+      </div>
+      <div class="nav-tab">
+        <i class="bi bi-clipboard2-check-fill"></i>
+        <span>ВПК</span>
+      </div>
+      <div class="nav-tab">
+        <i class="bi bi-check2-square"></i>
+        <span>Задачи</span>
+      </div>
+      <div class="nav-tab active">
+        <i class="bi bi-bar-chart-steps"></i>
+        <span>СМР</span>
+      </div>
+    </nav>
+  </div>
+  <div class="phone-label">График СМР активен · все бейджи сброшены</div>
+</div>
+
+<!-- Легенда -->
+<div class="legend">
+  <strong>Активный пункт</strong> — зелёный (цвет Лента), линия снизу<br>
+  <strong>Бейджи</strong> — красные кружки с числом (как сейчас в сайдбаре)<br>
+  <strong>Высота панели</strong> — 58px · видна только на мобиле (&lt;992px)<br>
+  <strong>Гамбургер</strong> — остаётся, для доступа ко всем разделам<br>
+  <strong>Safe area</strong> — учтён отступ для iPhone (env(safe-area-inset-bottom))
+</div>
+
+</body>
+</html>

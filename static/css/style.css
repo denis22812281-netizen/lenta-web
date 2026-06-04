@@ -629,6 +629,75 @@ body {
 }
 [data-bs-theme="dark"] .btn-theme-toggle:hover { background: rgba(255,210,0,.1); }
 
+/* ── НИЖНЯЯ НАВИГАЦИЯ (мобиль < 992px) ─────────────────────── */
+.bottom-nav-mobile {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #0D2010;
+    border-top: 1px solid rgba(60,179,74,.3);
+    display: none;
+    align-items: center;
+    height: 58px;
+    z-index: 500;
+    box-shadow: 0 -4px 20px rgba(0,0,0,.5);
+    padding: 0 4px;
+    padding-bottom: env(safe-area-inset-bottom);
+}
+.bnav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 2px;
+    text-decoration: none;
+    position: relative;
+    border-radius: 10px;
+    transition: color .15s;
+    min-width: 0;
+}
+.bnav-item i {
+    font-size: 20px;
+    color: rgba(255,255,255,.38);
+    transition: color .15s;
+}
+.bnav-item .bnav-label {
+    font-size: 9px;
+    color: rgba(255,255,255,.32);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    white-space: nowrap;
+    transition: color .15s;
+}
+.bnav-item.active i         { color: #3CB34A; }
+.bnav-item.active .bnav-label { color: #3CB34A; }
+.bnav-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 26px; height: 3px;
+    background: #3CB34A;
+    border-radius: 2px 2px 0 0;
+}
+.bnav-badge {
+    position: absolute;
+    top: 4px; right: 50%;
+    transform: translateX(12px);
+    background: #dc2626;
+    color: #fff;
+    border-radius: 50%;
+    width: 15px; height: 15px;
+    font-size: 8px;
+    font-weight: 800;
+    align-items: center;
+    justify-content: center;
+    display: none;
+}
+.bnav-badge.show { display: flex; }
+
 /* ── RESPONSIVE ─────────────────────────────────────────────── */
 @media (max-width: 991px) {
     .sidebar { transform: translateX(-100%); }
@@ -637,6 +706,12 @@ body {
     .btn-hamburger { display: block; }
     .quick-actions { grid-template-columns: repeat(2, 1fr); }
     .btn-sidebar-close { display: flex; align-items: center; justify-content: center; }
+    /* Показываем нижнюю навигацию */
+    .bottom-nav-mobile { display: flex; }
+    /* Отступ снизу чтобы контент не уходил под панель */
+    .page-body { padding-bottom: calc(58px + env(safe-area-inset-bottom) + 14px); }
+    /* Тосты выше нижней панели */
+    #toast-box { bottom: calc(58px + env(safe-area-inset-bottom) + 8px) !important; }
 }
 @media (max-width: 576px) {
     .quick-actions { grid-template-columns: 1fr 1fr; }
