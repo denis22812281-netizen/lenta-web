@@ -499,9 +499,24 @@ body {
 [data-bs-theme="dark"] .dl-ok   { background: #052e16; color: #86efac; }
 
 /* Quick action buttons */
-[data-bs-theme="dark"] .quick-btn-warn  { background: #1c1a00; color: #FFD200; border-color: #5a4a00; }
-[data-bs-theme="dark"] .quick-btn-blue  { background: #0d2b1a; color: #86efac; border-color: #166534; }
-[data-bs-theme="dark"] .quick-btn-green { background: #0d2b1a; color: #a7f3d0; border-color: #065f46; }
+/* Все quick-btn в тёмной теме — единый стиль карточки */
+[data-bs-theme="dark"] .quick-btn {
+    background: #1e293b !important;
+    border: 1px solid #2d3f50 !important;
+    box-shadow: none;
+}
+[data-bs-theme="dark"] .quick-btn:hover {
+    background: #253449 !important;
+    border-color: rgba(60,179,74,.35) !important;
+    box-shadow: 0 6px 18px rgba(0,0,0,.3) !important;
+}
+[data-bs-theme="dark"] .quick-btn-warn   { color: #FFD200 !important; }
+[data-bs-theme="dark"] .quick-btn-blue   { color: #86efac !important; }
+[data-bs-theme="dark"] .quick-btn-green  { color: #6ee7b7 !important; }
+[data-bs-theme="dark"] .quick-btn-dark   { color: #4ade80 !important; }
+[data-bs-theme="dark"] .quick-btn-orange { color: #fb923c !important; }
+[data-bs-theme="dark"] .quick-btn-purple { color: #c4b5fd !important; }
+[data-bs-theme="dark"] .quick-btn-red    { color: #4ade80 !important; }
 
 /* Inputs & selects */
 [data-bs-theme="dark"] .form-control,
