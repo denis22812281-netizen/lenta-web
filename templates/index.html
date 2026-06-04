@@ -170,7 +170,7 @@
           <canvas id="chartProjStatus"></canvas>
           <div id="chartProjTotal" style="position:absolute;top:50%;left:50%;
                transform:translate(-50%,-50%);text-align:center;pointer-events:none">
-            <div style="font-size:28px;font-weight:900;color:#1a2e1c">{{ total_projects }}</div>
+            <div style="font-size:28px;font-weight:900" class="text-dark">{{ total_projects }}</div>
             <div style="font-size:11px;color:#888;margin-top:2px">проектов</div>
           </div>
         </div>
@@ -250,7 +250,7 @@ function makeLegend(containerId, labels, colors, values) {
         <span style="width:10px;height:10px;border-radius:50%;background:${colors[i]};display:inline-block;flex-shrink:0"></span>
         ${l}
       </span>
-      <span style="font-weight:700;color:#374151">${values[i]}</span>
+      <span style="font-weight:700" class="text-dark">${values[i]}</span>
     </div>`).join('');
 }
 

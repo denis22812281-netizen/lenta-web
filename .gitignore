@@ -13,3 +13,7 @@ check.txt
 distribution.txt
 mgr_debug.txt
 mgr_tk_debug.txt
+debug_*.py
+make_demo_*.py
+read_plan.py
+.claude/

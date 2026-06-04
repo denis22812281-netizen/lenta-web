@@ -73,7 +73,10 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                         status_code=403)
         return await call_next(request)
 
-SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_hex(32))
+SECRET_KEY = os.getenv("SECRET_KEY", "")
+if not SECRET_KEY:
+    SECRET_KEY = secrets.token_hex(32)
+    logger.warning("SECRET_KEY не задан! Сессии будут сброшены при каждом рестарте. Задайте SECRET_KEY в переменных окружения.")
 
 
 class SessionVersionMiddleware(BaseHTTPMiddleware):
@@ -192,8 +195,9 @@ async def auto_sync_loop():
                         elapsed = (datetime.utcnow() - cfg.last_synced).total_seconds() / 60
                         should_sync = elapsed >= cfg.sync_interval_minutes
                     if should_sync:
-                        path = Path(cfg.file_path)
-                        if path.exists() and path.suffix in ('.xlsx', '.xls', '.xlsm'):
+                        path = Path(cfg.file_path).resolve()
+                        if (path.exists() and path.suffix in ('.xlsx', '.xls', '.xlsm')
+                                and not str(path).startswith(('/etc', '/proc', '/sys', 'C:\\Windows'))):
                             try:
                                 content = path.read_bytes()
                                 if cfg.project_type == "Реконструкция":

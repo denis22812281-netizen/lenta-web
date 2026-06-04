@@ -723,3 +723,41 @@ body {
     /* Таблицы — убираем горизонтальный зазор */
     .data-card > .table-responsive { margin: 0; }
 }
+
+/* ── PRESENTATION POLISH ─────────────────────────────────────── */
+
+/* Плавное появление страниц */
+.page-body { animation: pageFadeIn .25s ease; }
+@keyframes pageFadeIn { from { opacity:.7; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+
+/* Улучшенные stat-cards — hover с тенью */
+.stat-card { transition: transform .2s, box-shadow .2s; }
+.stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(60,179,74,.15); }
+
+/* Бейджи статусов — чуть более скруглённые */
+.dl-badge { border-radius: 8px; font-size: 12px; padding: 3px 10px; }
+
+/* Строки таблицы — плавный hover */
+.table-hover > tbody > tr { transition: background .15s; }
+
+/* Прокрутка sidebar — тонкий скроллбар */
+.sidebar-nav::-webkit-scrollbar { width: 4px; }
+.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 2px; }
+
+/* Data-card заголовок — разделитель виден чётче */
+.data-card-header { font-size: 13px; }
+
+/* Кнопки — минимальная высота для удобного нажатия */
+.btn { min-height: 36px; }
+
+/* Topbar title — убираем лишнее */
+.topbar-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60vw; }
+
+/* Тёмная тема: chart text */
+[data-bs-theme="dark"] canvas { filter: none; }
+[data-bs-theme="dark"] .stat-num { color: #f1f5f9; }
+
+/* Нижняя навигация — активный пункт пульсирует при первом посещении */
+@keyframes bnavPop { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+.bnav-item.active i { animation: bnavPop .4s ease; }
