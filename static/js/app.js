@@ -56,6 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Закрыть по клику на backdrop
     if (backdrop) backdrop.addEventListener('click', closeSidebar);
 
+    // Закрыть по кнопке × внутри сайдбара
+    const closeSidebarBtn = document.getElementById('btn-sidebar-close');
+    if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', closeSidebar);
+
     // Закрыть при клике по любому пункту меню на мобиле
     if (sidebar) {
         sidebar.querySelectorAll('.nav-item').forEach(link => {

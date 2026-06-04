@@ -412,6 +412,23 @@ body {
 .btn-outline-danger { color: var(--lenta-green) !important; border-color: var(--lenta-green) !important; }
 .btn-outline-danger:hover { background: var(--lenta-green) !important; color: #fff !important; }
 
+/* ── SIDEBAR CLOSE BUTTON (mobile) ─────────────────────────── */
+.btn-sidebar-close {
+    display: none;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.2);
+    color: rgba(255,255,255,.7);
+    border-radius: 8px;
+    padding: 5px 9px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all .15s;
+    margin-left: auto;
+    flex-shrink: 0;
+    line-height: 1;
+}
+.btn-sidebar-close:hover { background: rgba(255,255,255,.22); color: #fff; }
+
 /* ── SIDEBAR BACKDROP (mobile) ──────────────────────────────── */
 .sidebar-backdrop {
     display: none;
@@ -619,9 +636,15 @@ body {
     .main-wrap { margin-left: 0; }
     .btn-hamburger { display: block; }
     .quick-actions { grid-template-columns: repeat(2, 1fr); }
+    .btn-sidebar-close { display: flex; align-items: center; justify-content: center; }
 }
 @media (max-width: 576px) {
     .quick-actions { grid-template-columns: 1fr 1fr; }
-    .page-body { padding: 14px 16px; }
-    .topbar { padding: 10px 16px; }
+    .page-body { padding: 12px 8px; }
+    .topbar { padding: 10px 14px; }
+    /* Фильтры — inputs на полную ширину */
+    .filter-bar form .form-control,
+    .filter-bar form .form-select { width: 100% !important; flex: 1 1 140px; min-width: 0; }
+    /* Таблицы — убираем горизонтальный зазор */
+    .data-card > .table-responsive { margin: 0; }
 }
