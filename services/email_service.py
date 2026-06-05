@@ -653,3 +653,227 @@ def notify_deadline_tomorrow(to_email: str, manager_name: str, projects: list) -
         </table>
     """
     return send_email(to_email, f"Дедлайны завтра ({len(projects)} проектов)", _base_template(content))
+
+
+def send_leader_digest(to_email: str, name: str, vpk_unread: int,
+                       smr_today: list, overdue_managers: list,
+                       critical_projects: list, app_url: str = "") -> bool:
+    """Ежедневный дайджест руководителя. Активируется переменной LEADER_DIGEST_ENABLED=true."""
+    from datetime import date
+    url = (app_url or APP_URL).rstrip("/")
+    today_str = date.today().strftime('%d.%m.%Y')
+
+    # ── Утилиты ──────────────────────────────────────────────────────────────
+    def _section_header(title: str, subtitle: str, accent: str) -> str:
+        return f"""
+        <tr><td style="padding:20px 0 0">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td bgcolor="{accent}" style="background:{accent};width:4px;border-radius:2px">&nbsp;</td>
+              <td style="padding:0 0 0 12px">
+                <div style="font-size:14px;font-weight:700;color:#111;line-height:1.2">{title}</div>
+                <div style="font-size:11px;color:#9ca3af;margin-top:2px">{subtitle}</div>
+              </td>
+            </tr>
+          </table>
+        </td></tr>"""
+
+    def _ok_row(text: str) -> str:
+        return f"""<tr><td style="padding:10px 0">
+          <table cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="width:28px;height:28px;background:#f0fdf4;border-radius:6px;
+                         text-align:center;vertical-align:middle;font-size:14px">✅</td>
+              <td style="padding-left:10px;font-size:13px;color:#16a34a;font-weight:500">{text}</td>
+            </tr>
+          </table>
+        </td></tr>"""
+
+    def _divider() -> str:
+        return '<tr><td style="padding:4px 0"><div style="height:1px;background:#f0f0f0"></div></td></tr>'
+
+    # ── ВПК блок ─────────────────────────────────────────────────────────────
+    vpk_accent = "#dc2626" if vpk_unread > 0 else "#16a34a"
+    vpk_label = f"Требует внимания · {vpk_unread} непрочитанных" if vpk_unread else "Все отчёты просмотрены"
+    vpk_header = _section_header("ВПК Отчёты", vpk_label, vpk_accent)
+
+    if vpk_unread > 0:
+        vpk_body = f"""<tr><td style="padding:12px 0 0">
+          <table width="100%" cellpadding="0" cellspacing="0"
+                 style="background:#fef2f2;border-radius:8px;border-left:4px solid #dc2626">
+            <tr>
+              <td style="padding:12px 16px">
+                <div style="font-size:22px;font-weight:800;color:#dc2626;line-height:1">{vpk_unread}</div>
+                <div style="font-size:12px;color:#7f1d1d;margin-top:2px">
+                  непрочитанных ВПК-отчётов ожидают вашего просмотра
+                </div>
+              </td>
+              <td align="right" style="padding:12px 16px">
+                <a href="{url}/vpk"
+                   style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;
+                          border-radius:6px;padding:7px 14px;font-size:12px;font-weight:700">
+                  Открыть ВПК →
+                </a>
+              </td>
+            </tr>
+          </table>
+        </td></tr>"""
+    else:
+        vpk_body = _ok_row("Все ВПК отчёты прочитаны")
+
+    # ── СМР блок ─────────────────────────────────────────────────────────────
+    smr_accent = "#d97706" if smr_today else "#16a34a"
+    smr_label = f"{len(smr_today)} вех требуют подтверждения сегодня" if smr_today else "Дедлайнов СМР сегодня нет"
+    smr_header = _section_header("График СМР", smr_label, smr_accent)
+
+    if smr_today:
+        smr_rows = _divider()
+        for t in smr_today:
+            smr_rows += f"""<tr><td style="padding:8px 0">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:6px;vertical-align:top;padding-top:5px">
+                    <div style="width:6px;height:6px;border-radius:50%;background:#d97706"></div>
+                  </td>
+                  <td style="padding-left:10px">
+                    <div style="font-size:13px;font-weight:600;color:#111">{t.get('name','')}</div>
+                    <div style="font-size:11px;color:#9ca3af;margin-top:1px">
+                      📍 {t.get('project','')}
+                      {"&nbsp;·&nbsp;<b>" + t.get('tk','') + "</b>" if t.get('tk') else ""}
+                    </div>
+                  </td>
+                  {'<td align="right"><span style="background:#fef3c7;color:#92400e;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px">ВЕХА</span></td>' if t.get("is_milestone") else "<td></td>"}
+                </tr>
+              </table>
+            </td></tr>"""
+            smr_rows += _divider()
+        smr_body = smr_rows
+    else:
+        smr_body = _ok_row("Нет дедлайнов СМР на сегодня")
+
+    # ── Менеджеры с просрочками ───────────────────────────────────────────────
+    mgr_accent = "#dc2626" if overdue_managers else "#16a34a"
+    mgr_label = f"У {len(overdue_managers)} менеджеров есть просрочки" if overdue_managers else "Просрочек нет"
+    mgr_header = _section_header("Просрочки по менеджерам", mgr_label, mgr_accent)
+
+    if overdue_managers:
+        mgr_rows = _divider()
+        for m in overdue_managers:
+            count = m.get("count", 0)
+            mgr_rows += f"""<tr><td style="padding:7px 0">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <span style="font-size:13px;font-weight:600;color:#111">{m.get('name','')}</span>
+                  </td>
+                  <td align="right">
+                    <span style="background:#fef2f2;color:#dc2626;font-size:12px;font-weight:700;
+                                 padding:2px 10px;border-radius:20px;border:1px solid #fecaca">
+                      {count} задач
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td></tr>"""
+            mgr_rows += _divider()
+        mgr_body = mgr_rows
+    else:
+        mgr_body = _ok_row("Все задачи в срок — отличная работа команды!")
+
+    # ── Критичные проекты ─────────────────────────────────────────────────────
+    proj_accent = "#3b82f6" if critical_projects else "#16a34a"
+    proj_label = f"{len(critical_projects)} проектов открываются в ближайшие 30 дней" if critical_projects else "Открытий в ближайшие 30 дней нет"
+    proj_header = _section_header("Ближайшие открытия", proj_label, proj_accent)
+
+    if critical_projects:
+        proj_rows = _divider()
+        for p in critical_projects:
+            days = p.get("days", 0)
+            urgency_bg = "#fef2f2" if days <= 7 else "#fffbeb" if days <= 14 else "#f0f9ff"
+            urgency_color = "#dc2626" if days <= 7 else "#d97706" if days <= 14 else "#0369a1"
+            proj_rows += f"""<tr><td style="padding:8px 0">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <div style="font-size:13px;font-weight:600;color:#111">{p.get('name','')}</div>
+                    <div style="font-size:11px;color:#9ca3af;margin-top:1px">
+                      📅 {p.get('opening_date','')}
+                      {"&nbsp;·&nbsp;" + p.get('manager','') if p.get('manager') else ""}
+                    </div>
+                  </td>
+                  <td align="right" style="padding-left:10px;white-space:nowrap">
+                    <span style="background:{urgency_bg};color:{urgency_color};font-size:12px;
+                                 font-weight:700;padding:3px 10px;border-radius:20px">
+                      {days} дн.
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </td></tr>"""
+            proj_rows += _divider()
+        proj_body = proj_rows
+    else:
+        proj_body = _ok_row("Открытий в ближайшие 30 дней не ожидается")
+
+    # ── Сборка письма ─────────────────────────────────────────────────────────
+    content = f"""
+    <table width="100%" cellpadding="0" cellspacing="0">
+
+      <!-- Приветствие -->
+      <tr><td style="padding-bottom:20px">
+        <div style="font-size:18px;font-weight:700;color:#111">
+          Добрый день, {name}!
+        </div>
+        <div style="font-size:13px;color:#9ca3af;margin-top:4px">
+          Ежедневный дайджест · {today_str}
+        </div>
+      </td></tr>
+
+      <!-- Разделитель -->
+      <tr><td>
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td bgcolor="#3CB34A" style="background:#3CB34A;height:2px;width:40px"></td>
+            <td bgcolor="#FFD200" style="background:#FFD200;height:2px;width:20px"></td>
+            <td bgcolor="#f0f0f0" style="background:#f0f0f0;height:2px"></td>
+          </tr>
+        </table>
+      </td></tr>
+
+      <!-- ВПК -->
+      {vpk_header}
+      {vpk_body}
+
+      <!-- СМР -->
+      {smr_header}
+      {smr_body}
+
+      <!-- Менеджеры -->
+      {mgr_header}
+      {mgr_body}
+
+      <!-- Проекты -->
+      {proj_header}
+      {proj_body}
+
+      <!-- CTA -->
+      <tr><td style="padding-top:28px;text-align:center">
+        <a href="{url}/leader"
+           style="display:inline-block;background:#1A5C22;color:#fff;text-decoration:none;
+                  border-radius:10px;padding:13px 32px;font-weight:700;font-size:14px;
+                  letter-spacing:.3px">
+          Открыть Центр управления →
+        </a>
+        <div style="margin-top:12px;font-size:11px;color:#9ca3af">
+          Нажмите, чтобы увидеть полную картину дня
+        </div>
+      </td></tr>
+
+    </table>
+    """
+
+    return send_email(
+        to_email,
+        f"Дайджест руководителя — {today_str}",
+        _base_template(content, title=f"Центр управления · {today_str}")
+    )

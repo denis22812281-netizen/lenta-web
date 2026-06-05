@@ -1,0 +1,589 @@
+{% extends "base.html" %}
+{% block page_title %}Центр управления — Лента.PM{% endblock %}
+{% block title %}Центр управления{% endblock %}
+
+{% block content %}
+
+{# ── Персональное приветствие ──────────────────────────────────────────── #}
+<div class="leader-hero mb-4">
+    <div class="leader-hero-inner">
+        <div class="leader-hero-avatar">
+            {% set uname = user.display_name or user.username %}
+            {% if 'Гаврин' in uname %}
+                <img src="/static/img/managers/gavrin.png" alt="{{ uname }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            {% elif 'Месмер' in uname or 'Denis' in uname or 'Денис' in uname %}
+                <img src="/static/img/managers/mesmer.jpg" alt="{{ uname }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            {% else %}
+                <img src="/static/img/raccoon.png" alt="{{ uname }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            {% endif %}
+            <span class="leader-hero-avatar-fallback" style="display:none">{{ (uname[:1])|upper }}</span>
+        </div>
+        <div class="leader-hero-text">
+            <div class="leader-hero-greeting">Добро пожаловать,</div>
+            <div class="leader-hero-name">{{ uname }}</div>
+            <div class="leader-hero-date">
+                <i class="bi bi-calendar3 me-1"></i>
+                {{ today.strftime('%A, %d %B %Y') }}
+            </div>
+        </div>
+        <div class="leader-hero-actions ms-auto d-none d-md-flex gap-2">
+            <a href="/tasks/create" class="btn btn-lenta-outline btn-sm">
+                <i class="bi bi-plus-lg me-1"></i>Задача
+            </a>
+            <a href="/smr" class="btn btn-lenta-outline btn-sm">
+                <i class="bi bi-bar-chart-steps me-1"></i>СМР
+            </a>
+        </div>
+    </div>
+</div>
+
+{# ── 4 ключевых счётчика ───────────────────────────────────────────────── #}
+<div class="row g-3 mb-4">
+    <div class="col-6 col-xl-3">
+        <a href="/vpk" class="text-decoration-none">
+            <div class="leader-kpi {% if vpk_unread > 0 %}leader-kpi-alert{% else %}leader-kpi-ok{% endif %}">
+                <div class="leader-kpi-icon">
+                    <i class="bi bi-clipboard2-check-fill"></i>
+                </div>
+                <div class="leader-kpi-body">
+                    <div class="leader-kpi-num">{{ vpk_unread }}</div>
+                    <div class="leader-kpi-label">Непрочитанных ВПК</div>
+                    {% if vpk_unread > 0 %}
+                    <div class="leader-kpi-sub text-danger">Требует внимания</div>
+                    {% else %}
+                    <div class="leader-kpi-sub text-success">Все прочитаны</div>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-xl-3">
+        <a href="/smr" class="text-decoration-none">
+            <div class="leader-kpi {% if smr_today %}leader-kpi-warn{% else %}leader-kpi-neutral{% endif %}">
+                <div class="leader-kpi-icon">
+                    <i class="bi bi-bar-chart-steps"></i>
+                </div>
+                <div class="leader-kpi-body">
+                    <div class="leader-kpi-num">{{ smr_today|length }}</div>
+                    <div class="leader-kpi-label">СМР дедлайны сегодня</div>
+                    {% if smr_tomorrow %}
+                    <div class="leader-kpi-sub text-warning">+{{ smr_tomorrow|length }} завтра</div>
+                    {% else %}
+                    <div class="leader-kpi-sub text-muted">Завтра всё чисто</div>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-xl-3">
+        <a href="/tasks" class="text-decoration-none">
+            <div class="leader-kpi {% if total_overdue_tasks > 0 %}leader-kpi-danger{% else %}leader-kpi-ok{% endif %}">
+                <div class="leader-kpi-icon">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                </div>
+                <div class="leader-kpi-body">
+                    <div class="leader-kpi-num">{{ total_overdue_tasks }}</div>
+                    <div class="leader-kpi-label">Просроченных задач</div>
+                    {% if overdue_by_manager %}
+                    <div class="leader-kpi-sub text-danger">У {{ overdue_by_manager|length }} менеджеров</div>
+                    {% else %}
+                    <div class="leader-kpi-sub text-success">Нарушений нет</div>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-xl-3">
+        <a href="/projects" class="text-decoration-none">
+            <div class="leader-kpi leader-kpi-neutral">
+                <div class="leader-kpi-icon">
+                    <i class="bi bi-buildings-fill"></i>
+                </div>
+                <div class="leader-kpi-body">
+                    <div class="leader-kpi-num">{{ active_projects }}</div>
+                    <div class="leader-kpi-label">Активных проектов</div>
+                    {% if critical_projects %}
+                    <div class="leader-kpi-sub text-warning">{{ critical_projects|length }} откроется скоро</div>
+                    {% else %}
+                    <div class="leader-kpi-sub text-muted">Открытий не ожидается</div>
+                    {% endif %}
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+
+    {# ── Левая колонка ─────────────────────────────────────────────────────── #}
+    <div class="col-lg-8">
+
+        {# СМР блок #}
+        <div class="data-card mb-3">
+            <div class="data-card-header">
+                <span class="d-flex align-items-center gap-2">
+                    <i class="bi bi-bar-chart-steps text-warning fs-5"></i>
+                    <strong>График СМР — дедлайны</strong>
+                </span>
+                <div class="d-flex align-items-center gap-2">
+                    {% if smr_week_count > 0 %}
+                    <span class="badge bg-secondary">+{{ smr_week_count }} на неделе</span>
+                    {% endif %}
+                    <a href="/smr" class="btn btn-sm btn-outline-secondary">Все графики →</a>
+                </div>
+            </div>
+
+            {% if smr_today %}
+            <div class="leader-smr-section">
+                <div class="leader-smr-day-label leader-smr-today">
+                    <i class="bi bi-record-circle-fill me-1"></i>Сегодня — {{ today.strftime('%d.%m.%Y') }}
+                </div>
+                {% for task in smr_today %}
+                {% set proj = task.schedule.project if task.schedule else None %}
+                <div class="leader-smr-row">
+                    <div class="leader-smr-status-dot {% if task.is_milestone %}dot-milestone{% else %}dot-task{% endif %}"></div>
+                    <div class="leader-smr-info">
+                        <div class="leader-smr-name">{{ task.name }}</div>
+                        {% if proj %}
+                        <div class="leader-smr-proj text-muted small">
+                            <i class="bi bi-building me-1"></i>{{ proj.name }}
+                            {% if proj.tk_number %}<span class="badge bg-light text-dark border ms-1">{{ proj.tk_number }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="ms-auto d-flex align-items-center gap-2">
+                        {% if task.is_milestone %}
+                        <span class="badge bg-warning text-dark">Веха</span>
+                        {% endif %}
+                        <span class="badge {% if task.status == 'В работе' %}bg-primary{% elif task.status == 'Просрочено' %}bg-danger{% else %}bg-secondary{% endif %}">
+                            {{ task.status }}
+                        </span>
+                        {% if proj %}
+                        <a href="/smr/{{ task.schedule_id }}" class="btn btn-sm btn-outline-secondary py-0 px-2">→</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if smr_tomorrow %}
+            <div class="leader-smr-section {% if smr_today %}leader-smr-section-border{% endif %}">
+                <div class="leader-smr-day-label leader-smr-tomorrow">
+                    <i class="bi bi-clock me-1"></i>Завтра — {{ (today + smr_tomorrow[0].end_plan.__class__.resolution).strftime('%d.%m.%Y') if smr_tomorrow else '' }}
+                </div>
+                {% for task in smr_tomorrow %}
+                {% set proj = task.schedule.project if task.schedule else None %}
+                <div class="leader-smr-row">
+                    <div class="leader-smr-status-dot dot-tomorrow"></div>
+                    <div class="leader-smr-info">
+                        <div class="leader-smr-name">{{ task.name }}</div>
+                        {% if proj %}
+                        <div class="leader-smr-proj text-muted small">
+                            <i class="bi bi-building me-1"></i>{{ proj.name }}
+                            {% if proj.tk_number %}<span class="badge bg-light text-dark border ms-1">{{ proj.tk_number }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="ms-auto d-flex align-items-center gap-2">
+                        {% if task.is_milestone %}<span class="badge bg-warning text-dark">Веха</span>{% endif %}
+                        {% if proj %}
+                        <a href="/smr/{{ task.schedule_id }}" class="btn btn-sm btn-outline-secondary py-0 px-2">→</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if not smr_today and not smr_tomorrow %}
+            <div class="empty-state">
+                <i class="bi bi-check2-circle text-success" style="font-size:2rem"></i>
+                <p class="mt-2 mb-0">Нет дедлайнов на сегодня и завтра</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Критичные проекты — открытие #}
+        {% if critical_projects %}
+        <div class="data-card mb-3">
+            <div class="data-card-header">
+                <span class="d-flex align-items-center gap-2">
+                    <i class="bi bi-calendar-event-fill text-success fs-5"></i>
+                    <strong>Открытия в ближайший месяц</strong>
+                </span>
+                <a href="/projects" class="btn btn-sm btn-outline-secondary">Все проекты →</a>
+            </div>
+            <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-head">
+                    <tr>
+                        <th>Проект</th>
+                        <th>Менеджер</th>
+                        <th>Дата открытия</th>
+                        <th>Осталось</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for p in critical_projects %}
+                {% set days = (p.opening_date - today).days %}
+                <tr style="cursor:pointer" onclick="window.location='/projects/{{ p.id }}'">
+                    <td>
+                        <div class="fw-semibold">{{ p.name[:32] }}{% if p.name|length > 32 %}…{% endif %}</div>
+                        {% if p.tk_number %}<div class="small text-muted">{{ p.tk_number }}</div>{% endif %}
+                    </td>
+                    <td class="text-muted small">{{ p.manager.name if p.manager else '—' }}</td>
+                    <td class="small fw-semibold">{{ p.opening_date.strftime('%d.%m.%Y') }}</td>
+                    <td>
+                        <span class="dl-badge {% if days <= 7 %}dl-warn{% elif days <= 14 %}dl-ok{% else %}bg-light text-dark border{% endif %}">
+                            {{ days }} дн.
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+        {% endif %}
+
+        {# Мои задачи #}
+        <div class="data-card mb-3">
+            <div class="data-card-header">
+                <span class="d-flex align-items-center gap-2">
+                    <i class="bi bi-person-check-fill text-primary fs-5"></i>
+                    <strong>Мои задачи</strong>
+                    {% if my_tasks_overdue > 0 %}
+                    <span class="badge bg-danger">{{ my_tasks_overdue }} просрочено</span>
+                    {% endif %}
+                </span>
+                <div class="d-flex gap-2">
+                    <span class="text-muted small align-self-center">Открытых: {{ my_tasks_open }}</span>
+                    <a href="/tasks/create" class="btn btn-sm btn-lenta">+ Задача</a>
+                </div>
+            </div>
+            {% if my_recent_tasks %}
+            <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-head">
+                    <tr><th>Задача</th><th>Назначено</th><th>Проект</th><th>Дедлайн</th><th>Статус</th></tr>
+                </thead>
+                <tbody>
+                {% for t in my_recent_tasks %}
+                {% set overdue = t.deadline and t.deadline < today and t.status != 'Завершена' %}
+                <tr style="cursor:pointer" onclick="window.location='/tasks'" class="{% if overdue %}table-danger-soft{% endif %}">
+                    <td>
+                        <div class="fw-semibold small">{{ t.title[:30] }}{% if t.title|length > 30 %}…{% endif %}</div>
+                        {% if overdue %}<div class="tiny text-danger">Просрочена</div>{% endif %}
+                    </td>
+                    <td class="text-muted small">{{ t.assignee.name.split()[-1] if t.assignee else '—' }}</td>
+                    <td class="text-muted small">{{ t.project.name[:20] if t.project else '—' }}</td>
+                    <td class="small {% if overdue %}text-danger fw-semibold{% endif %}">
+                        {% if t.deadline %}{{ t.deadline.strftime('%d.%m') }}{% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <span class="badge {% if t.status == 'Завершена' %}bg-success{% elif t.status == 'В работе' %}bg-primary{% elif t.status == 'На проверке' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                            {{ t.status }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="bi bi-clipboard2 fs-3 text-muted"></i>
+                <p class="mt-2 mb-0 text-muted">Вы ещё не создавали задачи</p>
+                <a href="/tasks/create" class="btn btn-sm btn-lenta mt-2">Создать первую</a>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+    {# ── Правая колонка ────────────────────────────────────────────────────── #}
+    <div class="col-lg-4">
+
+        {# ВПК блок #}
+        <div class="data-card mb-3">
+            <div class="data-card-header">
+                <span class="d-flex align-items-center gap-2">
+                    <i class="bi bi-clipboard2-check-fill {% if vpk_unread > 0 %}text-danger{% else %}text-success{% endif %} fs-5"></i>
+                    <strong>ВПК отчёты</strong>
+                </span>
+                <a href="/vpk" class="btn btn-sm btn-outline-secondary">Все →</a>
+            </div>
+
+            {% if vpk_unread > 0 %}
+            <div class="leader-alert-banner alert-banner-danger mb-3 mx-3 mt-2">
+                <i class="bi bi-exclamation-circle-fill me-2"></i>
+                <span>{{ vpk_unread }} непрочитанных</span>
+                <a href="/vpk" class="ms-auto btn btn-sm btn-danger py-0 px-2">Читать</a>
+            </div>
+            {% else %}
+            <div class="leader-alert-banner alert-banner-success mb-3 mx-3 mt-2">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <span>Все отчёты прочитаны</span>
+            </div>
+            {% endif %}
+
+            {% if vpk_latest %}
+            <div class="px-3 pb-2">
+                <div class="text-muted small fw-semibold mb-2 text-uppercase" style="letter-spacing:.05em">Последние отчёты</div>
+                {% for rpt in vpk_latest %}
+                {% set is_read = rpt.reads|selectattr('reader_name','eq', user.display_name or user.username)|list %}
+                <div class="leader-vpk-row">
+                    <div class="leader-vpk-type-badge vpk-type-{{ rpt.vpk_type }}">ВПК{{ rpt.vpk_type }}</div>
+                    <div class="leader-vpk-info">
+                        <div class="small fw-semibold">
+                            {{ rpt.project.name[:22] if rpt.project else 'Без проекта' }}
+                        </div>
+                        <div class="tiny text-muted">{{ rpt.submitted_at.strftime('%d.%m.%Y %H:%M') }}</div>
+                    </div>
+                    <div class="ms-auto">
+                        {% if is_read %}
+                        <i class="bi bi-check2-all text-success" title="Прочитано"></i>
+                        {% else %}
+                        <span class="badge bg-danger">Новый</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        {# Менеджеры с просрочками #}
+        <div class="data-card mb-3">
+            <div class="data-card-header">
+                <span class="d-flex align-items-center gap-2">
+                    <i class="bi bi-people-fill {% if overdue_by_manager %}text-warning{% else %}text-success{% endif %} fs-5"></i>
+                    <strong>Просрочки по менеджерам</strong>
+                </span>
+                <a href="/managers" class="btn btn-sm btn-outline-secondary">Команда →</a>
+            </div>
+
+            {% if overdue_by_manager %}
+            <div class="px-3 pb-3">
+                {% for row in overdue_by_manager %}
+                <div class="leader-mgr-row">
+                    <div class="leader-mgr-avatar">
+                        {% if row.photo %}
+                        <img src="/static/{{ row.photo }}" alt="{{ row.name }}"
+                             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                        {% endif %}
+                        <span class="leader-mgr-initials" {% if row.photo %}style="display:none"{% endif %}>
+                            {{ row.name.split()[0][:1] }}{{ row.name.split()[-1][:1] if row.name.split()|length > 1 else '' }}
+                        </span>
+                    </div>
+                    <div class="leader-mgr-name small fw-semibold">{{ row.name.split()[0] }}</div>
+                    <div class="ms-auto">
+                        <a href="/tasks?assignee={{ row.id }}" class="badge bg-danger text-decoration-none">
+                            {{ row.overdue_count }} просроч.
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state py-3">
+                <i class="bi bi-emoji-smile text-success fs-3"></i>
+                <p class="mt-2 mb-0 small text-muted">Просрочек нет. Так держать!</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {# Быстрые действия #}
+        <div class="data-card mb-3">
+            <div class="data-card-header">
+                <span class="d-flex align-items-center gap-2">
+                    <i class="bi bi-lightning-charge-fill text-warning fs-5"></i>
+                    <strong>Быстрые действия</strong>
+                </span>
+            </div>
+            <div class="px-3 pb-3 d-grid gap-2">
+                <a href="/vpk" class="btn btn-outline-secondary btn-sm text-start">
+                    <i class="bi bi-clipboard2-check-fill me-2 text-success"></i>Открыть ВПК отчёты
+                </a>
+                <a href="/smr" class="btn btn-outline-secondary btn-sm text-start">
+                    <i class="bi bi-bar-chart-steps me-2 text-warning"></i>Графики СМР
+                </a>
+                <a href="/deadlines" class="btn btn-outline-secondary btn-sm text-start">
+                    <i class="bi bi-clock-history me-2 text-primary"></i>Все дедлайны
+                </a>
+                <a href="/tasks/create" class="btn btn-lenta btn-sm text-start">
+                    <i class="bi bi-plus-circle-fill me-2"></i>Создать задачу
+                </a>
+                <a href="/stats" class="btn btn-outline-secondary btn-sm text-start">
+                    <i class="bi bi-bar-chart-fill me-2 text-info"></i>Статистика
+                </a>
+                <a href="/admin/audit" class="btn btn-outline-secondary btn-sm text-start">
+                    <i class="bi bi-shield-lock-fill me-2 text-secondary"></i>Журнал активности
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+/* ── Leader Hero ──────────────────────────────────────────────────────────── */
+.leader-hero {
+    background: linear-gradient(135deg, #0D2010 0%, #1A5C22 60%, #3CB34A 100%);
+    border-radius: 16px;
+    padding: 0;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(60,179,74,.18);
+}
+.leader-hero-inner {
+    display: flex;
+    align-items: center;
+    padding: 20px 28px;
+    gap: 18px;
+}
+.leader-hero-avatar {
+    width: 62px; height: 62px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid rgba(255,255,255,.3);
+    flex-shrink: 0;
+    background: rgba(255,255,255,.15);
+    display: flex; align-items: center; justify-content: center;
+}
+.leader-hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.leader-hero-avatar-fallback {
+    color: #fff; font-size: 22px; font-weight: 700;
+}
+.leader-hero-greeting { color: rgba(255,255,255,.6); font-size: 13px; }
+.leader-hero-name { color: #fff; font-size: 22px; font-weight: 700; line-height: 1.2; }
+.leader-hero-date { color: rgba(255,255,255,.5); font-size: 12px; margin-top: 3px; }
+.btn-lenta-outline {
+    border: 1.5px solid rgba(255,255,255,.4); color: #fff;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 13px; font-weight: 500;
+    transition: all .15s;
+}
+.btn-lenta-outline:hover { background: rgba(255,255,255,.15); color: #fff; }
+.btn-lenta {
+    background: #3CB34A; color: #fff; border: none;
+    border-radius: 8px; font-weight: 600;
+    transition: background .15s;
+}
+.btn-lenta:hover { background: #2d9639; color: #fff; }
+
+/* ── KPI Cards ──────────────────────────────────────────────────────────── */
+.leader-kpi {
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    border: 1.5px solid transparent;
+    transition: transform .15s, box-shadow .15s;
+    cursor: pointer;
+    height: 100%;
+}
+.leader-kpi:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,.12); }
+.leader-kpi-ok      { background: #f0fdf4; border-color: #bbf7d0; }
+.leader-kpi-alert   { background: #fff7ed; border-color: #fed7aa; }
+.leader-kpi-warn    { background: #fffbeb; border-color: #fde68a; }
+.leader-kpi-danger  { background: #fef2f2; border-color: #fecaca; }
+.leader-kpi-neutral { background: var(--bs-body-bg, #f8f9fa); border-color: var(--bs-border-color, #dee2e6); }
+.leader-kpi-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+    background: rgba(60,179,74,.12); color: #3CB34A;
+}
+.leader-kpi-alert .leader-kpi-icon  { background: rgba(234,88,12,.1);  color: #ea580c; }
+.leader-kpi-warn  .leader-kpi-icon  { background: rgba(217,119,6,.1);  color: #d97706; }
+.leader-kpi-danger .leader-kpi-icon { background: rgba(220,38,38,.1);  color: #dc2626; }
+.leader-kpi-num   { font-size: 28px; font-weight: 800; line-height: 1; color: var(--bs-body-color); }
+.leader-kpi-label { font-size: 12px; font-weight: 500; color: var(--bs-secondary-color, #6c757d); margin-top: 3px; }
+.leader-kpi-sub   { font-size: 11px; margin-top: 2px; }
+
+/* ── SMR rows ─────────────────────────────────────────────────────────── */
+.leader-smr-section { padding: 0 16px 8px; }
+.leader-smr-section-border { border-top: 1px solid var(--bs-border-color, #dee2e6); padding-top: 8px; }
+.leader-smr-day-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; padding: 8px 0 6px;
+}
+.leader-smr-today   { color: #dc2626; }
+.leader-smr-tomorrow { color: #d97706; }
+.leader-smr-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid var(--bs-border-color-translucent, rgba(0,0,0,.06));
+}
+.leader-smr-row:last-child { border-bottom: none; }
+.leader-smr-status-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.dot-milestone { background: #f59e0b; }
+.dot-task      { background: #3b82f6; }
+.dot-tomorrow  { background: #9ca3af; }
+.leader-smr-name { font-size: 13px; font-weight: 600; }
+.leader-smr-proj { font-size: 11px; margin-top: 1px; }
+
+/* ── VPK rows ─────────────────────────────────────────────────────────── */
+.leader-vpk-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 0; border-bottom: 1px solid var(--bs-border-color-translucent, rgba(0,0,0,.06));
+}
+.leader-vpk-row:last-child { border-bottom: none; }
+.leader-vpk-type-badge {
+    width: 40px; height: 40px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+}
+.vpk-type-1 { background: #dbeafe; color: #1d4ed8; }
+.vpk-type-2 { background: #f3e8ff; color: #7c3aed; }
+
+/* ── Manager rows ─────────────────────────────────────────────────────── */
+.leader-mgr-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 0; border-bottom: 1px solid var(--bs-border-color-translucent, rgba(0,0,0,.06));
+}
+.leader-mgr-row:last-child { border-bottom: none; }
+.leader-mgr-avatar {
+    width: 34px; height: 34px; border-radius: 50%; overflow: hidden;
+    flex-shrink: 0; background: #e5e7eb;
+    display: flex; align-items: center; justify-content: center;
+}
+.leader-mgr-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.leader-mgr-initials { font-size: 12px; font-weight: 700; color: #6b7280; }
+
+/* ── Alert banners ────────────────────────────────────────────────────── */
+.leader-alert-banner {
+    display: flex; align-items: center; gap: 6px;
+    border-radius: 8px; padding: 8px 12px;
+    font-size: 13px; font-weight: 500;
+}
+.alert-banner-danger { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.alert-banner-success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+
+/* ── Table soft danger row ────────────────────────────────────────────── */
+.table-danger-soft { background: rgba(220,38,38,.04) !important; }
+
+/* ── Tiny text ────────────────────────────────────────────────────────── */
+.tiny { font-size: 10px; }
+
+/* ── Dark mode overrides ──────────────────────────────────────────────── */
+[data-bs-theme="dark"] .leader-kpi-ok      { background: rgba(22,163,74,.1);  border-color: rgba(22,163,74,.25); }
+[data-bs-theme="dark"] .leader-kpi-alert   { background: rgba(234,88,12,.1);  border-color: rgba(234,88,12,.25); }
+[data-bs-theme="dark"] .leader-kpi-warn    { background: rgba(217,119,6,.1);  border-color: rgba(217,119,6,.25); }
+[data-bs-theme="dark"] .leader-kpi-danger  { background: rgba(220,38,38,.1);  border-color: rgba(220,38,38,.25); }
+[data-bs-theme="dark"] .leader-kpi-neutral { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.1); }
+[data-bs-theme="dark"] .alert-banner-danger  { background: rgba(185,28,28,.15);  border-color: rgba(220,38,38,.3); }
+[data-bs-theme="dark"] .alert-banner-success { background: rgba(21,128,61,.15);  border-color: rgba(22,163,74,.3); }
+[data-bs-theme="dark"] .vpk-type-1 { background: rgba(29,78,216,.15); color: #93c5fd; }
+[data-bs-theme="dark"] .vpk-type-2 { background: rgba(124,58,237,.15); color: #c4b5fd; }
+[data-bs-theme="dark"] .table-danger-soft { background: rgba(220,38,38,.07) !important; }
+[data-bs-theme="dark"] .leader-mgr-avatar { background: #374151; }
+[data-bs-theme="dark"] .leader-mgr-initials { color: #9ca3af; }
+</style>
+{% endblock %}

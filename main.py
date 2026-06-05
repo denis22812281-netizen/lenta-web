@@ -170,11 +170,12 @@ from routes.ai        import router as ai_router
 from routes.api       import router as api_router
 from routes.sync      import router as sync_router
 from routes.smr       import router as smr_router
+from routes.leader    import router as leader_router
 
 for r in [auth_router, webauthn_router, dashboard_router, projects_router, sections_router,
           kso_router, tasks_router, managers_router, deadlines_router,
           vpk_router, stats_router, admin_router, chat_router,
-          ai_router, api_router, sync_router, smr_router]:
+          ai_router, api_router, sync_router, smr_router, leader_router]:
     app.include_router(r)
 
 
@@ -280,6 +281,116 @@ async def smr_notification_loop():
                 db.close()
         except Exception as e:
             logger.warning("smr_notification_loop outer error: %s", e)
+
+
+# ─── Дайджест руководителя ────────────────────────────────────────────────────
+
+async def leader_digest_loop():
+    """
+    Ежедневно в ~09:00 МСК отправляет дайджест всем is_admin-пользователям.
+    Активируется только при LEADER_DIGEST_ENABLED=true.
+    Пока переменная не задана — цикл работает вхолостую, письма НЕ отправляются.
+    """
+    from datetime import date as _date, datetime as _dt, timedelta as _td
+    from services.email_service import send_leader_digest
+    from sqlalchemy.orm import joinedload as _jl
+    from sqlalchemy import func as _func
+
+    _APP_URL = os.getenv("APP_URL", "https://lenta-web-production.up.railway.app").rstrip("/")
+
+    while True:
+        # Ждём до ближайшего 06:00 UTC (= 09:00 МСК)
+        now = _dt.utcnow()
+        target = now.replace(hour=6, minute=0, second=0, microsecond=0)
+        if now >= target:
+            target += _td(days=1)
+        await asyncio.sleep((target - now).total_seconds())
+
+        # Флаг проверяется при каждом срабатывании — включается без рестарта
+        if os.getenv("LEADER_DIGEST_ENABLED", "").lower() != "true":
+            logger.info("leader_digest_loop: LEADER_DIGEST_ENABLED не задан, пропуск")
+            continue
+
+        try:
+            today = _date.today()
+            db = database.SessionLocal()
+            try:
+                admins = db.query(models.User).filter(models.User.is_admin == True).all()
+                vpk_total = db.query(models.VpkReport).count()
+
+                smr_tasks_today = db.query(models.SmrTask).options(
+                    _jl(models.SmrTask.schedule).joinedload(models.SmrSchedule.project)
+                ).filter(
+                    models.SmrTask.end_plan == today,
+                    models.SmrTask.status != "Выполнено"
+                ).all()
+                smr_list = [
+                    {
+                        "name": t.name,
+                        "project": t.schedule.project.name if t.schedule and t.schedule.project else "",
+                        "tk": t.schedule.project.tk_number if t.schedule and t.schedule.project else "",
+                        "is_milestone": t.is_milestone,
+                    }
+                    for t in smr_tasks_today
+                ]
+
+                overdue_rows = db.query(
+                    models.Manager.name,
+                    _func.count(models.Task.id).label("cnt")
+                ).join(models.Task, models.Task.assignee_id == models.Manager.id).filter(
+                    models.Task.deadline < today,
+                    models.Task.status != "Завершена"
+                ).group_by(models.Manager.name).all()
+                mgr_list = [{"name": r.name, "count": r.cnt} for r in overdue_rows]
+
+                proj_rows = db.query(models.Project).options(
+                    _jl(models.Project.manager)
+                ).filter(
+                    models.Project.opening_date >= today,
+                    models.Project.opening_date <= today + _td(days=30),
+                    models.Project.status == "Активный"
+                ).order_by(models.Project.opening_date).limit(5).all()
+                proj_list = [
+                    {
+                        "name": p.name,
+                        "opening_date": p.opening_date.strftime("%d.%m.%Y"),
+                        "days": (p.opening_date - today).days,
+                        "manager": p.manager.name if p.manager else "",
+                    }
+                    for p in proj_rows
+                ]
+
+                for admin in admins:
+                    read_count = db.query(models.VpkReportRead).filter(
+                        models.VpkReportRead.reader_name == (admin.display_name or admin.username)
+                    ).count()
+                    vpk_unread = max(0, vpk_total - read_count)
+
+                    mgr = db.query(models.Manager).filter(
+                        models.Manager.name.ilike(f"%{(admin.display_name or '').split()[0]}%")
+                    ).first()
+                    to_email = mgr.email if mgr and mgr.email else ""
+                    if not to_email:
+                        logger.info("leader_digest: нет email для %s, пропуск", admin.display_name)
+                        continue
+
+                    send_leader_digest(
+                        to_email=to_email,
+                        name=admin.display_name or admin.username,
+                        vpk_unread=vpk_unread,
+                        smr_today=smr_list,
+                        overdue_managers=mgr_list,
+                        critical_projects=proj_list,
+                        app_url=_APP_URL,
+                    )
+                    logger.warning("leader_digest: отправлен → %s (%s)", admin.display_name, to_email)
+
+            except Exception as e:
+                logger.warning("leader_digest_loop inner error: %s", e)
+            finally:
+                db.close()
+        except Exception as e:
+            logger.warning("leader_digest_loop outer error: %s", e)
 
 
 # ─── Startup ─────────────────────────────────────────────────────────────────
@@ -551,3 +662,4 @@ async def startup():
 
     asyncio.create_task(auto_sync_loop())
     asyncio.create_task(smr_notification_loop())
+    asyncio.create_task(leader_digest_loop())
