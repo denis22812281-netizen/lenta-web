@@ -45,7 +45,7 @@ async def executive_dashboard(request: Request, db: Session = Depends(get_db),
         models.Project.project_type == "Констракшн",
         models.Project.end_date >= today,
         models.Project.end_date <= quarter_end,
-        models.Project.opening_date == None,
+        (models.Project.opening_date == None) | (models.Project.opening_date > today),
     ).count()
 
     # ── Рейтинг менеджеров (5 агрегатных запросов вместо 6×N) ──────────────
@@ -138,7 +138,7 @@ async def executive_dashboard(request: Request, db: Session = Depends(get_db),
         models.Project.project_type == "Констракшн",
         models.Project.end_date >= today,
         models.Project.end_date <= quarter_end,
-        models.Project.opening_date == None,
+        (models.Project.opening_date == None) | (models.Project.opening_date > today),
     ).order_by(models.Project.end_date).all()
 
     # ── Просроченные проекты ─────────────────────────────────────────────────
