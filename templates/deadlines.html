@@ -65,7 +65,7 @@
                         {% elif p.status == 'Приостановлен' %}
                         <span class="badge bg-warning text-dark">{{ p.status }}</span>
                         {% else %}
-                        <span class="badge bg-primary">Активный</span>
+                        <span class="badge bg-success">Активный</span>
                         {% endif %}
                     </td>
                     <td class="fw-semibold">{{ p.end_date.strftime('%d.%m.%Y') }}</td>
