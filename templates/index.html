@@ -43,32 +43,40 @@
 
 <!-- Stats row -->
 <div class="row g-3 mb-4">
-    <div class="col-6 col-xl-3">
+    <div class="col-12 col-sm-6 col-xl-3">
         <div class="stat-card stat-blue">
-            <div class="stat-icon"><i class="bi bi-building-fill"></i></div>
-            <div class="stat-num">{{ total_projects }}</div>
-            <div class="stat-label">Всего проектов</div>
+            <div class="stat-icon-wrap"><i class="bi bi-building-fill stat-icon"></i></div>
+            <div class="stat-body">
+                <div class="stat-num">{{ total_projects }}</div>
+                <div class="stat-label">Всего проектов</div>
+            </div>
         </div>
     </div>
-    <div class="col-6 col-xl-3">
+    <div class="col-12 col-sm-6 col-xl-3">
         <div class="stat-card stat-green">
-            <div class="stat-icon"><i class="bi bi-check-circle-fill"></i></div>
-            <div class="stat-num">{{ active_projects }}</div>
-            <div class="stat-label">Активных проектов</div>
+            <div class="stat-icon-wrap"><i class="bi bi-check-circle-fill stat-icon"></i></div>
+            <div class="stat-body">
+                <div class="stat-num">{{ active_projects }}</div>
+                <div class="stat-label">Активных проектов</div>
+            </div>
         </div>
     </div>
-    <div class="col-6 col-xl-3">
+    <div class="col-12 col-sm-6 col-xl-3">
         <div class="stat-card stat-yellow">
-            <div class="stat-icon"><i class="bi bi-bell-fill"></i></div>
-            <div class="stat-num">{{ tasks_due_soon }}</div>
-            <div class="stat-label">Задач на этой неделе</div>
+            <div class="stat-icon-wrap"><i class="bi bi-bell-fill stat-icon"></i></div>
+            <div class="stat-body">
+                <div class="stat-num">{{ tasks_due_soon }}</div>
+                <div class="stat-label">Задач на этой неделе</div>
+            </div>
         </div>
     </div>
-    <div class="col-6 col-xl-3">
+    <div class="col-12 col-sm-6 col-xl-3">
         <div class="stat-card stat-red">
-            <div class="stat-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
-            <div class="stat-num">{{ overdue_tasks }}</div>
-            <div class="stat-label">Просроченных задач</div>
+            <div class="stat-icon-wrap"><i class="bi bi-exclamation-triangle-fill stat-icon"></i></div>
+            <div class="stat-body">
+                <div class="stat-num">{{ overdue_tasks }}</div>
+                <div class="stat-label">Просроченных задач</div>
+            </div>
         </div>
     </div>
 </div>

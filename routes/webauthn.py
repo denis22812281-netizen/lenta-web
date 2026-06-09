@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, get_current_user, require_login
+from deps import templates, get_current_user, require_login, limiter
 
 router = APIRouter()
 
@@ -161,6 +161,7 @@ async def register_complete(request: Request, db: Session = Depends(get_db)):
 # ─── Аутентификация: шаг 1 — получить параметры ──────────────────────────────
 
 @router.post("/webauthn/auth/begin")
+@limiter.limit("5/minute")
 async def auth_begin(request: Request, db: Session = Depends(get_db)):
     try:
         body  = await request.json()
@@ -208,6 +209,7 @@ async def auth_begin(request: Request, db: Session = Depends(get_db)):
 # ─── Аутентификация: шаг 2 — проверить подпись ───────────────────────────────
 
 @router.post("/webauthn/auth/complete")
+@limiter.limit("5/minute")
 async def auth_complete(request: Request, db: Session = Depends(get_db)):
     challenge_b64 = request.session.pop("webauthn_auth_challenge", None)
     phone         = request.session.pop("webauthn_auth_phone", None)

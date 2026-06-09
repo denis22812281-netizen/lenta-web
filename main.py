@@ -48,7 +48,7 @@ app = FastAPI(title="Лента — Управление проектами")
 class CSRFMiddleware(BaseHTTPMiddleware):
     """Проверяет CSRF-токен для всех POST-форм (кроме API и логина)."""
     _EXEMPT = ("/api/", "/login/", "/smr/confirm/")
-    _SKIP_CONTENT = ("multipart/", "application/json")
+    _SKIP_CONTENT = ("multipart/",)  # JSON без /api/ — проверяем CSRF
 
     async def dispatch(self, request: Request, call_next):
         if request.method == "POST":
@@ -197,8 +197,13 @@ async def auto_sync_loop():
                         should_sync = elapsed >= cfg.sync_interval_minutes
                     if should_sync:
                         path = Path(cfg.file_path).resolve()
-                        if (path.exists() and path.suffix in ('.xlsx', '.xls', '.xlsm')
-                                and not str(path).startswith(('/etc', '/proc', '/sys', 'C:\\Windows'))):
+                        _blocked = ('/etc', '/proc', '/sys', '/root', '/var/run',
+                                    'C:\\Windows', 'C:\\System32', 'C:\\Program Files')
+                        _safe = (path.exists()
+                                 and path.suffix in ('.xlsx', '.xls', '.xlsm')
+                                 and not any(str(path).startswith(b) for b in _blocked)
+                                 and path.stat().st_size < 50 * 1024 * 1024)  # max 50 MB
+                        if _safe:
                             try:
                                 content = path.read_bytes()
                                 if cfg.project_type == "Реконструкция":
