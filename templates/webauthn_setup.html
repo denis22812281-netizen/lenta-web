@@ -157,16 +157,30 @@ document.getElementById('btn-register').addEventListener('click', async function
         setTimeout(() => location.reload(), 2000);
 
     } catch(e) {
-        if (e.name === 'NotAllowedError') {
-            status.className = 'mt-3 alert alert-warning';
-            status.innerHTML = '<i class="bi bi-x-circle me-2"></i>Отменено. Попробуйте снова.';
-        } else {
-            status.className = 'mt-3 alert alert-danger';
-            status.innerHTML = '<i class="bi bi-x-circle me-2"></i>' + (e.message || 'Ошибка');
-        }
         status.classList.remove('d-none');
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-fingerprint me-2"></i>Добавить Face ID / Touch ID';
+
+        const isStandalone = window.navigator.standalone === true;
+
+        if (e.name === 'NotAllowedError') {
+            status.className = 'mt-3 alert alert-warning';
+            status.innerHTML = '<i class="bi bi-x-circle me-2"></i>Отменено. Попробуйте снова.';
+        } else if (e.name === 'SecurityError' || (isStandalone && e.name !== 'NotAllowedError')) {
+            status.className = 'mt-3 alert alert-warning';
+            status.innerHTML = '<i class="bi bi-info-circle me-2"></i>Face ID из ярлыка на экране не работает на iOS.<br>'
+                + '<strong>Откройте сайт через Safari</strong>, зарегистрируйте биометрию там, '
+                + 'затем вход с экрана домой будет работать автоматически.';
+        } else if (e.name === 'NotSupportedError') {
+            status.className = 'mt-3 alert alert-warning';
+            status.innerHTML = '<i class="bi bi-info-circle me-2"></i>Биометрия не поддерживается в этом браузере. Откройте в Safari.';
+        } else {
+            status.className = 'mt-3 alert alert-danger';
+            status.innerHTML = '<i class="bi bi-x-circle me-2"></i>'
+                + (e.name ? '<b>' + e.name + '</b>: ' : '')
+                + (e.message || 'Неизвестная ошибка')
+                + (isStandalone ? '<br><small class="text-muted">Режим: PWA (экран домой)</small>' : '');
+        }
     }
 });
 

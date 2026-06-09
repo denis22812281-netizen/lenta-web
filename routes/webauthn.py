@@ -16,9 +16,12 @@ router = APIRouter()
 RP_NAME = "Лента PM"
 
 def _rp_id(request: Request) -> str:
-    """rpID должен совпадать с доменом. localhost в dev, домен Railway в prod."""
-    env = os.getenv("APP_DOMAIN", "")
+    """rpID — только домен без протокола и порта."""
+    import re
+    env = os.getenv("APP_DOMAIN", "").strip()
     if env:
+        # Strip https:// or http:// if accidentally included in env var
+        env = re.sub(r'^https?://', '', env).split('/')[0].split(':')[0]
         return env
     host = request.headers.get("host", "localhost").split(":")[0]
     return host
