@@ -81,7 +81,7 @@ if not SECRET_KEY:
 
 class SessionVersionMiddleware(BaseHTTPMiddleware):
     """Инвалидирует сессию если session_version не совпадает с БД (после сброса пароля)."""
-    _SKIP = ("/login", "/static", "/webauthn", "/api/ping")
+    _SKIP = ("/login", "/static", "/api/ping")
 
     async def dispatch(self, request: Request, call_next):
         user = request.session.get("user")
@@ -154,7 +154,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # ─── Подключаем роутеры ──────────────────────────────────────────────────────
 from routes.auth      import router as auth_router
-from routes.webauthn  import router as webauthn_router
 from routes.dashboard import router as dashboard_router
 from routes.projects  import router as projects_router
 from routes.sections  import router as sections_router
@@ -173,7 +172,7 @@ from routes.smr       import router as smr_router
 from routes.leader    import router as leader_router
 from routes.executive import router as executive_router
 
-for r in [auth_router, webauthn_router, dashboard_router, projects_router, sections_router,
+for r in [auth_router, dashboard_router, projects_router, sections_router,
           kso_router, tasks_router, managers_router, deadlines_router,
           vpk_router, stats_router, admin_router, chat_router,
           ai_router, api_router, sync_router, smr_router, leader_router,
@@ -433,15 +432,6 @@ async def startup():
                     "ALTER TABLE vpk_report_items ADD COLUMN IF NOT EXISTS photo_path VARCHAR(300) DEFAULT ''",
                     "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS photo_path VARCHAR(300) DEFAULT ''",
                     "CREATE TABLE IF NOT EXISTS ai_chat_messages (id SERIAL PRIMARY KEY, user_name VARCHAR(100) NOT NULL, role VARCHAR(20) NOT NULL, text TEXT NOT NULL, provider VARCHAR(30) DEFAULT 'groq', created_at TIMESTAMP DEFAULT NOW())",
-                    """CREATE TABLE IF NOT EXISTS webauthn_credentials (
-                        id SERIAL PRIMARY KEY,
-                        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
-                        credential_id TEXT UNIQUE NOT NULL,
-                        public_key TEXT NOT NULL,
-                        sign_count INTEGER DEFAULT 0,
-                        device_name VARCHAR(150) DEFAULT '',
-                        created_at TIMESTAMP DEFAULT NOW()
-                    )""",
                     """CREATE TABLE IF NOT EXISTS vpk_report_reads (
                         id SERIAL PRIMARY KEY,
                         report_id INTEGER REFERENCES vpk_reports(id) ON DELETE CASCADE NOT NULL,

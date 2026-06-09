@@ -147,9 +147,6 @@
             <span>{{ user.display_name or user.username }}</span>
             <a href="/logout" class="ms-auto text-white opacity-50" title="Выход"><i class="bi bi-box-arrow-right"></i></a>
         </div>
-        <a href="/webauthn/setup" class="sidebar-admin-link" title="Настроить Face ID / Touch ID">
-            <i class="bi bi-fingerprint"></i> Face ID / отпечаток
-        </a>
         {% if user.is_admin %}
         <a href="/admin/users" class="sidebar-admin-link">
             <i class="bi bi-gear-fill"></i> Пользователи
