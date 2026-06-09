@@ -102,7 +102,9 @@
                 <div class="leader-kpi-body">
                     <div class="leader-kpi-num">{{ active_projects }}</div>
                     <div class="leader-kpi-label">Активных проектов</div>
-                    {% if critical_projects %}
+                    {% if opens_this_week %}
+                    <div class="leader-kpi-sub" style="color:#FFD200;font-weight:600;">{{ opens_this_week }} открытий на этой неделе</div>
+                    {% elif critical_projects %}
                     <div class="leader-kpi-sub text-warning">{{ critical_projects|length }} откроется скоро</div>
                     {% else %}
                     <div class="leader-kpi-sub text-muted">Открытий не ожидается</div>

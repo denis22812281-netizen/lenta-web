@@ -101,6 +101,13 @@ async def leader_dashboard(request: Request, db: Session = Depends(get_db),
         models.Project.status == "Активный"
     ).count()
 
+    week_end = today + timedelta(days=(6 - today.weekday()))
+    opens_this_week = db.query(models.Project).filter(
+        models.Project.end_date >= today,
+        models.Project.end_date <= week_end,
+        models.Project.status == "Активный"
+    ).count()
+
     return templates.TemplateResponse("leader.html", {
         "request": request, "user": user,
         "today": today,
@@ -116,4 +123,5 @@ async def leader_dashboard(request: Request, db: Session = Depends(get_db),
         "my_recent_tasks": my_recent_tasks,
         "total_overdue_tasks": total_overdue_tasks,
         "active_projects": active_projects,
+        "opens_this_week": opens_this_week,
     })
