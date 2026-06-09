@@ -113,6 +113,32 @@ body {
 }
 .nav-item i { font-size: 16px; width: 20px; flex-shrink: 0; }
 
+/* Collapsible sidebar sections */
+.nav-sect-toggle {
+    padding: 10px 18px 3px;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: rgba(255,255,255,.35);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    transition: color .15s;
+}
+.nav-sect-toggle:hover { color: rgba(255,255,255,.6); }
+.nav-chevron { font-size: 9px; transition: transform .2s ease; }
+.nav-sect-toggle:not(.open) .nav-chevron { transform: rotate(-90deg); }
+.nav-collapse-body {
+    overflow: hidden;
+    max-height: 400px;
+    transition: max-height .25s ease, opacity .2s ease;
+    opacity: 1;
+}
+.nav-collapse-body.collapsed { max-height: 0; opacity: 0; }
+
 .nav-section-label {
     padding: 10px 18px 3px;
     font-size: 9px;
@@ -204,8 +230,20 @@ body {
     z-index: 100;
 }
 .topbar-title { font-size: 16px; font-weight: 600; flex: 1; color: #1a2e1c; }
-.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
 .topbar-date { color: #888; font-size: 12px; }
+.btn-theme-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #888;
+    font-size: 15px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: color .15s, background .15s;
+    line-height: 1;
+}
+.btn-theme-toggle:hover { color: var(--lenta-yellow); background: rgba(255,210,0,.1); }
 
 .notif-badge {
     background: var(--lenta-orange);
@@ -323,11 +361,16 @@ body {
 
 .empty-state {
     text-align: center;
-    padding: 40px 20px;
-    color: #b0ccb2;
+    padding: 48px 24px;
+    color: #94a3b8;
 }
-.empty-state i { font-size: 40px; display: block; margin-bottom: 8px; }
-.empty-state p { margin: 0; font-size: 14px; }
+.empty-state i {
+    font-size: 52px;
+    display: block;
+    margin-bottom: 12px;
+    opacity: 0.35;
+}
+.empty-state p { margin: 0; font-size: 14px; color: #94a3b8; }
 
 /* ── DEADLINE BADGES ─────────────────────────────────────────── */
 .dl-badge {
@@ -810,3 +853,16 @@ body {
 /* Нижняя навигация — активный пункт пульсирует при первом посещении */
 @keyframes bnavPop { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
 .bnav-item.active i { animation: bnavPop .4s ease; }
+
+/* Page fade-in — убирает прыжок при загрузке */
+@keyframes pgFadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:none; } }
+.page-body { animation: pgFadeIn .18s ease both; }
+
+/* Light theme — тема toggle */
+[data-bs-theme="light"] body { background: #f4faf5; color: #1a2e1c; }
+[data-bs-theme="light"] .sidebar { background: #0D2010; }
+[data-bs-theme="light"] .topbar { background: #fff; border-bottom-color: #e8f5e9; }
+[data-bs-theme="light"] .data-card { background: #fff; }
+[data-bs-theme="light"] .btn-theme-toggle { color: #f59e0b; }
+[data-bs-theme="dark"] .btn-theme-toggle { color: #94a3b8; }
+[data-bs-theme="dark"] .nav-sect-toggle { color: rgba(255,255,255,.3); }

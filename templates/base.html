@@ -12,11 +12,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Менеджер проекта">
     <script>
-      document.getElementById('html-root').setAttribute('data-bs-theme', 'dark');
+      const _t = localStorage.getItem('theme') || 'dark';
+      document.getElementById('html-root').setAttribute('data-bs-theme', _t);
     </script>
     <link href="/static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
     <link href="/static/vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="/static/css/style.css?v=20260604" rel="stylesheet">
+    <link href="/static/css/style.css?v=20260609" rel="stylesheet">
     <meta name="csrf-token" content="{{ csrf_token(request) }}">
 </head>
 <body>
@@ -52,65 +53,89 @@
         <a href="/deadlines" class="nav-item {% if '/deadlines' in request.url.path %}active{% endif %}">
             <i class="bi bi-clock-history"></i><span>Дедлайны</span>
         </a>
-        <div class="nav-section-label">КОМАНДА</div>
-        <a href="/managers" class="nav-item {% if '/managers' in request.url.path %}active{% endif %}">
-            <i class="bi bi-people-fill"></i><span>Менеджеры проектов</span>
-        </a>
-        <a href="/tasks" class="nav-item {% if '/tasks' in request.url.path %}active{% endif %}">
-            <i class="bi bi-check2-square"></i><span>Задачи</span>
-        </a>
-        <a href="/smr" class="nav-item {% if request.url.path.startswith('/smr') %}active{% endif %}">
-            <i class="bi bi-bar-chart-steps"></i><span>График СМР</span>
-        </a>
-        <a href="/chat" class="nav-item {% if '/chat' in request.url.path %}active{% endif %}" style="position:relative">
-            <i class="bi bi-chat-dots-fill"></i><span>Чат</span>
-            <span id="chat-badge" class="d-none" style="position:absolute;top:6px;right:8px;background:#dc2626;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700"></span>
-        </a>
-        <div class="nav-section-label">ПРОЕКТЫ</div>
-        <a href="/reconstruct" class="nav-item {% if '/reconstruct' in request.url.path %}active{% endif %}">
-            <i class="bi bi-building-fill"></i><span>Реконструкции</span>
-        </a>
-        <a href="/construction" class="nav-item {% if '/construction' in request.url.path %}active{% endif %}">
-            <i class="bi bi-buildings-fill"></i><span>Констракшн</span>
-        </a>
-        <a href="/kso" class="nav-item {% if '/kso' in request.url.path %}active{% endif %}">
-            <i class="bi bi-file-earmark-check-fill"></i><span>КСО</span>
-        </a>
-        <a href="/vpk" class="nav-item {% if '/vpk' in request.url.path %}active{% endif %}" style="position:relative">
-            <i class="bi bi-clipboard2-check-fill"></i><span>ВПК 1 / 2</span>
-            <span id="vpk-badge" class="d-none" style="position:absolute;top:6px;right:8px;background:#dc2626;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700"></span>
-        </a>
-        <div class="nav-section-label">АНАЛИТИКА</div>
-        {% if user and (user.is_admin or user.is_leader) %}
-        <a href="/executive" class="nav-item {% if '/executive' in request.url.path %}active{% endif %}" style="position:relative">
-            <i class="bi bi-briefcase-fill"></i><span>Исп. дашборд</span>
-            <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
-                         font-size:9px;font-weight:800;background:#FFD200;color:#0D2010;
-                         border-radius:4px;padding:1px 5px;letter-spacing:.04em">ТОП</span>
-        </a>
+        <div class="nav-sect-toggle {% if '/managers' in request.url.path or '/tasks' in request.url.path or request.url.path.startswith('/smr') or '/chat' in request.url.path %}open{% else %}open{% endif %}" data-target="nav-cmd" onclick="toggleNavSect(this)">
+            КОМАНДА <i class="bi bi-chevron-down nav-chevron"></i>
+        </div>
+        <div class="nav-collapse-body" id="nav-cmd">
+            <a href="/managers" class="nav-item {% if '/managers' in request.url.path %}active{% endif %}">
+                <i class="bi bi-people-fill"></i><span>Менеджеры проектов</span>
+            </a>
+            <a href="/tasks" class="nav-item {% if '/tasks' in request.url.path %}active{% endif %}">
+                <i class="bi bi-check2-square"></i><span>Задачи</span>
+            </a>
+            <a href="/smr" class="nav-item {% if request.url.path.startswith('/smr') %}active{% endif %}">
+                <i class="bi bi-bar-chart-steps"></i><span>График СМР</span>
+            </a>
+            <a href="/chat" class="nav-item {% if '/chat' in request.url.path %}active{% endif %}" style="position:relative">
+                <i class="bi bi-chat-dots-fill"></i><span>Чат</span>
+                <span id="chat-badge" class="d-none" style="position:absolute;top:6px;right:8px;background:#dc2626;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700"></span>
+            </a>
+        </div>
+
+        <div class="nav-sect-toggle open" data-target="nav-proj" onclick="toggleNavSect(this)">
+            ПРОЕКТЫ <i class="bi bi-chevron-down nav-chevron"></i>
+        </div>
+        <div class="nav-collapse-body" id="nav-proj">
+            <a href="/reconstruct" class="nav-item {% if '/reconstruct' in request.url.path %}active{% endif %}">
+                <i class="bi bi-building-fill"></i><span>Реконструкции</span>
+            </a>
+            <a href="/construction" class="nav-item {% if '/construction' in request.url.path %}active{% endif %}">
+                <i class="bi bi-buildings-fill"></i><span>Констракшн</span>
+            </a>
+            <a href="/kso" class="nav-item {% if '/kso' in request.url.path %}active{% endif %}">
+                <i class="bi bi-file-earmark-check-fill"></i><span>КСО</span>
+            </a>
+            <a href="/vpk" class="nav-item {% if '/vpk' in request.url.path %}active{% endif %}" style="position:relative">
+                <i class="bi bi-clipboard2-check-fill"></i><span>ВПК 1 / 2</span>
+                <span id="vpk-badge" class="d-none" style="position:absolute;top:6px;right:8px;background:#dc2626;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700"></span>
+            </a>
+        </div>
+
+        <div class="nav-sect-toggle open" data-target="nav-analytics" onclick="toggleNavSect(this)">
+            АНАЛИТИКА <i class="bi bi-chevron-down nav-chevron"></i>
+        </div>
+        <div class="nav-collapse-body" id="nav-analytics">
+            {% if user and (user.is_admin or user.is_leader) %}
+            <a href="/executive" class="nav-item {% if '/executive' in request.url.path %}active{% endif %}" style="position:relative">
+                <i class="bi bi-briefcase-fill"></i><span>Исп. дашборд</span>
+                <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:9px;font-weight:800;background:#FFD200;color:#0D2010;border-radius:4px;padding:1px 5px;letter-spacing:.04em">ТОП</span>
+            </a>
+            {% endif %}
+            <a href="/stats" class="nav-item {% if '/stats' in request.url.path %}active{% endif %}">
+                <i class="bi bi-bar-chart-fill"></i><span>Статистика</span>
+            </a>
+            <a href="/reports" class="nav-item {% if '/reports' in request.url.path %}active{% endif %}">
+                <i class="bi bi-file-earmark-text-fill"></i><span>Отчёты ВПК</span>
+            </a>
+            <a href="/ai" class="nav-item nav-ai {% if '/ai' in request.url.path %}active{% endif %}">
+                <i class="bi bi-robot"></i><span>ИИ Ассистент</span>
+                <span class="nav-ai-badge">AI</span>
+            </a>
+        </div>
+
+        {% if user and user.is_admin %}
+        <div class="nav-sect-toggle" data-target="nav-import" onclick="toggleNavSect(this)">
+            ИМПОРТ <i class="bi bi-chevron-down nav-chevron"></i>
+        </div>
+        <div class="nav-collapse-body collapsed" id="nav-import">
+            <a href="/import-reconstruct" class="nav-item {% if '/import-reconstruct' in request.url.path %}active{% endif %}">
+                <i class="bi bi-file-earmark-arrow-up"></i><span>Загрузить Реконструкции</span>
+            </a>
+            <a href="/import-construction" class="nav-item {% if '/import-construction' in request.url.path %}active{% endif %}">
+                <i class="bi bi-file-earmark-arrow-up"></i><span>Загрузить Констракшн</span>
+            </a>
+        </div>
         {% endif %}
-        <a href="/stats" class="nav-item {% if '/stats' in request.url.path %}active{% endif %}">
-            <i class="bi bi-bar-chart-fill"></i><span>Статистика</span>
-        </a>
-        <a href="/reports" class="nav-item {% if '/reports' in request.url.path %}active{% endif %}">
-            <i class="bi bi-file-earmark-text-fill"></i><span>Отчёты ВПК</span>
-        </a>
-        <a href="/ai" class="nav-item nav-ai {% if '/ai' in request.url.path %}active{% endif %}">
-            <i class="bi bi-robot"></i><span>ИИ Ассистент</span>
-            <span class="nav-ai-badge">AI</span>
-        </a>
-        <div class="nav-section-label">ИМПОРТ</div>
-        <a href="/import-reconstruct" class="nav-item {% if '/import-reconstruct' in request.url.path %}active{% endif %}">
-            <i class="bi bi-file-earmark-arrow-up"></i><span>Загрузить Реконструкции</span>
-        </a>
-        <a href="/import-construction" class="nav-item {% if '/import-construction' in request.url.path %}active{% endif %}">
-            <i class="bi bi-file-earmark-arrow-up"></i><span>Загрузить Констракшн</span>
-        </a>
+
         {% if user and user.phone == '+79997303914' %}
-        <div class="nav-section-label">СИСТЕМА</div>
-        <a href="/admin/audit" class="nav-item {% if '/admin/audit' in request.url.path %}active{% endif %}">
-            <i class="bi bi-shield-lock-fill"></i><span>Аудит активности</span>
-        </a>
+        <div class="nav-sect-toggle" data-target="nav-sys" onclick="toggleNavSect(this)">
+            СИСТЕМА <i class="bi bi-chevron-down nav-chevron"></i>
+        </div>
+        <div class="nav-collapse-body collapsed" id="nav-sys">
+            <a href="/admin/audit" class="nav-item {% if '/admin/audit' in request.url.path %}active{% endif %}">
+                <i class="bi bi-shield-lock-fill"></i><span>Аудит активности</span>
+            </a>
+        </div>
         {% endif %}
     </nav>
 
@@ -144,6 +169,9 @@
         <h5 class="topbar-title mb-0">{% block title %}{% endblock %}</h5>
         <div class="topbar-actions">{% block topbar_actions %}{% endblock %}</div>
         <div class="topbar-right">
+            <button id="btn-theme" class="btn-theme-toggle" onclick="toggleTheme()" title="Сменить тему">
+                <i class="bi bi-moon-fill" id="theme-icon"></i>
+            </button>
             <span class="topbar-date" id="js-date"></span>
             <span class="notif-badge d-none" id="notif-badge" style="cursor:pointer" onclick="window.location='/deadlines'"></span>
         </div>
@@ -495,6 +523,64 @@
         document.addEventListener(ev, sendPing, { passive: true });
     });
 })();
+</script>
+
+<script>
+/* ── Тема dark/light ── */
+function toggleTheme() {
+    const html = document.getElementById('html-root');
+    const cur  = html.getAttribute('data-bs-theme');
+    const next = cur === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-bs-theme', next);
+    localStorage.setItem('theme', next);
+    document.getElementById('theme-icon').className = next === 'dark' ? 'bi bi-moon-fill' : 'bi bi-sun-fill';
+}
+(function(){
+    const t = localStorage.getItem('theme') || 'dark';
+    const icon = document.getElementById('theme-icon');
+    if (icon) icon.className = t === 'dark' ? 'bi bi-moon-fill' : 'bi bi-sun-fill';
+})();
+
+/* ── Collapse-секции сайдбара ── */
+function toggleNavSect(el) {
+    const id   = el.dataset.target;
+    const body = document.getElementById(id);
+    if (!body) return;
+    const open = el.classList.contains('open');
+    el.classList.toggle('open', !open);
+    body.classList.toggle('collapsed', open);
+    const saved = JSON.parse(localStorage.getItem('navSects') || '{}');
+    saved[id] = !open;
+    localStorage.setItem('navSects', JSON.stringify(saved));
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const saved = JSON.parse(localStorage.getItem('navSects') || '{}');
+    document.querySelectorAll('.nav-sect-toggle').forEach(function(el) {
+        const id   = el.dataset.target;
+        const body = document.getElementById(id);
+        if (!body) return;
+        if (body.querySelector('.nav-item.active')) return; // активная секция — не скрывать
+        if (saved[id] === false) {
+            el.classList.remove('open');
+            body.classList.add('collapsed');
+        }
+    });
+
+    /* ── Count-up для stat-num ── */
+    document.querySelectorAll('.stat-num').forEach(function(el) {
+        const target = parseInt(el.textContent.trim());
+        if (isNaN(target) || target < 2) return;
+        el.textContent = '0';
+        let cur = 0;
+        const frames = 40;
+        const inc = target / frames;
+        const t = setInterval(function() {
+            cur = Math.min(cur + inc, target);
+            el.textContent = Math.floor(cur);
+            if (cur >= target) clearInterval(t);
+        }, 16);
+    });
+});
 </script>
 </body>
 </html>

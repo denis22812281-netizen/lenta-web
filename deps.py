@@ -11,6 +11,13 @@ templates = Jinja2Templates(directory="templates")
 templates.env.globals["csrf_token"] = get_csrf_token
 templates.env.globals["media_url"]  = media_url
 
+def _short_name(name: str) -> str:
+    """'Ловчиков Александр' → 'Ловчиков А.'"""
+    parts = (name or "").strip().split()
+    return f"{parts[0]} {parts[1][0]}." if len(parts) >= 2 else name
+
+templates.env.filters["short_name"] = _short_name
+
 # Rate limiter (shared между роутерами)
 limiter = Limiter(key_func=get_remote_address)
 

@@ -80,7 +80,7 @@
               {% else %}
               <img src="/static/img/raccoon.png" class="d-none d-sm-block" style="width:32px;height:32px;border-radius:8px;object-fit:contain;flex-shrink:0">
               {% endif %}
-              <a href="/managers/{{ m.id }}" class="text-decoration-none fw-semibold text-truncate" style="color:inherit;max-width:130px">{{ m.name }}</a>
+              <a href="/managers/{{ m.id }}" class="text-decoration-none fw-semibold" style="color:inherit;white-space:nowrap">{{ m.name | short_name }}</a>
             </div>
           </td>
           <td class="text-center d-none d-sm-table-cell">
