@@ -9,10 +9,8 @@
     <div class="leader-hero-inner">
         <div class="leader-hero-avatar">
             {% set uname = user.display_name or user.username %}
-            {% if 'Гаврин' in uname %}
-                <img src="/static/img/managers/gavrin.png" alt="{{ uname }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-            {% elif 'Месмер' in uname or 'Denis' in uname or 'Денис' in uname %}
-                <img src="/static/img/managers/mesmer.jpg" alt="{{ uname }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            {% if current_manager_photo %}
+                <img src="/static/{{ current_manager_photo }}" alt="{{ uname }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             {% else %}
                 <img src="/static/img/raccoon.png" alt="{{ uname }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             {% endif %}

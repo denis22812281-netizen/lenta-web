@@ -22,6 +22,12 @@ async def leader_dashboard(request: Request, db: Session = Depends(get_db),
 
     user_name = user.get("display_name", "")
 
+    # Фото текущего пользователя из модели Manager
+    current_manager = db.query(models.Manager).filter(
+        models.Manager.name.ilike(f"%{user_name.split()[0]}%")
+    ).first() if user_name else None
+    current_manager_photo = current_manager.photo if current_manager and current_manager.photo else ""
+
     # ── ВПК непрочитанные ────────────────────────────────────────────────────
     total_vpk = db.query(models.VpkReport).count()
     read_by_me = db.query(models.VpkReportRead).filter(
@@ -126,4 +132,5 @@ async def leader_dashboard(request: Request, db: Session = Depends(get_db),
         "total_overdue_tasks": total_overdue_tasks,
         "active_projects": active_projects,
         "opens_this_week": opens_this_week,
+        "current_manager_photo": current_manager_photo,
     })
