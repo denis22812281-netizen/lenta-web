@@ -208,10 +208,6 @@ async function checkDeadlines(force = false) {
             showToast(msg, 'warning', 8000);
         }
 
-        if (data.urgent_projects.length > 0) {
-            const msg = `🏗️ Проектов завершается в ближайшие 7 дней: ${data.urgent_projects.length}. ${data.urgent_projects.slice(0,2).map(p=>`«${p.name}» — ${p.days_left} д.`).join('; ')}`;
-            showToast(msg, 'info', 8000);
-        }
 
     } catch (_) {}
 }
