@@ -30,6 +30,7 @@ async def dashboard(request: Request, db: Session = Depends(get_db),
         models.Project.end_date >= today,
         models.Project.end_date <= today + timedelta(days=14),
         models.Project.status == "Активный",
+        models.Project.project_type == "Констракшн",
         (models.Project.opening_date == None) | (models.Project.opening_date > today)
     ).order_by(models.Project.end_date).limit(6).all()
     recent_tasks = db.query(models.Task).options(
