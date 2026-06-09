@@ -103,7 +103,20 @@
                 <span class="badge bg-success">Активный</span>
                 {% endif %}
             </td>
-            <td class="small text-muted">{{ p.stage or '—' }}</td>
+            <td class="small text-muted" style="max-width:120px">
+                {{ p.stage or '—' }}
+                {% if p.start_date and p.end_date and not is_opened %}
+                  {% set total_d = (p.end_date - p.start_date).days %}
+                  {% set elapsed_d = (today - p.start_date).days %}
+                  {% if total_d > 0 %}
+                    {% set pct = [[0, (elapsed_d * 100 // total_d)|int]|max, 100]|min %}
+                    <div style="margin-top:4px;height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden">
+                      <div style="height:100%;width:{{pct}}%;background:{% if pct >= 90 %}#ef4444{% elif pct >= 70 %}#f97316{% else %}#3CB34A{% endif %};border-radius:2px;transition:width .3s"></div>
+                    </div>
+                    <div style="font-size:10px;color:#94a3b8;margin-top:1px">{{pct}}%</div>
+                  {% endif %}
+                {% endif %}
+            </td>
             <td class="small">{{ p.start_date.strftime('%d.%m.%y') if p.start_date else '—' }}</td>
             <td class="small fw-semibold">{{ p.end_date.strftime('%d.%m.%Y') if p.end_date else '—' }}</td>
             <td style="white-space:nowrap">

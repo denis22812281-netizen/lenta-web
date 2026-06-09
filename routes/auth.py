@@ -88,7 +88,7 @@ async def login_enter(request: Request, db: Session = Depends(get_db),
             "is_admin": user.is_admin, "phone": user.phone,
         }
         return RedirectResponse("/login?step=2fa", status_code=302)
-    _set_session(request, user)
+    _set_session(request, user, db)
     return RedirectResponse("/", status_code=302)
 
 
@@ -126,7 +126,7 @@ async def create_password(request: Request, db: Session = Depends(get_db),
         db.add(user)
     db.commit()
     db.refresh(user)
-    _set_session(request, user)
+    _set_session(request, user, db)
     return RedirectResponse("/", status_code=302)
 
 
@@ -136,12 +136,25 @@ async def logout(request: Request):
     return RedirectResponse("/login", status_code=302)
 
 
-def _set_session(request: Request, user: models.User):
+def _set_session(request: Request, user: models.User, db: Session | None = None):
+    is_leader = False
+    if db and not user.is_admin:
+        try:
+            first_name = (user.display_name or "").split()[0]
+            if first_name:
+                mgr = db.query(models.Manager).filter(
+                    models.Manager.name.ilike(f"%{first_name}%"),
+                    models.Manager.is_leader == True,
+                ).first()
+                is_leader = bool(mgr)
+        except Exception:
+            pass
     request.session["user"] = {
         "id": user.id,
         "username": user.username,
         "display_name": user.display_name,
         "is_admin": user.is_admin,
+        "is_leader": is_leader,
         "phone": user.phone,
         "sv": user.session_version or 1,
     }

@@ -263,11 +263,24 @@ async def auth_complete(request: Request, db: Session = Depends(get_db)):
         # Логиним пользователя (завершает и обычный вход, и 2FA)
         db_user = db_cred.user
         request.session.pop("pending_2fa", None)
+        is_leader = False
+        if not db_user.is_admin:
+            try:
+                first_name = (db_user.display_name or "").split()[0]
+                if first_name:
+                    mgr = db.query(models.Manager).filter(
+                        models.Manager.name.ilike(f"%{first_name}%"),
+                        models.Manager.is_leader == True,
+                    ).first()
+                    is_leader = bool(mgr)
+            except Exception:
+                pass
         request.session["user"] = {
             "id": db_user.id,
             "username": db_user.username,
             "display_name": db_user.display_name,
             "is_admin": db_user.is_admin,
+            "is_leader": is_leader,
             "phone": db_user.phone,
         }
         return JSONResponse({"ok": True})

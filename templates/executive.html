@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% block page_title %}Исполнительный дашборд — Лента{% endblock %}
+{% block title %}<i class="bi bi-briefcase-fill me-2"></i>Исполнительный дашборд{% endblock %}
+{% block topbar_actions %}<button class="btn btn-sm btn-outline-secondary btn-print" onclick="window.print()"><i class="bi bi-printer me-1"></i>PDF</button>{% endblock %}
+
+{% block content %}
+
+<!-- KPI row -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card stat-green">
+      <div class="stat-icon-wrap"><i class="bi bi-shop stat-icon"></i></div>
+      <div class="stat-body">
+        <div class="stat-num">{{ opened_this_year }}</div>
+        <div class="stat-label">Открыто в {{ year }} г.</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card stat-blue">
+      <div class="stat-icon-wrap"><i class="bi bi-building-fill stat-icon"></i></div>
+      <div class="stat-body">
+        <div class="stat-num">{{ active_count }}</div>
+        <div class="stat-label">В работе сейчас</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card stat-red">
+      <div class="stat-icon-wrap"><i class="bi bi-exclamation-triangle-fill stat-icon"></i></div>
+      <div class="stat-body">
+        <div class="stat-num">{{ delayed_count }}</div>
+        <div class="stat-label">Просрочено открытий</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card stat-yellow">
+      <div class="stat-icon-wrap"><i class="bi bi-calendar-range-fill stat-icon"></i></div>
+      <div class="stat-body">
+        <div class="stat-num">{{ forecast_count }}</div>
+        <div class="stat-label">Откроется в 90 дней</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <!-- Рейтинг менеджеров -->
+  <div class="col-xl-7">
+    <div class="data-card h-100">
+      <div class="data-card-header">
+        <span><i class="bi bi-trophy-fill me-2 text-warning"></i>Рейтинг менеджеров — {{ year }}</span>
+      </div>
+      <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-head">
+          <tr>
+            <th>#</th>
+            <th>Менеджер</th>
+            <th class="text-center">В работе</th>
+            <th class="text-center">Открыто</th>
+            <th class="text-center">Просрочено</th>
+            <th class="text-center">Задач ❗</th>
+            <th class="text-center">Рейтинг</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for m in mgr_stats %}
+        <tr>
+          <td class="text-muted fw-bold" style="font-size:16px">
+            {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}{{ loop.index }}{% endif %}
+          </td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              {% if m.photo %}
+              <img src="/static/{{ m.photo }}" style="width:32px;height:32px;border-radius:50%;object-fit:cover" onerror="this.src='/static/img/raccoon.png'">
+              {% else %}
+              <div style="width:32px;height:32px;border-radius:50%;background:#334155;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#94a3b8">
+                {{ m.name[0] }}
+              </div>
+              {% endif %}
+              <a href="/managers/{{ m.id }}" class="text-decoration-none fw-semibold" style="color:inherit">{{ m.name }}</a>
+            </div>
+          </td>
+          <td class="text-center">
+            <span class="badge bg-primary">{{ m.active }}</span>
+          </td>
+          <td class="text-center">
+            <span class="badge bg-success">{{ m.opened_yr }}</span>
+          </td>
+          <td class="text-center">
+            {% if m.delayed > 0 %}
+            <span class="badge bg-danger">{{ m.delayed }}</span>
+            {% else %}
+            <span class="text-success small">✓</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            {% if m.tasks_overdue > 0 %}
+            <span class="badge bg-warning text-dark">{{ m.tasks_overdue }}</span>
+            {% else %}
+            <span class="text-success small">✓</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            {% set score = m.score %}
+            <span style="font-size:15px;font-weight:800;color:{% if score > 5 %}#22c55e{% elif score >= 0 %}#FFD200{% else %}#ef4444{% endif %}">
+              {{ score }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      <div class="px-3 pb-2 pt-1" style="font-size:11px;color:#64748b">
+        Рейтинг = открытия×3 − просрочки×5 − задачи с просрочкой×2
+      </div>
+    </div>
+  </div>
+
+  <!-- Открытия по месяцам -->
+  <div class="col-xl-5">
+    <div class="data-card h-100">
+      <div class="data-card-header">
+        <span><i class="bi bi-bar-chart-fill me-2 text-success"></i>Открытия по месяцам — {{ year }}</span>
+      </div>
+      <div style="padding:16px">
+        <canvas id="chartMonthly" style="max-height:260px"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Прогноз -->
+  <div class="col-lg-6">
+    <div class="data-card">
+      <div class="data-card-header">
+        <span><i class="bi bi-calendar-check-fill me-2 text-primary"></i>Прогноз — ближайшие 90 дней</span>
+        <span class="badge bg-primary">{{ forecast_projects|length }}</span>
+      </div>
+      {% if forecast_projects %}
+      <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle small">
+        <thead class="table-head">
+          <tr><th>ТК</th><th>Адрес</th><th>Менеджер</th><th>Плановое</th><th>Осталось</th></tr>
+        </thead>
+        <tbody>
+        {% for p in forecast_projects %}
+        {% set days = (p.end_date - today).days %}
+        <tr>
+          <td class="fw-semibold"><a href="/projects/{{ p.id }}" class="text-decoration-none" style="color:inherit">{{ p.tk_number }}</a></td>
+          <td style="max-width:120px" class="text-truncate text-muted">{{ p.address or p.city or '—' }}</td>
+          <td>{{ p.manager.name.split()[0] if p.manager else '—' }}</td>
+          <td>{{ p.end_date.strftime('%d.%m.%Y') }}</td>
+          <td>
+            <span class="dl-badge {% if days <= 7 %}dl-crit{% elif days <= 30 %}dl-warn{% else %}dl-ok{% endif %}">
+              {{ days }} д
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><i class="bi bi-calendar-check"></i><p>Нет плановых открытий в ближайшие 90 дней</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Просрочки -->
+  <div class="col-lg-6">
+    <div class="data-card">
+      <div class="data-card-header">
+        <span><i class="bi bi-exclamation-circle-fill me-2 text-danger"></i>Просроченные открытия</span>
+        <span class="badge bg-danger">{{ overdue_projects|length }}</span>
+      </div>
+      {% if overdue_projects %}
+      <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle small">
+        <thead class="table-head">
+          <tr><th>ТК</th><th>Адрес</th><th>Менеджер</th><th>Было открыть</th><th>Просрочка</th></tr>
+        </thead>
+        <tbody>
+        {% for p in overdue_projects %}
+        {% set overdue_days = (today - p.end_date).days %}
+        <tr>
+          <td class="fw-semibold"><a href="/projects/{{ p.id }}" class="text-decoration-none" style="color:inherit">{{ p.tk_number }}</a></td>
+          <td style="max-width:120px" class="text-truncate text-muted">{{ p.address or p.city or '—' }}</td>
+          <td>{{ p.manager.name.split()[0] if p.manager else '—' }}</td>
+          <td>{{ p.end_date.strftime('%d.%m.%Y') }}</td>
+          <td><span class="dl-badge dl-over">{{ overdue_days }} д</span></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><i class="bi bi-check-circle-fill text-success"></i><p style="color:#22c55e">Просроченных открытий нет</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/vendor/chartjs/chart.min.js"></script>
+<script>
+const monthLabels = {{ month_labels | tojson }};
+const monthsData  = {{ months_data | tojson }};
+new Chart(document.getElementById('chartMonthly'), {
+  type: 'bar',
+  data: {
+    labels: monthLabels,
+    datasets: [{
+      label: 'Открытий',
+      data: monthsData,
+      backgroundColor: monthsData.map(v => v > 0 ? '#22c55e' : '#334155'),
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.raw} открытий` } }
+    },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+      y: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#94a3b8', stepSize: 1 } },
+    }
+  }
+});
+</script>
+<style>
+[data-bs-theme="dark"] .table a { color: #e2e8f0 !important; }
+</style>
+{% endblock %}

@@ -35,6 +35,31 @@ def require_admin(request: Request) -> dict:
     return user
 
 
+def require_executive(request: Request) -> dict:
+    """FastAPI Dependency: is_admin ИЛИ is_leader-менеджер (Комаров, Гаврин)."""
+    user = require_login(request)
+    if user.get("is_admin"):
+        return user
+    # Проверяем через БД — is_leader менеджер
+    try:
+        import database, models
+        name = user.get("display_name", "")
+        if name:
+            db = database.SessionLocal()
+            try:
+                mgr = db.query(models.Manager).filter(
+                    models.Manager.name.ilike(f"%{name.split()[0]}%"),
+                    models.Manager.is_leader == True
+                ).first()
+                if mgr:
+                    return user
+            finally:
+                db.close()
+    except Exception:
+        pass
+    raise HTTPException(status_code=302, headers={"Location": "/"})
+
+
 def write_audit(request: Request, path: str | None = None):
     """Записывает посещение в audit_log. Вызывается из роутов вручную."""
     try:
