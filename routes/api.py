@@ -76,6 +76,7 @@ async def check_deadlines(request: Request, db: Session = Depends(get_db)):
         models.Task.deadline < today).all()
     urgent_projects = db.query(models.Project).filter(
         models.Project.status != "Завершён", models.Project.end_date != None,
+        models.Project.project_type == "Констракшн",
         models.Project.end_date >= today,
         models.Project.end_date <= today + timedelta(days=7),
         (models.Project.opening_date == None) | (models.Project.opening_date > today)
