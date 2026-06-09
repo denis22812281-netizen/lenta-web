@@ -74,16 +74,21 @@ async def register_begin(request: Request, db: Session = Depends(get_db)):
             for c in existing
         ]
 
+        import struct
+        # user_id: 8 байт big-endian — iOS Safari требует ≥ 1 байт, но 1-2 байта
+        # могут вызывать SyntaxError в WebKit при внутренней валидации
+        uid_bytes = struct.pack('>Q', user["id"])
+
         options = generate_registration_options(
             rp_id=_rp_id(request),
-            rp_name=RP_NAME,
-            user_id=str(user["id"]).encode(),
-            user_name=db_user.phone,
+            rp_name="Lenta PM",  # ASCII — избегаем проблем с кириллицей в rp_name
+            user_id=uid_bytes,
+            user_name=db_user.display_name or db_user.phone,
             user_display_name=db_user.display_name or db_user.phone,
             exclude_credentials=exclude_creds,
             authenticator_selection=AuthenticatorSelectionCriteria(
-                resident_key=ResidentKeyRequirement.PREFERRED,
-                user_verification=UserVerificationRequirement.REQUIRED,
+                # Убираем residentKey — не поддерживается стабильно в iOS Safari
+                user_verification=UserVerificationRequirement.PREFERRED,
             ),
         )
 
