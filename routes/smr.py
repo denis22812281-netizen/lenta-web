@@ -261,6 +261,10 @@ async def smr_create(project_id: int, request: Request,
         elif is_ms and name == "ВПК 1" and proj.vpk_date:
             task_start = proj.vpk_date
             task_end   = proj.vpk_date
+        elif is_ms and name == "ВПК 2" and proj.vpk_date:
+            vpk2 = proj.vpk_date + timedelta(days=5)
+            task_start = vpk2
+            task_end   = vpk2
         db.add(models.SmrTask(
             schedule_id=schedule.id,
             name=name,
