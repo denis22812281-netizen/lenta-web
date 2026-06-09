@@ -41,7 +41,7 @@ async def smr_list(request: Request, db: Session = Depends(get_db),
     ).all()
 
     schedules = {s.project_id: s for s in db.query(models.SmrSchedule).all()}
-    managers  = db.query(models.Manager).order_by(models.Manager.name).all()
+    managers  = db.query(models.Manager).filter(models.Manager.is_leader == False).order_by(models.Manager.name).all()
 
     projects = []
     for proj in constr_projects:

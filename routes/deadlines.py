@@ -32,7 +32,7 @@ async def deadlines(request: Request, db: Session = Depends(get_db),
         tq = tq.filter(models.Task.assignee_id == int(manager_id))
     tasks = tq.order_by(models.Task.deadline).all()
 
-    managers = db.query(models.Manager).all()
+    managers = db.query(models.Manager).filter(models.Manager.is_leader == False).all()
     return templates.TemplateResponse("deadlines.html", {
         "request": request, "user": user,
         "projects": projects, "tasks": tasks,

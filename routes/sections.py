@@ -29,7 +29,7 @@ def _section_response(request, user, q_type, title, icon, color, url, db):
     if search:
         q = q.filter(models.Project.tk_number.contains(search))
     projects = q.order_by(models.Project.end_date.nullslast()).all()
-    managers = db.query(models.Manager).all()
+    managers = db.query(models.Manager).filter(models.Manager.is_leader == False).all()
     return templates.TemplateResponse("section_projects.html", {
         "request": request, "user": user,
         "section_title": title, "section_icon": icon,
