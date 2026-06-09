@@ -427,9 +427,10 @@
 .smr-section-title { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#3CB34A; margin-bottom:12px; }
 .smr-gantt-scroll { overflow-x:auto; }
 .smr-gantt-inner  { min-width:680px; }
-.smr-gantt-scale, .smr-gantt-row { display:flex; align-items:center; margin-bottom:0; border-bottom:1px solid rgba(255,255,255,0.12); }
-.smr-gantt-row { padding-top:4px; padding-bottom:4px; }
-.smr-gantt-row:last-child { border-bottom:none; }
+.smr-gantt-scale, .smr-gantt-row { display:flex; align-items:center; margin-bottom:0; }
+.smr-gantt-row { padding-top:2px; padding-bottom:2px; }
+.smr-gantt-row:nth-child(odd)  { background:rgba(255,255,255,0.03); }
+.smr-gantt-row:nth-child(even) { background:rgba(0,0,0,0.12); }
 .smr-gantt-label-col {
   width:220px; flex-shrink:0; font-size:.72rem; color:#94a3b8;
   white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
