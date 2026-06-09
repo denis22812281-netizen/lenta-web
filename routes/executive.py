@@ -34,10 +34,11 @@ async def executive_dashboard(request: Request, db: Session = Depends(get_db),
     ).count()
 
     delayed_count = db.query(models.Project).filter(
-        models.Project.status == "Активный",
         models.Project.project_type == "Констракшн",
-        models.Project.end_date < today,
-        (models.Project.opening_date == None) | (models.Project.opening_date > today),
+        models.Project.opening_date >= year_start,
+        models.Project.opening_date <= today,
+        models.Project.end_date.isnot(None),
+        models.Project.opening_date > models.Project.end_date,
     ).count()
 
     forecast_count = db.query(models.Project).filter(
@@ -73,10 +74,11 @@ async def executive_dashboard(request: Request, db: Session = Depends(get_db),
     delayed_by_mgr = dict(db.query(
         models.Project.manager_id, func.count(models.Project.id)
     ).filter(
-        models.Project.status == "Активный",
         models.Project.project_type == "Констракшн",
-        models.Project.end_date < today,
-        (models.Project.opening_date == None) | (models.Project.opening_date > today),
+        models.Project.opening_date >= year_start,
+        models.Project.opening_date <= today,
+        models.Project.end_date.isnot(None),
+        models.Project.opening_date > models.Project.end_date,
         models.Project.manager_id.isnot(None),
     ).group_by(models.Project.manager_id).all())
 
@@ -145,11 +147,12 @@ async def executive_dashboard(request: Request, db: Session = Depends(get_db),
     overdue_projects = db.query(models.Project).options(
         joinedload(models.Project.manager)
     ).filter(
-        models.Project.status == "Активный",
         models.Project.project_type == "Констракшн",
-        models.Project.end_date < today,
-        (models.Project.opening_date == None) | (models.Project.opening_date > today),
-    ).order_by(models.Project.end_date).all()
+        models.Project.opening_date >= year_start,
+        models.Project.opening_date <= today,
+        models.Project.end_date.isnot(None),
+        models.Project.opening_date > models.Project.end_date,
+    ).order_by(models.Project.opening_date.desc()).all()
 
     return templates.TemplateResponse("executive.html", {
         "request": request, "user": user, "today": today,
