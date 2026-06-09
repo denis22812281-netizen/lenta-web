@@ -254,10 +254,13 @@ async def smr_create(project_id: int, request: Request,
     for i, (name, s_day, e_day, is_ms) in enumerate(template):
         task_start = base + timedelta(days=s_day)
         task_end   = base + timedelta(days=e_day)
-        # Дата открытия берётся из проекта, а не из шаблона
+        # Ключевые вехи берутся из проекта, а не из шаблона
         if is_ms and "открытие" in name.lower() and proj.end_date:
             task_start = proj.end_date
             task_end   = proj.end_date
+        elif is_ms and name == "ВПК 1" and proj.vpk_date:
+            task_start = proj.vpk_date
+            task_end   = proj.vpk_date
         db.add(models.SmrTask(
             schedule_id=schedule.id,
             name=name,
