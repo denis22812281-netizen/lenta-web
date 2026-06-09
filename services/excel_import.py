@@ -311,7 +311,7 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
                 existing.start_date   = reception
                 existing.closure_date = cmp_date
                 existing.vpk_date     = vpk_date
-                existing.end_date     = open_plan
+                existing.end_date     = open_plan or open_fact
                 existing.opening_date = open_fact
                 if existing.status != "Приостановлен":
                     existing.status = status
@@ -325,7 +325,7 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
                     manager_id=manager_id, status=status,
                     format_type=fmt_type, open_status=open_st,
                     start_date=reception, closure_date=cmp_date,
-                    vpk_date=vpk_date, end_date=open_plan,
+                    vpk_date=vpk_date, end_date=open_plan or open_fact,
                     opening_date=open_fact, area=area,
                 ))
                 created += 1
