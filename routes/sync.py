@@ -48,6 +48,20 @@ async def save_sync_settings(request: Request, db: Session = Depends(get_db),
     return RedirectResponse("/sync-settings?saved=1", status_code=303)
 
 
+_SYNC_BLOCKED = ('/etc', '/proc', '/sys', '/root', '/var/run',
+                 'C:\\Windows', 'C:\\System32', 'C:\\Program Files')
+
+
+def _is_safe_sync_path(file_path: str) -> bool:
+    path = Path(file_path).resolve()
+    return (
+        path.exists()
+        and path.suffix.lower() in ('.xlsx', '.xls', '.xlsm')
+        and not any(str(path).startswith(b) for b in _SYNC_BLOCKED)
+        and path.stat().st_size < 50 * 1024 * 1024
+    )
+
+
 @router.post("/sync-settings/run-now")
 async def run_sync_now(request: Request, db: Session = Depends(get_db),
                        project_type: str = Form(...),
@@ -55,13 +69,12 @@ async def run_sync_now(request: Request, db: Session = Depends(get_db),
     cfg = db.query(models.SyncConfig).filter(
         models.SyncConfig.project_type == project_type).first()
     if cfg and cfg.file_path:
-        path = Path(cfg.file_path)
-        if path.exists():
+        if _is_safe_sync_path(cfg.file_path):
+            path = Path(cfg.file_path).resolve()
             result = parse_excel_file(path.read_bytes(), project_type, None, db)
             cfg.last_synced = datetime.utcnow()
             cfg.last_status = f"OK: создано {result['created']}, обновлено {result['updated']}"
-            db.commit()
         else:
-            cfg.last_status = f"Файл не найден: {cfg.file_path}"
-            db.commit()
+            cfg.last_status = f"Файл не найден или не разрешён: {cfg.file_path}"
+        db.commit()
     return RedirectResponse("/sync-settings?ran=1", status_code=303)

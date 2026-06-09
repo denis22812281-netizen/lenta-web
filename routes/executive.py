@@ -48,51 +48,60 @@ async def executive_dashboard(request: Request, db: Session = Depends(get_db),
         models.Project.opening_date == None,
     ).count()
 
-    # ── Рейтинг менеджеров ───────────────────────────────────────────────────
+    # ── Рейтинг менеджеров (5 агрегатных запросов вместо 6×N) ──────────────
     managers = db.query(models.Manager).filter(
         models.Manager.is_leader == False
     ).order_by(models.Manager.name).all()
 
+    active_by_mgr = dict(db.query(
+        models.Project.manager_id, func.count(models.Project.id)
+    ).filter(
+        models.Project.status == "Активный",
+        models.Project.project_type == "Констракшн",
+        models.Project.manager_id.isnot(None),
+    ).group_by(models.Project.manager_id).all())
+
+    opened_by_mgr = dict(db.query(
+        models.Project.manager_id, func.count(models.Project.id)
+    ).filter(
+        models.Project.project_type == "Констракшн",
+        models.Project.opening_date >= year_start,
+        models.Project.opening_date <= today,
+        models.Project.manager_id.isnot(None),
+    ).group_by(models.Project.manager_id).all())
+
+    delayed_by_mgr = dict(db.query(
+        models.Project.manager_id, func.count(models.Project.id)
+    ).filter(
+        models.Project.status == "Активный",
+        models.Project.project_type == "Констракшн",
+        models.Project.end_date < today,
+        models.Project.opening_date.is_(None),
+        models.Project.manager_id.isnot(None),
+    ).group_by(models.Project.manager_id).all())
+
+    tasks_overdue_by_mgr = dict(db.query(
+        models.Task.assignee_id, func.count(models.Task.id)
+    ).filter(
+        models.Task.status != "Завершена",
+        models.Task.deadline < today,
+        models.Task.assignee_id.isnot(None),
+    ).group_by(models.Task.assignee_id).all())
+
+    tasks_total_by_mgr = dict(db.query(
+        models.Task.assignee_id, func.count(models.Task.id)
+    ).filter(
+        models.Task.deadline.isnot(None),
+        models.Task.assignee_id.isnot(None),
+    ).group_by(models.Task.assignee_id).all())
+
     mgr_stats = []
     for m in managers:
-        active = db.query(models.Project).filter(
-            models.Project.manager_id == m.id,
-            models.Project.status == "Активный",
-            models.Project.project_type == "Констракшн",
-        ).count()
-
-        opened_yr = db.query(models.Project).filter(
-            models.Project.manager_id == m.id,
-            models.Project.opening_date >= year_start,
-            models.Project.opening_date <= today,
-            models.Project.project_type == "Констракшн",
-        ).count()
-
-        delayed = db.query(models.Project).filter(
-            models.Project.manager_id == m.id,
-            models.Project.status == "Активный",
-            models.Project.project_type == "Констракшн",
-            models.Project.end_date < today,
-            models.Project.opening_date == None,
-        ).count()
-
-        tasks_total = db.query(models.Task).filter(
-            models.Task.assignee_id == m.id,
-            models.Task.deadline != None,
-        ).count()
-
-        tasks_overdue = db.query(models.Task).filter(
-            models.Task.assignee_id == m.id,
-            models.Task.status != "Завершена",
-            models.Task.deadline < today,
-        ).count()
-
-        tasks_done_late = db.query(models.Task).filter(
-            models.Task.assignee_id == m.id,
-            models.Task.status == "Завершена",
-        ).count()
-
-        # Простой рейтинг: открытые в срок - просрочки*2
+        active        = active_by_mgr.get(m.id, 0)
+        opened_yr     = opened_by_mgr.get(m.id, 0)
+        delayed       = delayed_by_mgr.get(m.id, 0)
+        tasks_overdue = tasks_overdue_by_mgr.get(m.id, 0)
+        tasks_total   = tasks_total_by_mgr.get(m.id, 0)
         score = opened_yr * 3 - delayed * 5 - tasks_overdue * 2
         mgr_stats.append({
             "id": m.id, "name": m.name, "photo": m.photo or "",

@@ -176,7 +176,11 @@ def import_reconstruct_excel(content: bytes, db: Session) -> dict:
 
         db.flush()
 
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     return {"created": created, "updated": updated}
 
 
@@ -330,7 +334,11 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
                 ))
                 created += 1
 
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     return {
         "created": created, "updated": updated,
         "sheets": ", ".join(ws.title for ws in target_sheets),
@@ -405,7 +413,11 @@ def parse_excel_file(content: bytes, project_type: str,
             _sync_stages(ws, p.id, db)
             created += 1
 
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     return {"created": created, "updated": updated}
 
 
