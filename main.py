@@ -420,6 +420,7 @@ async def startup():
                     "ALTER TABLE managers ADD COLUMN IF NOT EXISTS position VARCHAR(150) DEFAULT ''",
                     "ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completion_comment TEXT DEFAULT ''",
                     "ALTER TABLE users ADD COLUMN IF NOT EXISTS session_version INTEGER DEFAULT 1",
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP",
                     """CREATE TABLE IF NOT EXISTS task_notifications (
                         id SERIAL PRIMARY KEY,
                         recipient_name VARCHAR(100) NOT NULL,
@@ -510,6 +511,23 @@ async def startup():
                         logger.debug("startup migration skipped: %s", e)
         except Exception as e:
             logger.warning("startup: could not run migrations: %s", e)
+
+    # Восстанавливаем ONLINE_USERS из DB после перезапуска
+    try:
+        from services.online import ONLINE_USERS, ONLINE_TIMEOUT
+        from datetime import timedelta as _td
+        cutoff = datetime.utcnow() - _td(seconds=ONLINE_TIMEOUT)
+        with database.db_session() as db:
+            recent = db.query(models.User.display_name, models.User.last_seen).filter(
+                models.User.last_seen >= cutoff,
+                models.User.display_name.isnot(None),
+            ).all()
+            for name, ts in recent:
+                if name:
+                    ONLINE_USERS[name] = ts
+        logger.info("Restored %d online users from DB", len(ONLINE_USERS))
+    except Exception as e:
+        logger.debug("online restore skipped: %s", e)
 
     # SQLite-миграции для локальной разработки (добавляем колонки к существующим таблицам)
     if "sqlite" in str(database.DATABASE_URL):

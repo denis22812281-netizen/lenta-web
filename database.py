@@ -33,3 +33,19 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+from contextlib import contextmanager
+
+@contextmanager
+def db_session():
+    """Context manager для ручных сессий вне DI (фоновые задачи, deps)."""
+    db = SessionLocal()
+    try:
+        yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()

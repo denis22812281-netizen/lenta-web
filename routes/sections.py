@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, require_login
+from deps import templates, require_login, require_admin, limiter
 from config import STATUSES
 from services.excel_import import import_reconstruct_excel, import_construction_excel
 from utils.files import read_limited
@@ -57,7 +57,7 @@ async def construction_view(request: Request, db: Session = Depends(get_db),
 # ─── Специализированный импорт ────────────────────────────────────────────────
 
 @router.get("/import-reconstruct", response_class=HTMLResponse)
-async def import_reconstruct_page(request: Request, user: dict = Depends(require_login)):
+async def import_reconstruct_page(request: Request, user: dict = Depends(require_admin)):
     return templates.TemplateResponse("import_reconstruct.html", {
         "request": request, "user": user,
         "section_title": "Реконструкции",
@@ -73,8 +73,9 @@ _MAX_EXCEL_BYTES = _MAX_EXCEL_MB * 1024 * 1024
 
 
 @router.post("/import-reconstruct")
+@limiter.limit("3/minute")
 async def do_import_reconstruct(request: Request, db: Session = Depends(get_db),
-                                 user: dict = Depends(require_login),
+                                 user: dict = Depends(require_admin),
                                  file: UploadFile = File(...)):
     try:
         content = await read_limited(file, _MAX_EXCEL_BYTES)
@@ -92,7 +93,7 @@ async def do_import_reconstruct(request: Request, db: Session = Depends(get_db),
 
 
 @router.get("/import-construction", response_class=HTMLResponse)
-async def import_construction_page(request: Request, user: dict = Depends(require_login)):
+async def import_construction_page(request: Request, user: dict = Depends(require_admin)):
     return templates.TemplateResponse("import_reconstruct.html", {
         "request": request, "user": user,
         "section_title": "Констракшн",
@@ -104,8 +105,9 @@ async def import_construction_page(request: Request, user: dict = Depends(requir
 
 
 @router.post("/import-construction")
+@limiter.limit("3/minute")
 async def do_import_construction(request: Request, db: Session = Depends(get_db),
-                                  user: dict = Depends(require_login),
+                                  user: dict = Depends(require_admin),
                                   file: UploadFile = File(...)):
     try:
         content = await read_limited(file, _MAX_EXCEL_BYTES)

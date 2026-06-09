@@ -47,21 +47,17 @@ def require_executive(request: Request) -> dict:
     user = require_login(request)
     if user.get("is_admin"):
         return user
-    # Проверяем через БД — is_leader менеджер
     try:
         import database, models
         name = user.get("display_name", "")
         if name:
-            db = database.SessionLocal()
-            try:
+            with database.db_session() as db:
                 mgr = db.query(models.Manager).filter(
                     models.Manager.name.ilike(f"%{name.split()[0]}%"),
-                    models.Manager.is_leader == True
+                    models.Manager.is_leader == True,
                 ).first()
                 if mgr:
                     return user
-            finally:
-                db.close()
     except Exception:
         pass
     raise HTTPException(status_code=302, headers={"Location": "/"})
@@ -78,8 +74,7 @@ def write_audit(request: Request, path: str | None = None):
         skip = ("/static", "/api/ping", "/api/online", "/favicon", "/admin/audit")
         if any(p.startswith(s) for s in skip):
             return
-        db = database.SessionLocal()
-        try:
+        with database.db_session() as db:
             db.add(models.AuditLog(
                 user_name=user.get("display_name", ""),
                 user_phone=user.get("phone", ""),
@@ -87,10 +82,5 @@ def write_audit(request: Request, path: str | None = None):
                 method=request.method,
                 ip=request.client.host if request.client else "",
             ))
-            db.commit()
-        except Exception:
-            db.rollback()
-        finally:
-            db.close()
     except Exception:
         pass

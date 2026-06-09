@@ -22,6 +22,7 @@ class User(Base):
     display_name = Column(String(100))
     is_admin = Column(Boolean, default=False)
     session_version = Column(Integer, default=1)
+    last_seen = Column(DateTime, nullable=True)   # для online-presence без in-memory сброса
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

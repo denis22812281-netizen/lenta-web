@@ -14,12 +14,21 @@ router = APIRouter()
 
 
 @router.post("/api/ping")
-async def ping(request: Request):
+async def ping(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request)
     if user:
         now = datetime.utcnow()
-        ONLINE_USERS[user.get("display_name", "")] = now
-        stale = [k for k, ts in ONLINE_USERS.items()
+        name = user.get("display_name", "")
+        ONLINE_USERS[name] = now
+        # Сохраняем в DB — переживёт перезапуск
+        uid = user.get("id")
+        if uid:
+            db_user = db.query(models.User).filter(models.User.id == uid).first()
+            if db_user:
+                db_user.last_seen = now
+                db.commit()
+        # Чистим устаревшие записи из памяти
+        stale = [k for k, ts in list(ONLINE_USERS.items())
                  if (now - ts).total_seconds() > ONLINE_TIMEOUT * 3]
         for k in stale:
             del ONLINE_USERS[k]
@@ -27,14 +36,19 @@ async def ping(request: Request):
 
 
 @router.get("/api/online")
-async def get_online(request: Request):
+async def get_online(request: Request, db: Session = Depends(get_db)):
     if not get_current_user(request):
         return {"online": []}
     now = datetime.utcnow()
-    return {"online": [
-        name for name, ts in ONLINE_USERS.items()
-        if (now - ts).total_seconds() < ONLINE_TIMEOUT
-    ]}
+    cutoff = now - timedelta(seconds=ONLINE_TIMEOUT)
+    # Приоритет: in-memory (точнее), fallback: DB (выживает после рестарта)
+    in_mem = {name for name, ts in ONLINE_USERS.items()
+              if (now - ts).total_seconds() < ONLINE_TIMEOUT}
+    from_db = {u.display_name for u in
+               db.query(models.User.display_name)
+               .filter(models.User.last_seen >= cutoff,
+                       models.User.display_name.isnot(None)).all()}
+    return {"online": list(in_mem | from_db)}
 
 
 @router.get("/api/task-notifications")
