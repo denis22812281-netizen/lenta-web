@@ -37,7 +37,7 @@ async def executive_dashboard(request: Request, db: Session = Depends(get_db),
         models.Project.status == "Активный",
         models.Project.project_type == "Констракшн",
         models.Project.end_date < today,
-        models.Project.opening_date == None,
+        (models.Project.opening_date == None) | (models.Project.opening_date > today),
     ).count()
 
     forecast_count = db.query(models.Project).filter(
@@ -76,7 +76,7 @@ async def executive_dashboard(request: Request, db: Session = Depends(get_db),
         models.Project.status == "Активный",
         models.Project.project_type == "Констракшн",
         models.Project.end_date < today,
-        models.Project.opening_date.is_(None),
+        (models.Project.opening_date == None) | (models.Project.opening_date > today),
         models.Project.manager_id.isnot(None),
     ).group_by(models.Project.manager_id).all())
 
@@ -148,7 +148,7 @@ async def executive_dashboard(request: Request, db: Session = Depends(get_db),
         models.Project.status == "Активный",
         models.Project.project_type == "Констракшн",
         models.Project.end_date < today,
-        models.Project.opening_date == None,
+        (models.Project.opening_date == None) | (models.Project.opening_date > today),
     ).order_by(models.Project.end_date).all()
 
     return templates.TemplateResponse("executive.html", {
