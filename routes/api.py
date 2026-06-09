@@ -2,12 +2,13 @@
 from datetime import datetime, date, timedelta
 
 from fastapi import APIRouter, Request, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import get_current_user
+from deps import get_current_user, require_login
 from services.online import ONLINE_USERS, ONLINE_TIMEOUT
 
 router = APIRouter()
@@ -33,6 +34,24 @@ async def ping(request: Request, db: Session = Depends(get_db)):
         for k in stale:
             del ONLINE_USERS[k]
     return {"ok": True}
+
+
+@router.post("/api/projects/bulk-update")
+async def bulk_update_projects(request: Request, db: Session = Depends(get_db),
+                               user: dict = Depends(require_login)):
+    data = await request.json()
+    ids = [int(i) for i in data.get("ids", []) if str(i).isdigit()]
+    action = data.get("action", "")
+    if not ids or not action:
+        return JSONResponse({"ok": False, "error": "Нет данных"}, status_code=400)
+    if action.startswith("status:"):
+        new_status = action.split(":", 1)[1]
+        updated = db.query(models.Project).filter(
+            models.Project.id.in_(ids)
+        ).update({"status": new_status}, synchronize_session=False)
+        db.commit()
+        return {"ok": True, "updated": updated}
+    return JSONResponse({"ok": False, "error": "Неизвестное действие"}, status_code=400)
 
 
 @router.get("/api/online")

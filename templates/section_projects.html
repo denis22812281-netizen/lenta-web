@@ -63,13 +63,27 @@
     </form>
 </div>
 
+<!-- Bulk action bar -->
+<div id="bulk-bar" class="bulk-bar d-none">
+    <span id="bulk-count" class="bulk-count">0 выбрано</span>
+    <select id="bulk-action" class="form-select form-select-sm" style="width:200px">
+        <option value="">— Действие —</option>
+        <option value="status:Активный">Статус: Активный</option>
+        <option value="status:Приостановлен">Статус: Приостановлен</option>
+        <option value="status:Завершён">Статус: Завершён</option>
+    </select>
+    <button class="btn btn-sm btn-primary" onclick="applyBulk()">Применить</button>
+    <button class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">Отмена</button>
+</div>
+
 <!-- Table -->
 <div class="data-card">
     {% if projects %}
     <div class="table-responsive">
-    <table class="table table-hover mb-0 align-middle">
+    <table class="table table-hover mb-0 align-middle" id="projects-table">
         <thead class="table-head">
             <tr>
+                <th style="width:32px"><input type="checkbox" id="chk-all" class="form-check-input" onchange="toggleAll(this)"></th>
                 <th>ТК №</th>
                 <th>Название / Город</th>
                 <th>Менеджер</th>
@@ -85,7 +99,8 @@
         {% for p in projects %}
         {% if p.end_date %}{% set days = (p.end_date - today).days %}{% else %}{% set days = None %}{% endif %}
         {% set is_opened = p.opening_date and p.opening_date <= today %}
-        <tr class="{% if is_opened %}table-success{% endif %}">
+        <tr class="{% if is_opened %}table-success{% endif %}" data-id="{{ p.id }}">
+            <td><input type="checkbox" class="form-check-input row-chk" value="{{ p.id }}" onchange="updateBulkBar()"></td>
             <td class="text-muted small fw-semibold">{{ p.tk_number or '—' }}</td>
             <td>
                 <a href="/projects/{{ p.id }}" class="fw-semibold text-decoration-none text-dark">{{ p.name }}</a>
@@ -334,4 +349,61 @@
 [data-bs-theme="dark"] .filter-bar .form-control,
 [data-bs-theme="dark"] .filter-bar .form-select { background:#0f172a; color:#e2e8f0; border-color:#334155; }
 </style>
+
+<script>
+/* ── Bulk operations ── */
+const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+function getChecked() {
+    return [...document.querySelectorAll('.row-chk:checked')].map(c => c.value);
+}
+
+function updateBulkBar() {
+    const ids = getChecked();
+    const bar = document.getElementById('bulk-bar');
+    const cnt = document.getElementById('bulk-count');
+    if (ids.length > 0) {
+        bar.classList.remove('d-none');
+        cnt.textContent = ids.length + ' выбрано';
+    } else {
+        bar.classList.add('d-none');
+    }
+    const all = document.getElementById('chk-all');
+    const total = document.querySelectorAll('.row-chk').length;
+    if (all) all.indeterminate = ids.length > 0 && ids.length < total;
+    if (all) all.checked = ids.length === total && total > 0;
+}
+
+function toggleAll(el) {
+    document.querySelectorAll('.row-chk').forEach(c => c.checked = el.checked);
+    updateBulkBar();
+}
+
+function clearSelection() {
+    document.querySelectorAll('.row-chk').forEach(c => c.checked = false);
+    const all = document.getElementById('chk-all');
+    if (all) { all.checked = false; all.indeterminate = false; }
+    document.getElementById('bulk-bar').classList.add('d-none');
+}
+
+function applyBulk() {
+    const ids = getChecked();
+    const action = document.getElementById('bulk-action').value;
+    if (!ids.length) return alert('Выберите проекты');
+    if (!action) return alert('Выберите действие');
+    if (!confirm(`Применить "${action.split(':')[1]}" к ${ids.length} проектам?`)) return;
+
+    fetch('/api/projects/bulk-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+        body: JSON.stringify({ ids, action }),
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.ok) { location.reload(); }
+        else { alert('Ошибка: ' + (d.error || 'неизвестно')); }
+    })
+    .catch(() => alert('Ошибка сети'));
+}
+</script>
 {% endblock %}

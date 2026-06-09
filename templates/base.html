@@ -17,11 +17,12 @@
     </script>
     <link href="/static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
     <link href="/static/vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="/static/css/style.css?v=20260609" rel="stylesheet">
+    <link href="/static/css/style.css?v=20260609b" rel="stylesheet">
     <meta name="csrf-token" content="{{ csrf_token(request) }}">
 </head>
 <body>
 
+<div id="npbar"></div>
 <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 <div class="sidebar" id="sidebar">
     <div class="sidebar-logo">
@@ -526,6 +527,24 @@
 </script>
 
 <script>
+/* ── NProgress navigation bar ── */
+(function() {
+    const bar = document.getElementById('npbar');
+    if (!bar) return;
+    document.addEventListener('click', function(e) {
+        const a = e.target.closest('a[href]');
+        if (!a) return;
+        const href = a.getAttribute('href') || '';
+        if (href.startsWith('#') || href.startsWith('javascript') || a.target || a.download) return;
+        bar.className = 'loading';
+    });
+    window.addEventListener('pageshow', function() {
+        bar.className = 'done';
+        setTimeout(function() { bar.className = 'hidden'; }, 250);
+        setTimeout(function() { bar.className = ''; }, 550);
+    });
+})();
+
 /* ── Тема dark/light ── */
 function toggleTheme() {
     const html = document.getElementById('html-root');

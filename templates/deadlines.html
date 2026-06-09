@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% block page_title %}Дедлайны — Лента Проекты{% endblock %}
 {% block title %}<i class="bi bi-clock-history me-2"></i>Дедлайны{% endblock %}
-{% block topbar_actions %}<button class="btn btn-sm btn-outline-secondary btn-print" onclick="window.print()"><i class="bi bi-printer me-1"></i>PDF</button>{% endblock %}
+{% block topbar_actions %}
+<a href="/deadlines/export" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a>
+<button class="btn btn-sm btn-outline-secondary btn-print" onclick="window.print()"><i class="bi bi-printer me-1"></i>PDF</button>
+{% endblock %}
 
 {% block content %}
 <!-- Filters -->
