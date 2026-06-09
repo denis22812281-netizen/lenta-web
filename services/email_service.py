@@ -17,8 +17,9 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
-APP_URL       = os.getenv("APP_URL", "").rstrip("/")
+BREVO_API_KEY         = os.getenv("BREVO_API_KEY", "")
+APP_URL               = os.getenv("APP_URL", "").rstrip("/")
+NOTIFY_OVERRIDE_EMAIL = os.getenv("NOTIFY_OVERRIDE_EMAIL", "").strip().lower()
 
 _SENDER_EMAIL = "lenta.pm@mail.ru"
 _SENDER_NAME  = "Лента.PM"
@@ -49,6 +50,9 @@ def send_email(to: str, subject: str, body_html: str,
     if not EMAIL_ENABLED:
         logger.warning("Email отключён — BREVO_API_KEY не задан, пропуск: %s", to)
         return False
+    if NOTIFY_OVERRIDE_EMAIL:
+        logger.info("Email redirect: %s → %s", to, NOTIFY_OVERRIDE_EMAIL)
+        to = NOTIFY_OVERRIDE_EMAIL
     if not to or "@" not in to:
         logger.warning("Email: некорректный адрес: %r", to)
         return False

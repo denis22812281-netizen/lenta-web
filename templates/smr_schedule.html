@@ -33,7 +33,7 @@
   <form method="post" action="/smr/create/{{ proj.id }}" class="d-inline-flex gap-2 align-items-center">
     <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
     <input type="date" name="start_date" class="form-control form-control-sm" style="width:160px"
-           value="{{ proj.start_date.isoformat() if proj.start_date else today.isoformat() }}" required>
+           value="{{ proj.closure_date.isoformat() if proj.closure_date else (proj.start_date.isoformat() if proj.start_date else today.isoformat()) }}" required>
     <button class="btn btn-success btn-sm fw-bold px-4">
       <i class="bi bi-plus-circle me-1"></i>Создать
     </button>
