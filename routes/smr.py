@@ -240,18 +240,30 @@ async def smr_create(project_id: int, request: Request,
     except ValueError:
         return RedirectResponse(f"/projects/{project_id}", status_code=303)
 
+    # Для Констракшн "ВЫХОД НА СМР" стоит на day=2 в шаблоне.
+    # Пользователь передаёт closure_date (Выход на СМР) как старт,
+    # поэтому сдвигаем базу назад на 2 дня чтобы milestone совпал точно.
+    if proj.project_type == "Констракшн":
+        base = base - timedelta(days=2)
+
     schedule = models.SmrSchedule(project_id=project_id)
     db.add(schedule)
     db.flush()
 
     template = get_template(proj.project_type)
     for i, (name, s_day, e_day, is_ms) in enumerate(template):
+        task_start = base + timedelta(days=s_day)
+        task_end   = base + timedelta(days=e_day)
+        # Дата открытия берётся из проекта, а не из шаблона
+        if is_ms and "открытие" in name.lower() and proj.end_date:
+            task_start = proj.end_date
+            task_end   = proj.end_date
         db.add(models.SmrTask(
             schedule_id=schedule.id,
             name=name,
             order=i,
-            start_plan=base + timedelta(days=s_day),
-            end_plan=base + timedelta(days=e_day),
+            start_plan=task_start,
+            end_plan=task_end,
             is_milestone=is_ms,
             status="Запланировано",
         ))
