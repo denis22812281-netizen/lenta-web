@@ -66,9 +66,14 @@
 <script>
 // ─── Вспомогательные функции для конвертации base64url ↔ ArrayBuffer ────────
 function b64urlToBuffer(b64url) {
-    const b64 = b64url.replace(/-/g,'+').replace(/_/g,'/');
-    const bin = atob(b64.padEnd(b64.length + (4 - b64.length % 4) % 4, '='));
-    return Uint8Array.from(bin, c => c.charCodeAt(0)).buffer;
+    if (!b64url || typeof b64url !== 'string') return new Uint8Array(0);
+    // Strip existing padding, convert base64url → base64, re-pad
+    const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/').replace(/=+$/, '');
+    const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
+    const bin = atob(padded);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return arr;  // Uint8Array — iOS Safari требует TypedArray, не ArrayBuffer
 }
 function bufferToB64url(buf) {
     const bytes = new Uint8Array(buf);
