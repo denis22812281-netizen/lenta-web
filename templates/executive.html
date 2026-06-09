@@ -47,7 +47,7 @@
 
 <div class="row g-3 mb-4">
   <!-- Рейтинг менеджеров -->
-  <div class="col-xl-7">
+  <div class="col-12 col-lg-7">
     <div class="data-card h-100">
       <div class="data-card-header">
         <span><i class="bi bi-trophy-fill me-2 text-warning"></i>Рейтинг менеджеров — {{ year }}</span>
@@ -56,52 +56,46 @@
       <table class="table table-hover mb-0 align-middle">
         <thead class="table-head">
           <tr>
-            <th>#</th>
+            <th style="width:32px">#</th>
             <th>Менеджер</th>
-            <th class="text-center">В работе</th>
+            <th class="text-center d-none d-sm-table-cell">В работе</th>
             <th class="text-center">Открыто</th>
-            <th class="text-center">Просрочено</th>
-            <th class="text-center">Задач ❗</th>
+            <th class="text-center d-none d-md-table-cell">Просрочено</th>
+            <th class="text-center d-none d-md-table-cell">Задач ❗</th>
             <th class="text-center">Рейтинг</th>
           </tr>
         </thead>
         <tbody>
         {% for m in mgr_stats %}
         <tr>
-          <td class="text-muted fw-bold" style="font-size:16px">
+          <td class="text-muted fw-bold" style="font-size:15px;padding-right:4px">
             {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}{{ loop.index }}{% endif %}
           </td>
-          <td>
+          <td style="max-width:0;min-width:110px">
             <div class="d-flex align-items-center gap-2">
               {% if m.photo %}
-              <img src="{{ media_url(m.photo) }}" style="width:36px;height:36px;border-radius:8px;object-fit:cover">
+              <img src="{{ media_url(m.photo) }}" class="d-none d-sm-block" style="width:32px;height:32px;border-radius:8px;object-fit:cover;flex-shrink:0">
               {% elif 'Месмер' in m.name %}
-              <img src="/static/img/raccoon_mesmer.jpg" style="width:36px;height:36px;border-radius:8px;object-fit:cover">
+              <img src="/static/img/raccoon_mesmer.jpg" class="d-none d-sm-block" style="width:32px;height:32px;border-radius:8px;object-fit:cover;flex-shrink:0">
               {% else %}
-              <img src="/static/img/raccoon.png" style="width:36px;height:36px;border-radius:8px;object-fit:contain">
+              <img src="/static/img/raccoon.png" class="d-none d-sm-block" style="width:32px;height:32px;border-radius:8px;object-fit:contain;flex-shrink:0">
               {% endif %}
-              <a href="/managers/{{ m.id }}" class="text-decoration-none fw-semibold" style="color:inherit">{{ m.name }}</a>
+              <a href="/managers/{{ m.id }}" class="text-decoration-none fw-semibold text-truncate" style="color:inherit;max-width:130px">{{ m.name }}</a>
             </div>
           </td>
-          <td class="text-center">
+          <td class="text-center d-none d-sm-table-cell">
             <span class="badge bg-primary">{{ m.active }}</span>
           </td>
           <td class="text-center">
             <span class="badge bg-success">{{ m.opened_yr }}</span>
           </td>
-          <td class="text-center">
-            {% if m.delayed > 0 %}
-            <span class="badge bg-danger">{{ m.delayed }}</span>
-            {% else %}
-            <span class="text-success small">✓</span>
-            {% endif %}
+          <td class="text-center d-none d-md-table-cell">
+            {% if m.delayed > 0 %}<span class="badge bg-danger">{{ m.delayed }}</span>
+            {% else %}<span class="text-success small">✓</span>{% endif %}
           </td>
-          <td class="text-center">
-            {% if m.tasks_overdue > 0 %}
-            <span class="badge bg-warning text-dark">{{ m.tasks_overdue }}</span>
-            {% else %}
-            <span class="text-success small">✓</span>
-            {% endif %}
+          <td class="text-center d-none d-md-table-cell">
+            {% if m.tasks_overdue > 0 %}<span class="badge bg-warning text-dark">{{ m.tasks_overdue }}</span>
+            {% else %}<span class="text-success small">✓</span>{% endif %}
           </td>
           <td class="text-center">
             {% set score = m.score %}
@@ -121,12 +115,12 @@
   </div>
 
   <!-- Открытия по месяцам -->
-  <div class="col-xl-5">
+  <div class="col-12 col-lg-5">
     <div class="data-card h-100">
       <div class="data-card-header">
         <span><i class="bi bi-bar-chart-fill me-2 text-success"></i>Открытия по месяцам — {{ year }}</span>
       </div>
-      <div style="padding:16px">
+      <div style="padding:16px;min-height:220px">
         <canvas id="chartMonthly" style="max-height:260px"></canvas>
       </div>
     </div>
@@ -145,16 +139,22 @@
       <div class="table-responsive">
       <table class="table table-hover mb-0 align-middle small">
         <thead class="table-head">
-          <tr><th>ТК</th><th>Адрес</th><th>Менеджер</th><th>Плановое</th><th>Осталось</th></tr>
+          <tr>
+            <th>ТК</th>
+            <th class="d-none d-sm-table-cell">Адрес</th>
+            <th>Менеджер</th>
+            <th>Плановое</th>
+            <th>Осталось</th>
+          </tr>
         </thead>
         <tbody>
         {% for p in forecast_projects %}
         {% set days = (p.end_date - today).days %}
         <tr>
           <td class="fw-semibold"><a href="/projects/{{ p.id }}" class="text-decoration-none" style="color:inherit">{{ p.tk_number }}</a></td>
-          <td style="max-width:120px" class="text-truncate text-muted">{{ p.address or p.city or '—' }}</td>
+          <td class="d-none d-sm-table-cell text-truncate text-muted" style="max-width:110px">{{ p.address or p.city or '—' }}</td>
           <td>{{ p.manager.name.split()[0] if p.manager else '—' }}</td>
-          <td>{{ p.end_date.strftime('%d.%m.%Y') }}</td>
+          <td class="text-nowrap">{{ p.end_date.strftime('%d.%m.%y') }}</td>
           <td>
             <span class="dl-badge {% if days <= 7 %}dl-crit{% elif days <= 30 %}dl-warn{% else %}dl-ok{% endif %}">
               {{ days }} д
@@ -182,16 +182,22 @@
       <div class="table-responsive">
       <table class="table table-hover mb-0 align-middle small">
         <thead class="table-head">
-          <tr><th>ТК</th><th>Адрес</th><th>Менеджер</th><th>Было открыть</th><th>Просрочка</th></tr>
+          <tr>
+            <th>ТК</th>
+            <th class="d-none d-sm-table-cell">Адрес</th>
+            <th>Менеджер</th>
+            <th>Было открыть</th>
+            <th>Просрочка</th>
+          </tr>
         </thead>
         <tbody>
         {% for p in overdue_projects %}
         {% set overdue_days = (today - p.end_date).days %}
         <tr>
           <td class="fw-semibold"><a href="/projects/{{ p.id }}" class="text-decoration-none" style="color:inherit">{{ p.tk_number }}</a></td>
-          <td style="max-width:120px" class="text-truncate text-muted">{{ p.address or p.city or '—' }}</td>
+          <td class="d-none d-sm-table-cell text-truncate text-muted" style="max-width:110px">{{ p.address or p.city or '—' }}</td>
           <td>{{ p.manager.name.split()[0] if p.manager else '—' }}</td>
-          <td>{{ p.end_date.strftime('%d.%m.%Y') }}</td>
+          <td class="text-nowrap">{{ p.end_date.strftime('%d.%m.%y') }}</td>
           <td><span class="dl-badge dl-over">{{ overdue_days }} д</span></td>
         </tr>
         {% endfor %}
