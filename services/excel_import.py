@@ -308,7 +308,7 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
                 if area:     existing.area        = area
                 if fmt_type: existing.format_type = fmt_type
                 if open_st:  existing.open_status = open_st
-                existing.start_date   = reception
+                existing.start_date   = reception or cmp_date
                 existing.closure_date = cmp_date
                 existing.vpk_date     = vpk_date
                 existing.end_date     = open_plan or open_fact
@@ -324,7 +324,7 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
                     project_type="Констракшн",
                     manager_id=manager_id, status=status,
                     format_type=fmt_type, open_status=open_st,
-                    start_date=reception, closure_date=cmp_date,
+                    start_date=reception or cmp_date, closure_date=cmp_date,
                     vpk_date=vpk_date, end_date=open_plan or open_fact,
                     opening_date=open_fact, area=area,
                 ))
