@@ -156,10 +156,10 @@
       {% set w_pct = [((task.end_plan - task.start_plan).days + 1) / total_days * 100, 0.5] | max | round(2) %}
       {% set today_pct = ((today - gantt_start).days / total_days * 100) | round(2) %}
 
-      {% if task.status == 'Выполнено' %}{% set bc = '#16a34a' %}
-      {% elif task.status == 'Просрочено' %}{% set bc = '#dc2626' %}
-      {% elif task.status == 'В работе' %}{% set bc = '#2563eb' %}
-      {% else %}{% set bc = '#2d3748' %}{% endif %}
+      {% if task.status == 'Выполнено' %}{% set bc = '#22c55e' %}
+      {% elif task.status == 'Просрочено' %}{% set bc = '#ef4444' %}
+      {% elif task.status == 'В работе' %}{% set bc = '#3b82f6' %}
+      {% else %}{% set bc = '#64748b' %}{% endif %}
 
       <div class="smr-gantt-row {% if task.is_milestone %}smr-gantt-ms{% endif %}">
         <div class="smr-gantt-label-col">
@@ -439,7 +439,7 @@
 .smr-gantt-ms .smr-gantt-label-col { color:#FFD200; font-weight:700; font-size:.75rem; }
 .smr-gantt-bars   { flex:1; position:relative; height:18px; }
 .smr-gantt-ms .smr-gantt-bars { height:22px; }
-.smr-gantt-bar    { position:absolute; top:50%; transform:translateY(-50%); height:8px; border-radius:4px; }
+.smr-gantt-bar    { position:absolute; top:50%; transform:translateY(-50%); height:12px; border-radius:4px; opacity:.9; }
 .smr-gantt-ms .smr-gantt-bar { height:14px !important; border-radius:4px; }
 .smr-gantt-today  { position:absolute; top:-2px; bottom:-4px; width:3px; background:#FF2D36; opacity:1; box-shadow:0 0 8px 3px rgba(255,45,54,.85); z-index:2; }
 .smr-gantt-ms-icon { color:#FFD200; font-size:.6rem; flex-shrink:0; }
