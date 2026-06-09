@@ -212,8 +212,9 @@
                 <td><a href="/projects/{{ p.id }}" class="fw-bold text-decoration-none">ТК {{ p.tk_number or p.id }}</a>
                     {% if is_opened %}<span class="badge bg-success ms-1"><i class="bi bi-check-lg"></i></span>{% endif %}
                 </td>
-                <td><div>{{ p.city or '' }}</div>
-                    {% if p.name != 'ТК ' + (p.tk_number or '') %}<div class="text-muted" style="font-size:11px">{{ p.name[:35] }}</div>{% endif %}
+                <td>
+                    <div title="{{ p.address or '' }}">{{ p.address or p.city or '—' }}</div>
+                    {% if p.address and p.city %}<div class="text-muted" style="font-size:11px">{{ p.city }}</div>{% endif %}
                 </td>
                 <td><span class="badge {% if is_opened %}bg-success{% elif p.status == 'Активный' %}bg-primary{% elif p.status == 'Приостановлен' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
                     {% if is_opened %}Открыт{% else %}{{ p.status }}{% endif %}</span>
