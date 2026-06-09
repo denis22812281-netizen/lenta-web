@@ -74,11 +74,11 @@
           <td>
             <div class="d-flex align-items-center gap-2">
               {% if m.photo %}
-              <img src="{{ media_url(m.photo) }}" style="width:32px;height:32px;border-radius:50%;object-fit:cover" onerror="this.src='/static/img/raccoon.png'">
+              <img src="{{ media_url(m.photo) }}" style="width:36px;height:36px;border-radius:8px;object-fit:cover">
+              {% elif 'Месмер' in m.name %}
+              <img src="/static/img/raccoon_mesmer.jpg" style="width:36px;height:36px;border-radius:8px;object-fit:cover">
               {% else %}
-              <div style="width:32px;height:32px;border-radius:50%;background:#334155;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#94a3b8">
-                {{ m.name[0] }}
-              </div>
+              <img src="/static/img/raccoon.png" style="width:36px;height:36px;border-radius:8px;object-fit:contain">
               {% endif %}
               <a href="/managers/{{ m.id }}" class="text-decoration-none fw-semibold" style="color:inherit">{{ m.name }}</a>
             </div>
