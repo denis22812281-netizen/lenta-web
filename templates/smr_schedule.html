@@ -163,7 +163,7 @@
       {% else %}{% set bc = '#64748b' %}{% endif %}
 
       <div class="smr-gantt-row {% if task.is_milestone %}smr-gantt-ms{% endif %}">
-        <div class="smr-gantt-label-col">
+        <div class="smr-gantt-label-col" title="{{ task.name }}">
           {% if task.is_milestone %}<i class="bi bi-diamond-fill smr-gantt-ms-icon"></i>{% endif %}
           <span>{{ task.name }}</span>
         </div>

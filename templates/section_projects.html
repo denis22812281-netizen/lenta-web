@@ -7,13 +7,13 @@
 {% block content %}
 <!-- Toolbar -->
 <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
-    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modalCreateProject">
+    <button class="btn btn-success fw-semibold" data-bs-toggle="modal" data-bs-target="#modalCreateProject">
         <i class="bi bi-plus-lg me-1"></i>Новый проект
     </button>
-    <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#modalImport">
+    <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalImport">
         <i class="bi bi-upload me-1"></i>Загрузить Excel
     </button>
-    <a href="/api/export/projects-excel?type={{ section_type }}" class="btn btn-outline-primary">
+    <a href="/api/export/projects-excel?type={{ section_type }}" class="btn btn-outline-secondary">
         <i class="bi bi-download me-1"></i>Экспорт Excel
     </a>
     <a href="/sync-settings" class="btn btn-outline-secondary">
@@ -104,7 +104,7 @@
             <td class="text-muted small fw-semibold">{{ p.tk_number or '—' }}</td>
             <td>
                 <a href="/projects/{{ p.id }}" class="fw-semibold text-decoration-none text-dark">{{ p.name }}</a>
-                {% if p.address %}<br><small class="text-muted"><i class="bi bi-geo-alt"></i> {{ p.address }}</small>{% elif p.city %}<br><small class="text-muted"><i class="bi bi-geo-alt"></i> {{ p.city }}</small>{% endif %}
+                {% if p.city %}<br><small class="text-muted"><i class="bi bi-geo-alt me-1"></i>{{ p.city }}</small>{% endif %}
             </td>
             <td class="small">{{ p.manager.name if p.manager else '—' }}</td>
             <td>
