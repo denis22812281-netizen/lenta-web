@@ -19,6 +19,7 @@ async def deadlines(request: Request, db: Session = Depends(get_db),
     pq = db.query(models.Project).filter(
         models.Project.status != "Завершён",
         models.Project.end_date != None,
+        models.Project.project_type == "Констракшн",
         (models.Project.opening_date == None) | (models.Project.opening_date > today)
     )
     if manager_id and str(manager_id).isdigit():
