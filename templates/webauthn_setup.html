@@ -112,22 +112,30 @@ document.getElementById('btn-register').addEventListener('click', async function
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Ожидание биометрии...';
 
+    let _dbgStep = '?';
     try {
         // Шаг 1: получить параметры
+        _dbgStep = 'fetch /register/begin';
         const resp = await fetch('/webauthn/register/begin');
         if (!resp.ok) throw new Error((await resp.json()).error || 'Ошибка сервера');
         const options = await resp.json();
 
         // Конвертируем challenge и excludeCredentials
+        _dbgStep = 'decode challenge (val: ' + String(options.challenge).slice(0,20) + ')';
         options.challenge = b64urlToBuffer(options.challenge);
+
+        _dbgStep = 'decode user.id (val: ' + String(options.user?.id).slice(0,20) + ')';
         options.user.id   = b64urlToBuffer(options.user.id);
+
         if (options.excludeCredentials) {
+            _dbgStep = 'decode excludeCredentials';
             options.excludeCredentials = options.excludeCredentials.map(c => ({
                 ...c, id: b64urlToBuffer(c.id)
             }));
         }
 
         // Шаг 2: вызов биометрии
+        _dbgStep = 'navigator.credentials.create (rp.id: ' + (options.rp?.id||'?') + ')';
         const credential = await navigator.credentials.create({publicKey: options});
 
         // Шаг 3: отправить на сервер
@@ -179,7 +187,8 @@ document.getElementById('btn-register').addEventListener('click', async function
             status.innerHTML = '<i class="bi bi-x-circle me-2"></i>'
                 + (e.name ? '<b>' + e.name + '</b>: ' : '')
                 + (e.message || 'Неизвестная ошибка')
-                + (isStandalone ? '<br><small class="text-muted">Режим: PWA (экран домой)</small>' : '');
+                + '<br><small class="text-muted">Шаг: ' + _dbgStep + '</small>'
+                + (isStandalone ? '<br><small class="text-muted">Режим: PWA</small>' : '');
         }
     }
 });
