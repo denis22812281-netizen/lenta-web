@@ -13,15 +13,12 @@
     <div class="ms-auto d-flex align-items-center gap-3">
         <div class="lenta-sign-wrap">
             <span class="lenta-sign-super">супер</span>
-            <span class="lenta-sunflower">
-                <span class="sl-circle">
-                    <span class="sl-center"></span>
-                </span>
-                <span class="sl-leaves">
-                    <span class="sl-leaf sl-leaf-l"></span>
-                    <span class="sl-leaf sl-leaf-r"></span>
-                </span>
-            </span>
+            <svg class="lenta-sunflower-svg" viewBox="0 0 48 60" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22,42 Q2,38 5,56 Q15,58 22,42Z" fill="#3CB34A"/>
+                <path d="M26,42 Q46,38 43,56 Q33,58 26,42Z" fill="#3CB34A"/>
+                <circle cx="24" cy="22" r="22" fill="#FFD200"/>
+                <circle cx="24" cy="22" r="8" fill="#1B4FC4"/>
+            </svg>
             <span class="lenta-sign-lenta">лента</span>
         </div>
         {% if user and user.is_admin %}
@@ -57,53 +54,13 @@
     line-height: 1;
     font-family: 'Arial Rounded MT Bold', 'Nunito', Arial, sans-serif;
 }
-.lenta-sunflower {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    margin: 0 5px;
+.lenta-sunflower-svg {
+    height: 2.8rem;
+    width: auto;
+    vertical-align: middle;
+    margin: 0 4px;
     position: relative;
-    top: 3px;
-}
-.sl-circle {
-    width: 36px; height: 36px;
-    background: #FFD200;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-.sl-center {
-    width: 11px; height: 11px;
-    background: #1a4fc4;
-    border-radius: 50%;
-    display: block;
-}
-.sl-leaves {
-    position: relative;
-    width: 36px;
-    height: 16px;
-    margin-top: -4px;
-    flex-shrink: 0;
-}
-.sl-leaf {
-    position: absolute;
-    width: 18px; height: 16px;
-    background: #3CB34A;
-    border-radius: 50% 50% 40% 40%;
-    display: block;
-    bottom: 0;
-}
-.sl-leaf-l {
-    left: 0;
-    transform-origin: right bottom;
-    transform: rotate(-25deg);
-}
-.sl-leaf-r {
-    right: 0;
-    transform-origin: left bottom;
-    transform: rotate(25deg);
+    top: 2px;
 }
 .lenta-sign-lenta {
     font-size: 2.8rem;
