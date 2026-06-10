@@ -13,11 +13,14 @@
     <div class="ms-auto d-flex align-items-center gap-3">
         <div class="lenta-sign-wrap">
             <span class="lenta-sign-super">супер</span>
-            <svg class="lenta-sunflower-svg" viewBox="0 0 48 56" xmlns="http://www.w3.org/2000/svg">
-                <ellipse cx="17" cy="48" rx="11" ry="7" fill="#3CB34A" transform="rotate(-40 17 48)"/>
-                <ellipse cx="31" cy="48" rx="11" ry="7" fill="#3CB34A" transform="rotate(40 31 48)"/>
-                <circle cx="24" cy="22" r="22" fill="#FFD200"/>
-                <circle cx="24" cy="22" r="8" fill="#1B4FC4"/>
+            <svg class="lenta-sunflower-svg" viewBox="0 0 50 58" xmlns="http://www.w3.org/2000/svg">
+                <!-- листья — нарисованы ДО круга, круг перекрывает их сверху -->
+                <path d="M22,41 C12,40 1,51 9,57 C16,60 24,51 22,41Z" fill="#3CB34A"/>
+                <path d="M28,41 C38,40 49,51 41,57 C34,60 26,51 28,41Z" fill="#3CB34A"/>
+                <!-- жёлтый круг поверх листьев -->
+                <circle cx="25" cy="22" r="22" fill="#FFD200"/>
+                <!-- синяя точка в центре -->
+                <circle cx="25" cy="22" r="8" fill="#1B4FC4"/>
             </svg>
             <span class="lenta-sign-lenta">лента</span>
         </div>
@@ -30,6 +33,7 @@
 </div>
 
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@900&display=swap');
 .lenta-banner {
     background: #0a0a0a;
     border-radius: 16px;
@@ -52,7 +56,7 @@
     color: #3CB34A;
     letter-spacing: -1px;
     line-height: 1;
-    font-family: 'Arial Rounded MT Bold', 'Nunito', Arial, sans-serif;
+    font-family: 'Nunito', 'Arial Rounded MT Bold', Arial, sans-serif;
 }
 .lenta-sunflower-svg {
     height: 2.8rem;
@@ -68,7 +72,7 @@
     color: #ffffff;
     letter-spacing: -1px;
     line-height: 1;
-    font-family: 'Arial Rounded MT Bold', 'Nunito', Arial, sans-serif;
+    font-family: 'Nunito', 'Arial Rounded MT Bold', Arial, sans-serif;
 }
 .lenta-banner-title {
     font-size: 1.1rem;
