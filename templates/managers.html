@@ -4,12 +4,10 @@
 
 {% block content %}
 
-<!-- Lenta-style banner -->
+<!-- SuperLenta-style banner -->
 <div class="lenta-banner mb-4">
-    <div class="lenta-logo-wrap">
-        <div class="lenta-logo">
-            <div class="lenta-leaf"></div>
-        </div>
+    <div class="lenta-sign-wrap">
+        <span class="lenta-sign-super">супер</span><span class="lenta-sign-dot">●</span><span class="lenta-sign-lenta">лента</span>
     </div>
     <div class="lenta-banner-text">
         <div class="lenta-banner-title">Менеджеры проектов</div>
@@ -26,51 +24,59 @@
 
 <style>
 .lenta-banner {
-    background: linear-gradient(135deg, #1a4d22 0%, #2d7a35 60%, #3cb34a 100%);
+    background: #0e1a0e;
     border-radius: 16px;
-    padding: 20px 24px;
+    padding: 18px 24px;
     display: flex;
     align-items: center;
-    gap: 20px;
-    box-shadow: 0 4px 24px rgba(44,122,53,0.25);
+    gap: 24px;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(74,222,128,0.08);
     overflow: hidden;
     position: relative;
+    border: 1px solid rgba(74,222,128,0.15);
 }
-.lenta-banner::after {
-    content: '';
-    position: absolute;
-    right: -40px; top: -40px;
-    width: 180px; height: 180px;
-    background: rgba(255,255,255,0.04);
-    border-radius: 50%;
+.lenta-sign-wrap {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    line-height: 1;
 }
-.lenta-logo-wrap { flex-shrink: 0; }
-.lenta-logo {
-    width: 64px; height: 64px;
-    background: #2d8c38;
-    border-radius: 16px;
-    display: flex; align-items: center; justify-content: center;
+.lenta-sign-super {
+    font-size: 1.7rem;
+    font-weight: 900;
+    color: #4ade80;
+    text-shadow: 0 0 18px rgba(74,222,128,0.7), 0 0 6px rgba(74,222,128,0.4);
+    letter-spacing: -0.5px;
+    font-style: italic;
+}
+.lenta-sign-dot {
+    font-size: 1.4rem;
+    color: #FFD200;
+    text-shadow: 0 0 12px rgba(255,210,0,0.8);
+    margin: 0 3px;
+    line-height: 1;
     position: relative;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    top: -1px;
 }
-.lenta-leaf {
-    width: 44px; height: 26px;
-    background: #FFD200;
-    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-    transform: rotate(-35deg) translate(4px, 4px);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+.lenta-sign-lenta {
+    font-size: 1.7rem;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+    font-style: italic;
+    text-shadow: 0 0 8px rgba(255,255,255,0.2);
 }
 .lenta-banner-title {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: #fff;
     line-height: 1.2;
 }
 .lenta-banner-sub {
     font-size: 0.82rem;
-    color: rgba(255,255,255,0.65);
-    margin-top: 2px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 3px;
 }
 </style>
 
@@ -323,6 +329,7 @@
 .mgr-card {
     padding: 16px;
     transition: box-shadow .2s;
+    border-left: 4px solid #FFD200 !important;
 }
 .mgr-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); }
 .mgr-card-warn { border-color: #ffc107; }
