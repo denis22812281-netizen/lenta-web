@@ -63,25 +63,33 @@
     .lenta-banner {
         flex-wrap: wrap;
         padding: 12px 16px;
-        gap: 10px;
+        gap: 8px;
         min-height: unset;
     }
     .lenta-banner-text { width: 100%; }
-    .lenta-banner .ms-auto {
+    .lenta-banner > .ms-auto {
         width: 100%;
         justify-content: space-between;
+        align-items: center;
         margin-left: 0 !important;
+        flex-wrap: nowrap;
     }
-    .lenta-logo-img { height: 36px; }
+    .lenta-logo-img { height: 34px; }
     .lenta-banner .btn {
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         padding: 6px 10px;
-        white-space: nowrap;
+        flex-shrink: 0;
     }
-}
-@media (max-width: 400px) {
-    .lenta-logo-img { height: 28px; }
-    .lenta-banner .btn { font-size: 0.75rem; }
+    .lenta-banner .btn .me-2 { margin-right: 4px !important; }
+    /* Руководители — фиксируем раскладку */
+    .leader-card-inner {
+        flex-wrap: wrap;
+    }
+    .leader-card-inner > .ms-auto {
+        width: 100%;
+        margin-left: 0 !important;
+        margin-top: 8px;
+    }
 }
 </style>
 
@@ -89,7 +97,7 @@
 {% for ls in leader_stats %}
 {% set lm = ls.manager %}
 <div class="data-card mb-3" style="border-left:4px solid #FFD200">
-    <div class="p-3 d-flex align-items-center gap-3 flex-wrap">
+    <div class="p-3 d-flex align-items-center gap-3 flex-wrap leader-card-inner">
         <div style="position:relative;flex-shrink:0">
             {% if lm.photo %}
             <img src="{{ media_url(lm.photo) }}" style="width:52px;height:52px;object-fit:cover;border-radius:12px" alt="{{ lm.name }}">
