@@ -12,7 +12,7 @@
     </div>
     <div class="ms-auto d-flex align-items-center gap-3">
         <div class="lenta-sign-wrap">
-            <img src="/static/img/superlenta-logo.png" class="lenta-logo-img" alt="Супер Лента">
+            <img src="/static/img/superlenta-logo.jpg" class="lenta-logo-img" alt="Супер Лента">
         </div>
         {% if user and user.is_admin %}
         <button class="btn btn-warning fw-semibold" data-bs-toggle="modal" data-bs-target="#modalAddManager">
@@ -38,14 +38,14 @@
     display: flex;
     align-items: center;
     flex-shrink: 0;
-    background: #fff;
     border-radius: 10px;
-    padding: 6px 14px;
+    overflow: hidden;
 }
 .lenta-logo-img {
-    height: 44px;
+    height: 54px;
     width: auto;
     display: block;
+    border-radius: 8px;
 }
 .lenta-banner-title {
     font-size: 1.1rem;
