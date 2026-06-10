@@ -192,7 +192,7 @@
         </thead>
         <tbody>
         {% for p in overdue_projects %}
-        {% set overdue_days = (today - p.end_date).days %}
+        {% set overdue_days = (p.opening_date - p.end_date).days %}
         <tr>
           <td class="fw-semibold"><a href="/projects/{{ p.id }}" class="text-decoration-none" style="color:inherit">{{ p.tk_number }}</a></td>
           <td class="d-none d-sm-table-cell text-truncate text-muted" style="max-width:110px">{{ p.address or p.city or '—' }}</td>
