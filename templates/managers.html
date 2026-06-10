@@ -16,7 +16,7 @@
         </div>
         {% if user and user.is_admin %}
         <button class="btn btn-warning fw-semibold" data-bs-toggle="modal" data-bs-target="#modalAddManager">
-            <i class="bi bi-person-plus-fill me-2"></i>Добавить менеджера
+            <i class="bi bi-person-plus-fill"></i><span class="btn-text ms-2">Добавить менеджера</span>
         </button>
         {% endif %}
     </div>
@@ -60,6 +60,7 @@
 }
 
 @media (max-width: 768px) {
+    /* Баннер */
     .lenta-banner {
         flex-wrap: wrap;
         padding: 12px 16px;
@@ -74,21 +75,23 @@
         margin-left: 0 !important;
         flex-wrap: nowrap;
     }
-    .lenta-logo-img { height: 34px; }
-    .lenta-banner .btn {
-        font-size: 0.78rem;
-        padding: 6px 10px;
-        flex-shrink: 0;
-    }
-    .lenta-banner .btn .me-2 { margin-right: 4px !important; }
-    /* Руководители — фиксируем раскладку */
+    .lenta-logo-img { height: 32px; }
+    /* Кнопка — только иконка на мобильном */
+    .lenta-banner .btn-text { display: none; }
+    .lenta-banner .btn { padding: 8px 12px; }
+
+    /* Карточки руководителей — аватар + имя в одну строку */
     .leader-card-inner {
-        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+    .leader-card-inner > div:nth-child(2) {
+        flex: 1 1 0;
+        min-width: 0;
     }
     .leader-card-inner > .ms-auto {
-        width: 100%;
+        flex-basis: 100%;
         margin-left: 0 !important;
-        margin-top: 8px;
+        margin-top: 4px;
     }
 }
 </style>
