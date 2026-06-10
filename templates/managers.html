@@ -55,17 +55,18 @@
     color: #3CB34A;
     letter-spacing: -1px;
     line-height: 1;
+    font-family: 'Arial Rounded MT Bold', 'Nunito', Arial, sans-serif;
 }
 .lenta-sunflower {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
-    margin: 0 6px;
+    margin: 0 5px;
     position: relative;
-    top: 4px;
+    top: 3px;
 }
 .sl-circle {
-    width: 34px; height: 34px;
+    width: 36px; height: 36px;
     background: #FFD200;
     border-radius: 50%;
     display: flex;
@@ -74,30 +75,43 @@
     flex-shrink: 0;
 }
 .sl-center {
-    width: 10px; height: 10px;
-    background: #1B4FC4;
+    width: 11px; height: 11px;
+    background: #1a4fc4;
     border-radius: 50%;
     display: block;
 }
 .sl-leaves {
-    display: flex;
-    gap: 3px;
-    margin-top: -3px;
+    position: relative;
+    width: 36px;
+    height: 16px;
+    margin-top: -4px;
+    flex-shrink: 0;
 }
 .sl-leaf {
-    width: 13px; height: 11px;
+    position: absolute;
+    width: 18px; height: 16px;
     background: #3CB34A;
-    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    border-radius: 50% 50% 40% 40%;
     display: block;
+    bottom: 0;
 }
-.sl-leaf-l { transform: rotate(15deg); }
-.sl-leaf-r { transform: rotate(-15deg); }
+.sl-leaf-l {
+    left: 0;
+    transform-origin: right bottom;
+    transform: rotate(-25deg);
+}
+.sl-leaf-r {
+    right: 0;
+    transform-origin: left bottom;
+    transform: rotate(25deg);
+}
 .lenta-sign-lenta {
     font-size: 2.8rem;
     font-weight: 900;
     color: #ffffff;
     letter-spacing: -1px;
     line-height: 1;
+    font-family: 'Arial Rounded MT Bold', 'Nunito', Arial, sans-serif;
 }
 .lenta-banner-title {
     font-size: 1.1rem;
