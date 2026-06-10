@@ -14,8 +14,13 @@
         <div class="lenta-sign-wrap">
             <span class="lenta-sign-super">супер</span>
             <span class="lenta-sunflower">
-                <span class="sl-head"></span>
-                <span class="sl-leaves"></span>
+                <span class="sl-circle">
+                    <span class="sl-center"></span>
+                </span>
+                <span class="sl-leaves">
+                    <span class="sl-leaf sl-leaf-l"></span>
+                    <span class="sl-leaf sl-leaf-r"></span>
+                </span>
             </span>
             <span class="lenta-sign-lenta">лента</span>
         </div>
@@ -41,44 +46,58 @@
 .lenta-sign-wrap {
     display: flex;
     align-items: center;
-    gap: 1px;
+    gap: 0;
     flex-shrink: 0;
 }
 .lenta-sign-super {
-    font-size: 1.8rem;
+    font-size: 2.8rem;
     font-weight: 900;
     color: #3CB34A;
-    letter-spacing: -0.5px;
+    letter-spacing: -1px;
+    line-height: 1;
 }
 .lenta-sunflower {
     display: inline-flex;
     flex-direction: column;
     align-items: center;
-    margin: 0 5px;
-    gap: 0;
+    margin: 0 6px;
     position: relative;
-    top: 2px;
+    top: 4px;
 }
-.sl-head {
-    width: 20px; height: 20px;
+.sl-circle {
+    width: 34px; height: 34px;
     background: #FFD200;
     border-radius: 50%;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+}
+.sl-center {
+    width: 10px; height: 10px;
+    background: #1B4FC4;
+    border-radius: 50%;
+    display: block;
 }
 .sl-leaves {
-    display: block;
-    width: 16px; height: 10px;
-    background: #3CB34A;
-    border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%;
-    flex-shrink: 0;
-    margin-top: -2px;
+    display: flex;
+    gap: 3px;
+    margin-top: -3px;
 }
+.sl-leaf {
+    width: 13px; height: 11px;
+    background: #3CB34A;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    display: block;
+}
+.sl-leaf-l { transform: rotate(15deg); }
+.sl-leaf-r { transform: rotate(-15deg); }
 .lenta-sign-lenta {
-    font-size: 1.8rem;
+    font-size: 2.8rem;
     font-weight: 900;
     color: #ffffff;
-    letter-spacing: -0.5px;
+    letter-spacing: -1px;
+    line-height: 1;
 }
 .lenta-banner-title {
     font-size: 1.1rem;
