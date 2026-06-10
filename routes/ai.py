@@ -10,6 +10,9 @@ import openpyxl
 import models
 from database import get_db
 from deps import templates, get_current_user, require_login
+from utils.files import read_limited
+
+_MAX_AI_EXCEL_BYTES = 10 * 1024 * 1024  # 10 MB
 
 router = APIRouter()
 
@@ -152,7 +155,10 @@ async def ai_check_excel(request: Request, db: Session = Depends(get_db),
     api_key = os.getenv("ANTHROPIC_API_KEY", "")
     if not api_key:
         return {"report": "ANTHROPIC_API_KEY не задан."}
-    content = await file.read()
+    try:
+        content = await read_limited(file, _MAX_AI_EXCEL_BYTES)
+    except ValueError:
+        return {"report": "Файл слишком большой (макс 10 МБ)"}
     try:
         wb = openpyxl.load_workbook(io.BytesIO(content), data_only=False)
         issues = []

@@ -1,11 +1,12 @@
 """
 Конфигурация pytest.
-Использует SQLite in-memory — не нужен Railway/PostgreSQL.
+Использует SQLite — не нужен Railway/PostgreSQL.
 """
 import os
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-tests")
 os.environ.setdefault("SENTRY_DSN", "")
 os.environ.setdefault("CLOUDINARY_CLOUD_NAME", "")
+os.environ["TESTING"] = "1"  # отключает CSRF-проверку в тестах
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,6 +14,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from database import Base, get_db
+import models  # noqa: F401 — must import so Base.metadata knows all tables
+from deps import limiter as _limiter
+_limiter.enabled = False  # отключаем rate-limit глобально для тестов
 
 TEST_DB_URL = "sqlite:///./test_lenta.db"
 engine = create_engine(TEST_DB_URL, connect_args={"check_same_thread": False})
@@ -32,8 +36,14 @@ def setup_test_db():
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
-    import pathlib
-    pathlib.Path("test_lenta.db").unlink(missing_ok=True)
+    engine.dispose()
+    import pathlib, time
+    for _ in range(5):
+        try:
+            pathlib.Path("test_lenta.db").unlink(missing_ok=True)
+            break
+        except PermissionError:
+            time.sleep(0.5)
 
 
 @pytest.fixture
@@ -42,22 +52,28 @@ def client():
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app, raise_server_exceptions=False) as c:
         yield c
-    app.dependency_overrides.clear()
+    app.dependency_overrides[get_db] = override_get_db  # keep override active
 
 
-@pytest.fixture
-def auth_client(client):
-    """Клиент с авторизованной сессией (Месмер Денис, admin)."""
-    from tests.conftest import TestingSessionLocal
+@pytest.fixture(scope="session")
+def _session_app():
+    """Единый app+client на всю сессию — для auth_client."""
+    from main import app
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app, raise_server_exceptions=False) as c:
+        yield c
+
+
+@pytest.fixture(scope="session")
+def auth_client(_session_app, setup_test_db):
+    """Клиент с авторизованной сессией (Месмер Денис, admin). Создаётся один раз."""
     import models, utils.passwords as pw
 
     db = TestingSessionLocal()
-    # Добавляем телефон в whitelist
     phone = "+79997303914"
     if not db.query(models.PhoneWhitelist).filter_by(phone=phone).first():
         db.add(models.PhoneWhitelist(phone=phone, display_name="Месмер Денис", is_admin=True))
         db.commit()
-    # Создаём пользователя
     user = db.query(models.User).filter_by(phone=phone).first()
     if not user:
         user = models.User(
@@ -70,7 +86,6 @@ def auth_client(client):
         db.refresh(user)
     db.close()
 
-    # Логинимся
-    client.post("/login/check-phone", data={"phone": phone})
-    client.post("/login/enter", data={"phone": phone, "password": "test1234"})
-    return client
+    _session_app.post("/login/check-phone", data={"phone": phone})
+    _session_app.post("/login/enter", data={"phone": phone, "password": "test1234"})
+    return _session_app

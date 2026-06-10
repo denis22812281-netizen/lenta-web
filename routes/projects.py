@@ -216,7 +216,8 @@ async def import_excel_section(request: Request, db: Session = Depends(get_db),
 
 
 @router.get("/api/export/projects-excel")
-async def export_excel(db: Session = Depends(get_db), type: str = None):
+async def export_excel(db: Session = Depends(get_db), type: str = None,
+                       user: dict = Depends(require_login)):
     wb = Workbook()
     ws = wb.active
     ws.title = "Проекты"

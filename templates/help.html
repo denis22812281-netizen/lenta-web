@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Инструкция пользователя — Лента ПМ</title>
+<style>
+  /* ── Базовые стили ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: #1a1a2e;
+    background: #f5f6fa;
+  }
+
+  /* ── Навигационная панель (только на экране) ── */
+  .topbar {
+    background: #1a1a2e;
+    color: #fff;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  }
+  .topbar-logo { font-size: 18px; font-weight: 700; letter-spacing: .5px; }
+  .topbar-logo span { color: #f0c040; }
+  .topbar-actions { display: flex; gap: 12px; align-items: center; }
+  .btn-pdf {
+    background: #f0c040; color: #1a1a2e; border: none;
+    padding: 8px 20px; border-radius: 8px; font-weight: 700;
+    cursor: pointer; font-size: 14px; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: opacity .2s;
+  }
+  .btn-pdf:hover { opacity: .85; }
+  .btn-back {
+    color: #aab; text-decoration: none; font-size: 14px;
+  }
+  .btn-back:hover { color: #fff; }
+
+  /* ── Основной контейнер ── */
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── Обложка ── */
+  .cover {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+    color: #fff;
+    border-radius: 16px;
+    padding: 48px 40px;
+    margin-bottom: 40px;
+    text-align: center;
+  }
+  .cover-logo { font-size: 48px; margin-bottom: 12px; }
+  .cover h1 { font-size: 30px; font-weight: 800; margin-bottom: 8px; }
+  .cover h1 span { color: #f0c040; }
+  .cover p { color: #aab; font-size: 15px; margin-top: 8px; }
+  .cover-badge {
+    display: inline-block; background: rgba(240,192,64,.15);
+    border: 1px solid rgba(240,192,64,.4);
+    color: #f0c040; padding: 4px 14px; border-radius: 20px;
+    font-size: 13px; margin-top: 16px;
+  }
+
+  /* ── Оглавление ── */
+  .toc {
+    background: #fff;
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 32px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06);
+  }
+  .toc h2 { font-size: 17px; color: #555; text-transform: uppercase;
+             letter-spacing: 1px; margin-bottom: 16px; font-weight: 600; }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin-bottom: 6px; }
+  .toc a { color: #0f3460; text-decoration: none; font-weight: 500; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* ── Секции ── */
+  .section {
+    background: #fff;
+    border-radius: 12px;
+    padding: 32px 36px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06);
+  }
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 20px; padding-bottom: 14px;
+    border-bottom: 2px solid #f0f2f8;
+  }
+  .section-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+  .ic-blue   { background: #e8f0fe; }
+  .ic-green  { background: #e8f5e9; }
+  .ic-orange { background: #fff3e0; }
+  .ic-purple { background: #f3e8fd; }
+  .ic-red    { background: #fde8e8; }
+  .ic-teal   { background: #e0f7fa; }
+  .ic-gold   { background: #fffde7; }
+  .ic-gray   { background: #f0f2f8; }
+
+  .section h2 { font-size: 20px; font-weight: 700; color: #1a1a2e; }
+  .section h3 { font-size: 15px; font-weight: 700; color: #333;
+                margin: 20px 0 8px; }
+
+  p { margin-bottom: 10px; color: #444; }
+  ul, ol { padding-left: 22px; margin-bottom: 12px; color: #444; }
+  li { margin-bottom: 5px; }
+
+  /* ── Карточки подсказок ── */
+  .tip {
+    border-left: 4px solid #f0c040;
+    background: #fffde7;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+    font-size: 14px;
+    color: #555;
+  }
+  .tip strong { color: #b8860b; }
+
+  .info {
+    border-left: 4px solid #42a5f5;
+    background: #e3f2fd;
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 14px 0;
+    font-size: 14px;
+    color: #555;
+  }
+  .info strong { color: #1565c0; }
+
+  /* ── Шаги ── */
+  .steps { counter-reset: step; padding-left: 0; list-style: none; }
+  .steps li {
+    counter-increment: step;
+    padding: 10px 10px 10px 48px;
+    position: relative;
+    margin-bottom: 8px;
+    background: #f8f9ff;
+    border-radius: 8px;
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #0f3460; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+
+  /* ── Статусы ── */
+  .status-list { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+  .badge {
+    padding: 4px 14px; border-radius: 20px;
+    font-size: 13px; font-weight: 600;
+  }
+  .badge-green  { background: #e8f5e9; color: #2e7d32; }
+  .badge-gray   { background: #f0f2f8; color: #555; }
+  .badge-orange { background: #fff3e0; color: #e65100; }
+  .badge-blue   { background: #e8f0fe; color: #1565c0; }
+
+  /* ── Таблица горячих клавиш ── */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  th { background: #f0f2f8; text-align: left; padding: 10px 14px;
+       font-size: 13px; color: #555; text-transform: uppercase; letter-spacing: .5px; }
+  td { padding: 10px 14px; border-bottom: 1px solid #f0f2f8; font-size: 14px; }
+  tr:last-child td { border-bottom: none; }
+  kbd {
+    background: #eee; border: 1px solid #ccc; border-radius: 4px;
+    padding: 2px 7px; font-size: 12px; font-family: monospace;
+  }
+
+  /* ── Футер ── */
+  .footer {
+    text-align: center; color: #aab; font-size: 13px; margin-top: 48px;
+    padding-top: 24px; border-top: 1px solid #e8e8f0;
+  }
+
+  /* ── ПЕЧАТЬ ── */
+  @media print {
+    body { background: #fff; font-size: 13px; }
+    .topbar, .btn-pdf, .btn-back, .no-print { display: none !important; }
+    .container { max-width: 100%; padding: 0; }
+    .cover {
+      background: #1a1a2e !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      border-radius: 0;
+      page-break-after: always;
+    }
+    .section { box-shadow: none; border: 1px solid #e0e0e0;
+                page-break-inside: avoid; margin-bottom: 16px; }
+    .toc { box-shadow: none; border: 1px solid #e0e0e0; }
+    .toc a { color: #000; text-decoration: none; }
+    h2, h3 { page-break-after: avoid; }
+    .tip, .info {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Топбар (только на экране) -->
+<div class="topbar no-print">
+  <div class="topbar-logo">⚡ <span>Лента</span> ПМ</div>
+  <div class="topbar-actions">
+    {% if user is defined and user %}
+      <a href="/" class="btn-back">← Вернуться в систему</a>
+    {% endif %}
+    <button class="btn-pdf" onclick="window.print()">📄 Скачать PDF</button>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Обложка -->
+  <div class="cover">
+    <div class="cover-logo">🏗</div>
+    <h1>Система управления проектами <span>ЛЕНТА</span></h1>
+    <p>Руководство пользователя</p>
+    <div class="cover-badge">Версия 1.0 · Июнь 2026</div>
+  </div>
+
+  <!-- Оглавление -->
+  <div class="toc">
+    <h2>Содержание</h2>
+    <ol>
+      <li><a href="#s1">Назначение системы</a></li>
+      <li><a href="#s2">Вход в систему</a></li>
+      <li><a href="#s3">Дашборд (главная страница)</a></li>
+      <li><a href="#s4">Проекты — Реконструкция</a></li>
+      <li><a href="#s5">Проекты — Констракшн</a></li>
+      <li><a href="#s6">Задачи</a></li>
+      <li><a href="#s7">Дедлайны</a></li>
+      <li><a href="#s8">SMR — строительно-монтажные работы</a></li>
+      <li><a href="#s9">ВПК — внутренний контроль</a></li>
+      <li><a href="#s10">КСО — отчётность</a></li>
+      <li><a href="#s11">Менеджеры</a></li>
+      <li><a href="#s12">AI-ассистент</a></li>
+      <li><a href="#s13">Статистика</a></li>
+      <li><a href="#s14">Экспорт отчётов</a></li>
+      <li><a href="#s15">Для администратора</a></li>
+    </ol>
+  </div>
+
+  <!-- 1. Назначение -->
+  <div class="section" id="s1">
+    <div class="section-header">
+      <div class="section-icon ic-blue">📋</div>
+      <h2>1. Назначение системы</h2>
+    </div>
+    <p>Система управления проектами <strong>Лента ПМ</strong> — внутренний инструмент команды строительного департамента ЛЕНТА. Предназначена для:</p>
+    <ul>
+      <li>Отслеживания статусов объектов реконструкции и констракшн</li>
+      <li>Контроля дедлайнов по этапам проектов</li>
+      <li>Управления задачами внутри команды</li>
+      <li>Хранения и отправки SMR-уведомлений подрядчикам</li>
+      <li>Формирования отчётов и экспорта в Excel</li>
+      <li>AI-аналитики текущего состояния портфеля</li>
+    </ul>
+    <div class="info">
+      <strong>Команда:</strong> руководитель Гаврин Игорь + 8 менеджеров проектов. Доступ — по номеру телефона, утверждённому администратором.
+    </div>
+  </div>
+
+  <!-- 2. Вход -->
+  <div class="section" id="s2">
+    <div class="section-header">
+      <div class="section-icon ic-green">🔑</div>
+      <h2>2. Вход в систему</h2>
+    </div>
+    <h3>Первый вход</h3>
+    <ol class="steps">
+      <li>Откройте браузер и перейдите по ссылке системы</li>
+      <li>Введите свой номер телефона в формате <strong>+7XXXXXXXXXX</strong></li>
+      <li>Если номер есть в системе — введите пароль (при первом входе создайте его)</li>
+      <li>Нажмите «Войти» — вы попадёте на главный дашборд</li>
+    </ol>
+    <div class="tip">
+      <strong>Совет:</strong> Сохраните пароль в менеджере паролей браузера — кнопка появится при вводе.
+    </div>
+    <h3>Если забыли пароль</h3>
+    <p>Обратитесь к администратору системы (Месмер Денис). Он сбросит пароль, и вы сможете установить новый при следующем входе.</p>
+    <h3>QR-код для быстрого входа</h3>
+    <p>На странице входа доступна страница <strong>/qr</strong> — QR-код со ссылкой на систему для быстрого открытия с мобильного.</p>
+  </div>
+
+  <!-- 3. Дашборд -->
+  <div class="section" id="s3">
+    <div class="section-header">
+      <div class="section-icon ic-blue">🏠</div>
+      <h2>3. Дашборд (главная страница)</h2>
+    </div>
+    <p>Главная страница показывает текущее состояние всего портфеля проектов:</p>
+    <ul>
+      <li><strong>Карточки статистики</strong> — количество активных, завершённых, просроченных объектов</li>
+      <li><strong>Срочные объекты</strong> — проекты с дедлайном менее 7 дней</li>
+      <li><strong>Просроченные проекты</strong> — объекты, у которых истёк срок</li>
+      <li><strong>Открытые задачи</strong> — задачи, требующие внимания</li>
+      <li><strong>Онлайн</strong> — кто из команды сейчас в системе</li>
+    </ul>
+    <div class="tip">
+      <strong>Цветовая индикация:</strong> красный — просрочено, жёлтый — срок менее 7 дней, зелёный — всё в порядке.
+    </div>
+  </div>
+
+  <!-- 4. Реконструкция -->
+  <div class="section" id="s4">
+    <div class="section-header">
+      <div class="section-icon ic-orange">🔨</div>
+      <h2>4. Проекты — Реконструкция</h2>
+    </div>
+    <p>Раздел <strong>«Реконструкции»</strong> содержит все объекты типа «Реконструкция».</p>
+    <h3>Список объектов</h3>
+    <ul>
+      <li>Фильтрация по статусу, менеджеру, городу</li>
+      <li>Поиск по номеру ТК или названию</li>
+      <li>Массовые действия — выбрать несколько объектов и изменить статус или менеджера</li>
+    </ul>
+    <h3>Карточка объекта</h3>
+    <p>Нажмите на объект — откроется детальная карточка:</p>
+    <ul>
+      <li>Основные данные: ТК, город, тип, статус, менеджер</li>
+      <li>Даты: начало работ, плановое окончание, дата открытия</li>
+      <li>Этапы проекта с датами и отметками выполнения</li>
+      <li>Файлы и фотографии</li>
+      <li>История изменений</li>
+    </ul>
+    <h3>Статусы проекта</h3>
+    <div class="status-list">
+      <span class="badge badge-blue">Планирование</span>
+      <span class="badge badge-green">Активный</span>
+      <span class="badge badge-orange">Приостановлен</span>
+      <span class="badge badge-gray">Завершён</span>
+    </div>
+    <h3>Создание нового объекта</h3>
+    <ol class="steps">
+      <li>Нажмите кнопку «+ Добавить» в правом верхнем углу</li>
+      <li>Заполните обязательные поля: название, номер ТК, город, тип, статус</li>
+      <li>Назначьте менеджера и укажите даты</li>
+      <li>Нажмите «Сохранить»</li>
+    </ol>
+  </div>
+
+  <!-- 5. Констракшн -->
+  <div class="section" id="s5">
+    <div class="section-header">
+      <div class="section-icon ic-orange">🏗</div>
+      <h2>5. Проекты — Констракшн</h2>
+    </div>
+    <p>Раздел <strong>«Констракшн»</strong> — аналогичен Реконструкциям, но для новых объектов строительства. Интерфейс и логика работы идентичны.</p>
+    <div class="info">
+      <strong>Разница:</strong> в дедлайн-таблицах и отчётах Реконструкции и Констракшн отображаются отдельными вкладками.
+    </div>
+  </div>
+
+  <!-- 6. Задачи -->
+  <div class="section" id="s6">
+    <div class="section-header">
+      <div class="section-icon ic-purple">✅</div>
+      <h2>6. Задачи</h2>
+    </div>
+    <p>Раздел <strong>«Задачи»</strong> — внутренний трекер для команды. Задачи не привязаны к конкретному проекту и используются для оперативного взаимодействия.</p>
+    <h3>Создание задачи</h3>
+    <ol class="steps">
+      <li>Перейдите в раздел «Задачи» в боковом меню</li>
+      <li>Нажмите «+ Новая задача»</li>
+      <li>Укажите название, описание, приоритет, исполнителя и срок</li>
+      <li>Сохраните</li>
+    </ol>
+    <h3>Приоритеты</h3>
+    <div class="status-list">
+      <span class="badge badge-gray">Низкий</span>
+      <span class="badge badge-blue">Средний</span>
+      <span class="badge badge-orange">Высокий</span>
+    </div>
+    <h3>Изменение статуса задачи</h3>
+    <p>Откройте задачу → кнопка «Изменить статус» → выберите новый статус → при необходимости оставьте комментарий.</p>
+    <div class="tip">
+      <strong>Совет:</strong> При завершении задачи добавьте комментарий — это помогает вести историю работы.
+    </div>
+  </div>
+
+  <!-- 7. Дедлайны -->
+  <div class="section" id="s7">
+    <div class="section-header">
+      <div class="section-icon ic-red">📅</div>
+      <h2>7. Дедлайны</h2>
+    </div>
+    <p>Раздел <strong>«Дедлайны»</strong> — сводная таблица по этапам всех активных проектов. Показывает какие стадии просрочены, какие завершены, какие в работе.</p>
+    <h3>Что показывает таблица</h3>
+    <ul>
+      <li>По строкам — объекты (ТК)</li>
+      <li>По столбцам — этапы проекта с датами начала и окончания</li>
+      <li>Цветовая подсветка: красный — просрочено, жёлтый — скоро, зелёный — выполнено</li>
+    </ul>
+    <h3>Импорт из Excel</h3>
+    <ol class="steps">
+      <li>Подготовьте файл Excel в установленном формате</li>
+      <li>Перейдите в «Дедлайны» → «Импортировать»</li>
+      <li>Выберите файл и нажмите «Загрузить»</li>
+      <li>Система обновит даты по всем объектам автоматически</li>
+    </ol>
+    <div class="tip">
+      <strong>Лимит файла:</strong> максимальный размер импортируемого файла — 10 МБ.
+    </div>
+    <h3>Экспорт</h3>
+    <p>Кнопка «Экспорт Excel» → скачивается файл с текущим состоянием всех дедлайнов.</p>
+  </div>
+
+  <!-- 8. SMR -->
+  <div class="section" id="s8">
+    <div class="section-header">
+      <div class="section-icon ic-teal">🔧</div>
+      <h2>8. SMR — строительно-монтажные работы</h2>
+    </div>
+    <p>Модуль <strong>SMR</strong> используется для управления графиками подрядчиков и отправки уведомлений о выполненных работах.</p>
+    <h3>Список SMR-графиков</h3>
+    <p>Каждый объект может иметь один SMR-график с задачами по этапам работ.</p>
+    <h3>Отправка уведомления подрядчику</h3>
+    <ol class="steps">
+      <li>Откройте нужный SMR-объект</li>
+      <li>Отметьте выполненные задачи</li>
+      <li>Нажмите «Отправить уведомление» — подрядчик получит email с деталями</li>
+      <li>Подрядчик переходит по ссылке и подтверждает выполнение работ</li>
+    </ol>
+    <h3>База контактов SMR</h3>
+    <p>Раздел «Контакты» → список всех подрядчиков с email для рассылок. Можно добавлять и удалять контакты.</p>
+    <div class="info">
+      <strong>Подтверждение:</strong> после отправки уведомления система фиксирует факт и дату подтверждения — для отчётности.
+    </div>
+  </div>
+
+  <!-- 9. ВПК -->
+  <div class="section" id="s9">
+    <div class="section-header">
+      <div class="section-icon ic-red">📊</div>
+      <h2>9. ВПК — внутренний контроль</h2>
+    </div>
+    <p>Раздел <strong>ВПК</strong> — мониторинг отчётов и уведомлений по объектам для внутреннего контроля.</p>
+    <ul>
+      <li>Список отчётов по объектам с датами</li>
+      <li>Индикатор непрочитанных материалов</li>
+      <li>Экспорт реестра в Excel</li>
+    </ul>
+    <div class="tip">
+      <strong>Индикатор:</strong> в боковом меню рядом с «ВПК» отображается счётчик непрочитанных отчётов.
+    </div>
+  </div>
+
+  <!-- 10. КСО -->
+  <div class="section" id="s10">
+    <div class="section-header">
+      <div class="section-icon ic-green">📁</div>
+      <h2>10. КСО — отчётность</h2>
+    </div>
+    <p>Раздел <strong>КСО</strong> содержит реестр отчётных документов по объектам. Используется для хранения и контроля КСО-документации.</p>
+    <ul>
+      <li>Фильтрация по объекту, дате, статусу</li>
+      <li>Прикрепление файлов к записям</li>
+      <li>Отметки о проверке</li>
+    </ul>
+  </div>
+
+  <!-- 11. Менеджеры -->
+  <div class="section" id="s11">
+    <div class="section-header">
+      <div class="section-icon ic-blue">👥</div>
+      <h2>11. Менеджеры</h2>
+    </div>
+    <p>Раздел <strong>«Менеджеры»</strong> — справочник команды с контактными данными и нагрузкой.</p>
+    <ul>
+      <li>ФИО, телефон, email каждого менеджера</li>
+      <li>Количество активных объектов на менеджере</li>
+      <li>Кто является руководителем (Гаврин Игорь)</li>
+    </ul>
+    <p>Менеджеры назначаются на объекты из этого справочника.</p>
+  </div>
+
+  <!-- 12. AI -->
+  <div class="section" id="s12">
+    <div class="section-header">
+      <div class="section-icon ic-purple">🤖</div>
+      <h2>12. AI-ассистент</h2>
+    </div>
+    <p>Встроенный <strong>AI-ассистент</strong> — чат-бот, который видит все данные системы в реальном времени и отвечает на вопросы о проектах.</p>
+    <h3>Что умеет</h3>
+    <ul>
+      <li>«Сколько у нас просроченных объектов?»</li>
+      <li>«Какие объекты закроются в этом месяце?»</li>
+      <li>«У кого из менеджеров больше всего активных проектов?»</li>
+      <li>«Составь сводку по объектам за неделю»</li>
+      <li>Анализировать загруженные Excel-файлы на ошибки</li>
+    </ul>
+    <h3>Выбор провайдера</h3>
+    <div class="status-list">
+      <span class="badge badge-green">Groq (быстрый, бесплатный)</span>
+      <span class="badge badge-blue">Claude (точный)</span>
+      <span class="badge badge-gray">DeepSeek</span>
+    </div>
+    <div class="tip">
+      <strong>Рекомендация:</strong> для быстрых вопросов используйте Groq, для сложного анализа — Claude.
+    </div>
+  </div>
+
+  <!-- 13. Статистика -->
+  <div class="section" id="s13">
+    <div class="section-header">
+      <div class="section-icon ic-gold">📈</div>
+      <h2>13. Статистика</h2>
+    </div>
+    <p>Раздел <strong>«Статистика»</strong> — графики и аналитика по портфелю проектов.</p>
+    <ul>
+      <li>Распределение объектов по статусам и типам</li>
+      <li>Динамика завершения по месяцам</li>
+      <li>Нагрузка на менеджеров</li>
+      <li>Доля просроченных объектов</li>
+    </ul>
+    <div class="info">
+      <strong>Доступ:</strong> статистика доступна всем авторизованным пользователям.
+    </div>
+  </div>
+
+  <!-- 14. Экспорт -->
+  <div class="section" id="s14">
+    <div class="section-header">
+      <div class="section-icon ic-green">📥</div>
+      <h2>14. Экспорт отчётов</h2>
+    </div>
+    <p>Из большинства разделов доступна выгрузка данных в Excel:</p>
+    <table>
+      <tr><th>Раздел</th><th>Что экспортируется</th></tr>
+      <tr><td>Проекты</td><td>Полный реестр с датами, статусами, менеджерами</td></tr>
+      <tr><td>Дедлайны</td><td>Таблица этапов по всем объектам</td></tr>
+      <tr><td>Задачи</td><td>Список задач с исполнителями и статусами</td></tr>
+      <tr><td>ВПК</td><td>Реестр отчётов</td></tr>
+    </table>
+    <p>Кнопка «Экспорт» или «Скачать Excel» находится в правом верхнем углу каждого раздела.</p>
+  </div>
+
+  <!-- 15. Администратор -->
+  <div class="section" id="s15">
+    <div class="section-header">
+      <div class="section-icon ic-gray">⚙️</div>
+      <h2>15. Для администратора</h2>
+    </div>
+    <div class="info">
+      <strong>Только для администраторов</strong> — Гаврин Игорь и Месмер Денис.
+    </div>
+    <h3>Управление пользователями (/admin/users)</h3>
+    <ol class="steps">
+      <li>Перейдите в меню → «Администрирование»</li>
+      <li>Добавьте номер телефона нового сотрудника</li>
+      <li>Укажите отображаемое имя и права (обычный / администратор)</li>
+      <li>Сотрудник сможет войти, указав этот телефон</li>
+    </ol>
+    <h3>Сброс пароля</h3>
+    <p>В списке пользователей нажмите «Сбросить пароль» напротив нужного сотрудника. При следующем входе пользователь создаст новый пароль.</p>
+    <h3>Удаление пользователя</h3>
+    <p>Удалите телефон из белого списка — пользователь сразу потеряет доступ к системе.</p>
+    <h3>Журнал действий (/admin/audit)</h3>
+    <p>Доступен только главному администратору. Показывает все действия пользователей: входы, создание и удаление проектов, изменения статусов.</p>
+    <div class="tip">
+      <strong>Важно:</strong> перед удалением пользователя убедитесь, что его объекты переназначены другому менеджеру.
+    </div>
+  </div>
+
+  <!-- Контакты -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon ic-blue">📞</div>
+      <h2>Техническая поддержка</h2>
+    </div>
+    <p>По вопросам работы системы обращайтесь:</p>
+    <ul>
+      <li><strong>Месмер Денис</strong> — администратор и разработчик системы</li>
+    </ul>
+    <p>По вопросам доступа (добавление/удаление пользователей):</p>
+    <ul>
+      <li><strong>Гаврин Игорь</strong> — руководитель, имеет права администратора</li>
+    </ul>
+  </div>
+
+  <div class="footer">
+    Лента ПМ · Внутренний документ · Не для распространения за пределами компании<br>
+    Версия 1.0 · Июнь 2026
+  </div>
+
+</div>
+</body>
+</html>

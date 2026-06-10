@@ -10,7 +10,7 @@ from utils.phone import normalize_phone
 
 router = APIRouter()
 
-_AUDIT_ALLOWED_PHONE = os.getenv("ADMIN_PHONE", "+79997303914")
+_AUDIT_ALLOWED_PHONE = os.getenv("ADMIN_PHONE", "")
 
 
 def _is_audit_allowed(user: dict) -> bool:

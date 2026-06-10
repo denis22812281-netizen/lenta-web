@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
+from config import STATUSES
 from deps import get_current_user, require_login
 from services.online import ONLINE_USERS, ONLINE_TIMEOUT
 
@@ -46,6 +47,8 @@ async def bulk_update_projects(request: Request, db: Session = Depends(get_db),
         return JSONResponse({"ok": False, "error": "Нет данных"}, status_code=400)
     if action.startswith("status:"):
         new_status = action.split(":", 1)[1]
+        if new_status not in STATUSES:
+            return JSONResponse({"ok": False, "error": "Недопустимый статус"}, status_code=400)
         updated = db.query(models.Project).filter(
             models.Project.id.in_(ids)
         ).update({"status": new_status}, synchronize_session=False)

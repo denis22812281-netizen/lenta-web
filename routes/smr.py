@@ -278,6 +278,67 @@ async def smr_create(project_id: int, request: Request,
     return RedirectResponse(f"/smr/{project_id}", status_code=303)
 
 
+# ── База контактов ───────────────────────────────────────────────────────────
+
+@router.get("/smr/contacts", response_class=HTMLResponse)
+async def smr_contacts(request: Request, db: Session = Depends(get_db),
+                       user: dict = Depends(require_login)):
+    contacts = db.query(models.SmrContact).order_by(models.SmrContact.name).all()
+    return templates.TemplateResponse("smr_contacts.html", {
+        "request": request, "user": user, "contacts": contacts,
+    })
+
+
+@router.post("/smr/contacts/add")
+async def smr_contact_add(request: Request, db: Session = Depends(get_db),
+                           name: str = Form(...), email: str = Form(...),
+                           position: str = Form(""),
+                           user: dict = Depends(require_login)):
+    email_clean = email.strip().lower()
+    parts = email_clean.split("@")
+    if len(parts) != 2 or not parts[0] or "." not in parts[1]:
+        contacts = db.query(models.SmrContact).order_by(models.SmrContact.name).all()
+        return templates.TemplateResponse("smr_contacts.html", {
+            "request": request, "user": user, "contacts": contacts,
+            "error": "Некорректный email",
+        })
+    db.add(models.SmrContact(
+        name=name.strip(),
+        email=email_clean,
+        position=position.strip(),
+    ))
+    db.commit()
+    return RedirectResponse("/smr/contacts", status_code=303)
+
+
+@router.post("/smr/contacts/{contact_id}/delete")
+async def smr_contact_delete(contact_id: int, request: Request,
+                              db: Session = Depends(get_db),
+                              user: dict = Depends(require_login)):
+    c = db.query(models.SmrContact).filter(models.SmrContact.id == contact_id).first()
+    if c:
+        db.delete(c)
+        db.commit()
+    return RedirectResponse("/smr/contacts", status_code=303)
+
+
+@router.get("/api/smr/contacts")
+async def smr_contacts_search(request: Request, db: Session = Depends(get_db),
+                               q: str = ""):
+    """Поиск контактов по имени — для автодополнения."""
+    user = get_current_user(request)
+    if not user:
+        return JSONResponse({"contacts": []})
+    query = db.query(models.SmrContact)
+    if q and len(q) >= 1:
+        query = query.filter(models.SmrContact.name.ilike(f"%{q}%"))
+    contacts = query.order_by(models.SmrContact.name).limit(10).all()
+    return JSONResponse({"contacts": [
+        {"id": c.id, "name": c.name, "email": c.email, "position": c.position}
+        for c in contacts
+    ]})
+
+
 # ── Просмотр графика ─────────────────────────────────────────────────────────
 
 @router.get("/smr/{project_id}", response_class=HTMLResponse)
@@ -565,67 +626,6 @@ async def smr_send_report(project_id: int, request: Request,
         sent_by=user.get("display_name", ""),
     )
     return {"ok": ok, "sent_to": to_email}
-
-
-# ── База контактов ───────────────────────────────────────────────────────────
-
-@router.get("/smr/contacts", response_class=HTMLResponse)
-async def smr_contacts(request: Request, db: Session = Depends(get_db),
-                       user: dict = Depends(require_login)):
-    contacts = db.query(models.SmrContact).order_by(models.SmrContact.name).all()
-    return templates.TemplateResponse("smr_contacts.html", {
-        "request": request, "user": user, "contacts": contacts,
-    })
-
-
-@router.post("/smr/contacts/add")
-async def smr_contact_add(request: Request, db: Session = Depends(get_db),
-                           name: str = Form(...), email: str = Form(...),
-                           position: str = Form(""),
-                           user: dict = Depends(require_login)):
-    email_clean = email.strip().lower()
-    parts = email_clean.split("@")
-    if len(parts) != 2 or not parts[0] or "." not in parts[1]:
-        contacts = db.query(models.SmrContact).order_by(models.SmrContact.name).all()
-        return templates.TemplateResponse("smr_contacts.html", {
-            "request": request, "user": user, "contacts": contacts,
-            "error": "Некорректный email",
-        })
-    db.add(models.SmrContact(
-        name=name.strip(),
-        email=email_clean,
-        position=position.strip(),
-    ))
-    db.commit()
-    return RedirectResponse("/smr/contacts", status_code=303)
-
-
-@router.post("/smr/contacts/{contact_id}/delete")
-async def smr_contact_delete(contact_id: int, request: Request,
-                              db: Session = Depends(get_db),
-                              user: dict = Depends(require_login)):
-    c = db.query(models.SmrContact).filter(models.SmrContact.id == contact_id).first()
-    if c:
-        db.delete(c)
-        db.commit()
-    return RedirectResponse("/smr/contacts", status_code=303)
-
-
-@router.get("/api/smr/contacts")
-async def smr_contacts_search(request: Request, db: Session = Depends(get_db),
-                               q: str = ""):
-    """Поиск контактов по имени — для автодополнения."""
-    user = get_current_user(request)
-    if not user:
-        return JSONResponse({"contacts": []})
-    query = db.query(models.SmrContact)
-    if q and len(q) >= 1:
-        query = query.filter(models.SmrContact.name.ilike(f"%{q}%"))
-    contacts = query.order_by(models.SmrContact.name).limit(10).all()
-    return JSONResponse({"contacts": [
-        {"id": c.id, "name": c.name, "email": c.email, "position": c.position}
-        for c in contacts
-    ]})
 
 
 # ── Удалить график ────────────────────────────────────────────────────────────
