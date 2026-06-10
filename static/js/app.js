@@ -1,3 +1,44 @@
+// ── Navigation progress bar (npbar) ─────────────────────────────────────────
+(function () {
+    const bar = document.getElementById('npbar');
+    if (!bar) return;
+
+    // Complete bar on every page load
+    bar.classList.add('loading');
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        bar.classList.remove('loading');
+        bar.classList.add('done');
+        setTimeout(() => bar.classList.add('hidden'), 450);
+    }));
+
+    // Show bar on navigation click (visible on current page while next page loads)
+    document.addEventListener('click', (e) => {
+        const a = e.target.closest('a[href]');
+        if (!a) return;
+        const href = a.getAttribute('href') || '';
+        if (href.startsWith('#') || href.startsWith('javascript') ||
+            href.startsWith('http') || href.startsWith('mailto') ||
+            a.getAttribute('data-bs-toggle') || a.getAttribute('target') === '_blank') return;
+        bar.classList.remove('hidden', 'done');
+        bar.classList.add('loading');
+    });
+})();
+
+// ── Skeleton loading ──────────────────────────────────────────────────────────
+(function () {
+    // Add skeleton rows to data-cards on load, remove after first render frame
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.data-card').forEach(card => {
+            if (!card.querySelector('table, .empty-state')) return;
+            const sk = document.createElement('div');
+            sk.className = 'sk-card-body';
+            sk.style.display = 'none';
+            sk.innerHTML = '<div class="sk-row w85"></div><div class="sk-row w70"></div><div class="sk-row w50"></div>';
+            card.insertBefore(sk, card.querySelector('.table-responsive, .empty-state'));
+        });
+    });
+})();
+
 // ── Theme ────────────────────────────────────────────────────────────────────
 function _applyThemeUI() {
     const dark  = document.getElementById('html-root').getAttribute('data-bs-theme') === 'dark';

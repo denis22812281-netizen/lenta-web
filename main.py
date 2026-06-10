@@ -34,7 +34,7 @@ if _SENTRY_DSN:
 
 import database
 import models
-from deps import limiter
+from deps import limiter, templates
 from migrations import run_postgres_migrations, run_sqlite_migrations
 from services.background import auto_sync_loop, smr_notification_loop, leader_digest_loop
 from services.online import ONLINE_USERS, ONLINE_TIMEOUT
@@ -146,6 +146,14 @@ class AuditMiddleware(BaseHTTPMiddleware):
             pass
         return response
 
+
+@app.exception_handler(404)
+async def not_found_handler(request: Request, exc):
+    return templates.TemplateResponse("404.html", {"request": request, "user": None}, status_code=404)
+
+@app.exception_handler(500)
+async def server_error_handler(request: Request, exc):
+    return templates.TemplateResponse("500.html", {"request": request, "user": None}, status_code=500)
 
 app.add_middleware(AuditMiddleware)
 app.add_middleware(CSRFMiddleware)

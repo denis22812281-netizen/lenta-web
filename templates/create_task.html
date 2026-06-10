@@ -45,13 +45,13 @@
         <table class="table table-hover mb-0 align-middle small" id="tasks-table">
             <thead class="table-head">
                 <tr>
-                    <th style="min-width:180px">Задача</th>
-                    <th>Проект</th>
+                    <th>Задача</th>
+                    <th class="d-none d-sm-table-cell">Проект</th>
                     <th>Назначено</th>
-                    <th>Поставил</th>
+                    <th class="d-none d-md-table-cell">Поставил</th>
                     <th>Дедлайн</th>
-                    <th>Приоритет</th>
-                    <th>Статус</th>
+                    <th class="d-none d-sm-table-cell">Приоритет</th>
+                    <th class="d-none d-md-table-cell">Статус</th>
                     <th></th>
                 </tr>
             </thead>
@@ -73,9 +73,9 @@
                     <div class="fw-semibold">{{ t.title }}</div>
                     {% if t.description %}<div class="text-muted" style="font-size:11px">{{ t.description[:60] }}{% if t.description|length > 60 %}…{% endif %}</div>{% endif %}
                 </td>
-                <td class="text-muted">{{ t.project.name[:20] if t.project else '—' }}</td>
-                <td>{{ t.assignee.name if t.assignee else '—' }}</td>
-                <td class="text-muted small">{{ t.created_by or '—' }}</td>
+                <td class="text-muted d-none d-sm-table-cell">{{ t.project.name[:20] if t.project else '—' }}</td>
+                <td>{{ t.assignee.name.split()[0] if t.assignee else '—' }}</td>
+                <td class="text-muted small d-none d-md-table-cell">{{ t.created_by or '—' }}</td>
                 <td class="fw-semibold" style="white-space:nowrap">
                     {% if t.deadline %}
                     {{ t.deadline.strftime('%d.%m.%Y') }}
@@ -86,12 +86,12 @@
                     {% endif %}
                     {% else %}—{% endif %}
                 </td>
-                <td>
+                <td class="d-none d-sm-table-cell">
                     <span class="badge {% if t.priority == 'Высокий' %}bg-danger{% elif t.priority == 'Средний' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
                         {{ t.priority }}
                     </span>
                 </td>
-                <td>
+                <td class="d-none d-md-table-cell">
                     <form method="post" action="/tasks/{{ t.id }}/update-status" id="form-{{ t.id }}">
                         <input type="hidden" name="completion_comment" id="cc-{{ t.id }}" value="">
                         <select name="status" class="form-select form-select-sm" style="width:130px"

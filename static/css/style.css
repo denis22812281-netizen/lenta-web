@@ -866,6 +866,37 @@ body {
 #npbar.done    { transform: scaleX(1);   }
 #npbar.hidden  { opacity: 0; }
 
+/* ── Skeleton loading ────────────────────────────────────────── */
+@keyframes skShimmer {
+    0%   { background-position: -600px 0; }
+    100% { background-position:  600px 0; }
+}
+.sk-row {
+    height: 13px; border-radius: 6px; margin-bottom: 10px;
+    background: linear-gradient(90deg,
+        rgba(255,255,255,.04) 25%,
+        rgba(255,255,255,.12) 50%,
+        rgba(255,255,255,.04) 75%);
+    background-size: 600px 100%;
+    animation: skShimmer 1.5s ease-in-out infinite;
+}
+[data-bs-theme="light"] .sk-row {
+    background: linear-gradient(90deg,
+        rgba(0,0,0,.06) 25%, rgba(0,0,0,.14) 50%, rgba(0,0,0,.06) 75%);
+    background-size: 600px 100%;
+    animation: skShimmer 1.5s ease-in-out infinite;
+}
+.sk-row.w30 { width: 30%; }
+.sk-row.w50 { width: 50%; }
+.sk-row.w70 { width: 70%; }
+.sk-row.w85 { width: 85%; }
+.sk-card-body { padding: 16px 20px 8px; }
+
+/* data-card skeleton state */
+.data-card.sk-loading .sk-card-body { display: block !important; }
+.data-card.sk-loading .table-responsive,
+.data-card.sk-loading .empty-state { display: none !important; }
+
 /* Bulk action bar */
 .bulk-bar {
     display: flex;
