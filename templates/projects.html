@@ -6,13 +6,13 @@
 <!-- Toolbar -->
 <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
     <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#modalCreateProject">
-        <i class="bi bi-plus-lg me-1"></i>Новый проект
+        <i class="bi bi-plus-lg me-1"></i><span class="d-none d-sm-inline">Новый проект</span>
     </button>
     <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#modalImport">
-        <i class="bi bi-upload me-1"></i>Импорт Excel
+        <i class="bi bi-upload me-1"></i><span class="d-none d-sm-inline">Импорт Excel</span>
     </button>
     <a href="/api/export/projects-excel" class="btn btn-outline-primary">
-        <i class="bi bi-download me-1"></i>Экспорт Excel
+        <i class="bi bi-download me-1"></i><span class="d-none d-sm-inline">Экспорт Excel</span>
     </a>
     <span class="ms-auto text-muted small">{{ projects|length }} проектов</span>
 </div>
@@ -54,13 +54,13 @@
     <table class="table table-hover mb-0 align-middle">
         <thead class="table-head">
             <tr>
-                <th>ТК №</th>
+                <th class="d-none d-sm-table-cell">ТК №</th>
                 <th>Название / Город</th>
-                <th>Тип</th>
+                <th class="d-none d-sm-table-cell">Тип</th>
                 <th>Менеджер</th>
-                <th>Статус</th>
-                <th>Этап</th>
-                <th>Начало</th>
+                <th class="d-none d-md-table-cell">Статус</th>
+                <th class="d-none d-lg-table-cell">Этап</th>
+                <th class="d-none d-md-table-cell">Начало</th>
                 <th>Окончание</th>
                 <th>Дней</th>
                 <th></th>
@@ -71,14 +71,14 @@
         {% if p.end_date %}{% set days = (p.end_date - today).days %}{% else %}{% set days = None %}{% endif %}
         {% set is_opened = p.opening_date and p.opening_date <= today %}
         <tr class="{% if is_opened %}table-success{% endif %}">
-            <td class="text-muted small">{{ p.tk_number or '—' }}</td>
+            <td class="text-muted small d-none d-sm-table-cell">{{ p.tk_number or '—' }}</td>
             <td>
                 <a href="/projects/{{ p.id }}" class="fw-semibold text-decoration-none text-dark">{{ p.name }}</a>
                 {% if p.address %}<br><small class="text-muted"><i class="bi bi-geo-alt"></i> {{ p.address }}</small>{% elif p.city %}<br><small class="text-muted"><i class="bi bi-geo-alt"></i> {{ p.city }}</small>{% endif %}
             </td>
-            <td><span class="badge bg-light text-dark border">{{ p.project_type or '—' }}</span></td>
-            <td class="small">{{ p.manager.name if p.manager else '—' }}</td>
-            <td>
+            <td class="d-none d-sm-table-cell"><span class="badge bg-light text-dark border">{{ p.project_type or '—' }}</span></td>
+            <td class="small">{{ p.manager.name.split()[0] if p.manager else '—' }}</td>
+            <td class="d-none d-md-table-cell">
                 {% if is_opened %}
                 <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Открыт</span>
                 {% elif p.status == 'Приостановлен' %}
@@ -89,8 +89,8 @@
                 <span class="badge bg-success">Активный</span>
                 {% endif %}
             </td>
-            <td class="small text-muted">{{ p.stage or '—' }}</td>
-            <td class="small">{{ p.start_date.strftime('%d.%m.%y') if p.start_date else '—' }}</td>
+            <td class="small text-muted d-none d-lg-table-cell">{{ p.stage or '—' }}</td>
+            <td class="small d-none d-md-table-cell">{{ p.start_date.strftime('%d.%m.%y') if p.start_date else '—' }}</td>
             <td class="small fw-semibold">{{ p.end_date.strftime('%d.%m.%Y') if p.end_date else '—' }}</td>
             <td>
                 {% if days is not none %}

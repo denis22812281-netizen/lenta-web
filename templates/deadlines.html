@@ -2,8 +2,8 @@
 {% block page_title %}Дедлайны — Лента Проекты{% endblock %}
 {% block title %}<i class="bi bi-clock-history me-2"></i>Дедлайны{% endblock %}
 {% block topbar_actions %}
-<a href="/deadlines/export" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i>Excel</a>
-<button class="btn btn-sm btn-outline-secondary btn-print" onclick="window.print()"><i class="bi bi-printer me-1"></i>PDF</button>
+<a href="/deadlines/export" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i><span class="d-none d-sm-inline">Excel</span></a>
+<button class="btn btn-sm btn-outline-secondary btn-print" onclick="window.print()"><i class="bi bi-printer me-1"></i><span class="d-none d-sm-inline">PDF</span></button>
 {% endblock %}
 
 {% block content %}
@@ -41,12 +41,12 @@
             <table class="table table-hover mb-0 align-middle">
                 <thead class="table-head">
                     <tr>
-                        <th>ТК №</th>
+                        <th class="d-none d-sm-table-cell">ТК №</th>
                         <th>Название</th>
                         <th>Менеджер</th>
-                        <th>Тип</th>
-                        <th>Статус</th>
-                        <th>Дата окончания</th>
+                        <th class="d-none d-sm-table-cell">Тип</th>
+                        <th class="d-none d-md-table-cell">Статус</th>
+                        <th>Дата</th>
                         <th>Осталось</th>
                     </tr>
                 </thead>
@@ -55,14 +55,14 @@
                 {% set days = (p.end_date - today).days %}
                 {% set is_opened = p.opening_date and p.opening_date <= today %}
                 <tr class="{% if is_opened %}table-success{% elif days < 0 %}table-danger{% elif days <= 3 %}table-warning{% elif days <= 7 %}table-light{% endif %}">
-                    <td class="text-muted small">{{ p.tk_number or '—' }}</td>
+                    <td class="text-muted small d-none d-sm-table-cell">{{ p.tk_number or '—' }}</td>
                     <td>
                         <a href="/projects/{{ p.id }}" class="fw-semibold text-decoration-none text-dark">{{ p.name }}</a>
                         {% if p.address %}<br><small class="text-muted">{{ p.address }}</small>{% elif p.city %}<br><small class="text-muted">{{ p.city }}</small>{% endif %}
                     </td>
-                    <td>{{ p.manager.name if p.manager else '—' }}</td>
-                    <td><span class="badge bg-light text-dark">{{ p.project_type or '—' }}</span></td>
-                    <td>
+                    <td>{{ p.manager.name.split()[0] if p.manager else '—' }}</td>
+                    <td class="d-none d-sm-table-cell"><span class="badge bg-light text-dark">{{ p.project_type or '—' }}</span></td>
+                    <td class="d-none d-md-table-cell">
                         {% if is_opened %}
                         <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Открыт</span>
                         {% elif p.status == 'Приостановлен' %}
@@ -71,10 +71,10 @@
                         <span class="badge bg-success">Активный</span>
                         {% endif %}
                     </td>
-                    <td class="fw-semibold">{{ p.end_date.strftime('%d.%m.%Y') }}</td>
+                    <td class="fw-semibold text-nowrap">{{ p.end_date.strftime('%d.%m.%y') }}</td>
                     <td>
                         <span class="dl-badge {% if days < 0 %}dl-over{% elif days <= 3 %}dl-crit{% elif days <= 7 %}dl-warn{% else %}dl-ok{% endif %}">
-                            {% if days < 0 %}Просрочено {{ -days }} д{% elif days == 0 %}Сегодня!{% else %}{{ days }} дней{% endif %}
+                            {% if days < 0 %}-{{ -days }} д{% elif days == 0 %}Сегодня{% else %}{{ days }} д{% endif %}
                         </span>
                     </td>
                 </tr>
@@ -104,10 +104,10 @@
                 <thead class="table-head">
                     <tr>
                         <th>Задача</th>
-                        <th>Проект</th>
+                        <th class="d-none d-sm-table-cell">Проект</th>
                         <th>Назначено</th>
-                        <th>Приоритет</th>
-                        <th>Статус</th>
+                        <th class="d-none d-sm-table-cell">Приоритет</th>
+                        <th class="d-none d-md-table-cell">Статус</th>
                         <th>Дедлайн</th>
                         <th>Осталось</th>
                     </tr>
@@ -117,22 +117,22 @@
                 {% set days = (t.deadline - today).days %}
                 <tr class="{% if days < 0 %}table-danger{% elif days <= 3 %}table-warning{% endif %}">
                     <td class="fw-semibold small">{{ t.title }}</td>
-                    <td class="text-muted small">{{ t.project.name[:20] if t.project else '—' }}</td>
-                    <td>{{ t.assignee.name if t.assignee else '—' }}</td>
-                    <td>
+                    <td class="text-muted small d-none d-sm-table-cell">{{ t.project.name[:20] if t.project else '—' }}</td>
+                    <td>{{ t.assignee.name.split()[0] if t.assignee else '—' }}</td>
+                    <td class="d-none d-sm-table-cell">
                         <span class="badge {% if t.priority == 'Высокий' %}bg-danger{% elif t.priority == 'Средний' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
                             {{ t.priority }}
                         </span>
                     </td>
-                    <td>
+                    <td class="d-none d-md-table-cell">
                         <span class="badge {% if t.status == 'Завершена' %}bg-success{% elif t.status == 'В работе' %}bg-primary{% elif t.status == 'На проверке' %}bg-info text-dark{% else %}bg-secondary{% endif %}">
                             {{ t.status }}
                         </span>
                     </td>
-                    <td class="fw-semibold">{{ t.deadline.strftime('%d.%m.%Y') }}</td>
+                    <td class="fw-semibold text-nowrap">{{ t.deadline.strftime('%d.%m.%y') }}</td>
                     <td>
                         <span class="dl-badge {% if days < 0 %}dl-over{% elif days <= 3 %}dl-crit{% elif days <= 7 %}dl-warn{% else %}dl-ok{% endif %}">
-                            {% if days < 0 %}Просрочено {{ -days }} д{% elif days == 0 %}Сегодня!{% else %}{{ days }} дней{% endif %}
+                            {% if days < 0 %}-{{ -days }} д{% elif days == 0 %}Сегодня{% else %}{{ days }} д{% endif %}
                         </span>
                     </td>
                 </tr>
