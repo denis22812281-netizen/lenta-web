@@ -6,66 +6,79 @@
 
 <!-- SuperLenta-style banner -->
 <div class="lenta-banner mb-4">
-    <div class="lenta-sign-wrap">
-        <span class="lenta-sign-super">супер</span><span class="lenta-sign-dot">●</span><span class="lenta-sign-lenta">лента</span>
-    </div>
     <div class="lenta-banner-text">
         <div class="lenta-banner-title">Менеджеры проектов</div>
         <div class="lenta-banner-sub">Группа запуска и реконструкций магазинов · Отдел по внедрению изменений</div>
     </div>
-    {% if user and user.is_admin %}
-    <div class="ms-auto">
+    <div class="ms-auto d-flex align-items-center gap-3">
+        <div class="lenta-sign-wrap">
+            <span class="lenta-sign-super">супер</span>
+            <span class="lenta-sunflower">
+                <span class="sl-head"></span>
+                <span class="sl-leaves"></span>
+            </span>
+            <span class="lenta-sign-lenta">лента</span>
+        </div>
+        {% if user and user.is_admin %}
         <button class="btn btn-warning fw-semibold" data-bs-toggle="modal" data-bs-target="#modalAddManager">
             <i class="bi bi-person-plus-fill me-2"></i>Добавить менеджера
         </button>
+        {% endif %}
     </div>
-    {% endif %}
 </div>
 
 <style>
 .lenta-banner {
-    background: #0e1a0e;
+    background: #0a0a0a;
     border-radius: 16px;
     padding: 18px 24px;
     display: flex;
     align-items: center;
-    gap: 24px;
-    box-shadow: 0 4px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(74,222,128,0.08);
-    overflow: hidden;
-    position: relative;
-    border: 1px solid rgba(74,222,128,0.15);
+    gap: 20px;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.06);
 }
 .lenta-sign-wrap {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: 1px;
     flex-shrink: 0;
-    line-height: 1;
 }
 .lenta-sign-super {
-    font-size: 1.7rem;
+    font-size: 1.8rem;
     font-weight: 900;
-    color: #4ade80;
-    text-shadow: 0 0 18px rgba(74,222,128,0.7), 0 0 6px rgba(74,222,128,0.4);
+    color: #3CB34A;
     letter-spacing: -0.5px;
-    font-style: italic;
 }
-.lenta-sign-dot {
-    font-size: 1.4rem;
-    color: #FFD200;
-    text-shadow: 0 0 12px rgba(255,210,0,0.8);
-    margin: 0 3px;
-    line-height: 1;
+.lenta-sunflower {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 5px;
+    gap: 0;
     position: relative;
-    top: -1px;
+    top: 2px;
+}
+.sl-head {
+    width: 20px; height: 20px;
+    background: #FFD200;
+    border-radius: 50%;
+    display: block;
+    flex-shrink: 0;
+}
+.sl-leaves {
+    display: block;
+    width: 16px; height: 10px;
+    background: #3CB34A;
+    border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%;
+    flex-shrink: 0;
+    margin-top: -2px;
 }
 .lenta-sign-lenta {
-    font-size: 1.7rem;
+    font-size: 1.8rem;
     font-weight: 900;
     color: #ffffff;
     letter-spacing: -0.5px;
-    font-style: italic;
-    text-shadow: 0 0 8px rgba(255,255,255,0.2);
 }
 .lenta-banner-title {
     font-size: 1.1rem;
