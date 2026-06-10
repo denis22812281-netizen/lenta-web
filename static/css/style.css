@@ -781,7 +781,7 @@ body {
 }
 @media (max-width: 576px) {
     .quick-actions { grid-template-columns: 1fr 1fr; }
-    .page-body { padding: 12px 8px; }
+    .page-body { padding: 12px 8px calc(58px + env(safe-area-inset-bottom) + 14px); }
     .topbar { padding: 10px 14px; }
     /* Фильтры — inputs на полную ширину */
     .filter-bar form .form-control,
