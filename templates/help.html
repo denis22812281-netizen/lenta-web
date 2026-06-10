@@ -264,6 +264,26 @@
     margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border);
   }
 
+  /* ── Скриншоты ── */
+  .screenshot {
+    margin: 20px 0 6px;
+    text-align: center;
+  }
+  .screenshot img {
+    max-width: 100%;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(26,92,34,.15);
+    display: block;
+    margin: 0 auto;
+  }
+  .screenshot figcaption {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
   /* ── ПЕЧАТЬ ── */
   @media print {
     @page { margin: 15mm 12mm; }
@@ -380,6 +400,10 @@
         <li>Если номер есть в системе — введите пароль (при первом входе создайте новый)</li>
         <li>Нажмите «Войти» — откроется главный дашборд</li>
       </ol>
+      <figure class="screenshot">
+        <img src="/static/img/help/01_login.png" alt="Страница входа">
+        <figcaption>Страница авторизации — ввод номера телефона</figcaption>
+      </figure>
       <div class="tip"><strong>Совет:</strong> Сохраните пароль в браузере — кнопка «Сохранить» появится при вводе автоматически.</div>
       <h3>Если забыли пароль</h3>
       <p>Обратитесь к администратору — Месмер Денис. Он сбросит пароль, при следующем входе вы создадите новый.</p>
@@ -403,6 +427,10 @@
         <span class="badge b-yellow"><i class="bi bi-clock"></i> Жёлтый — менее 7 дней</span>
         <span class="badge b-green"><i class="bi bi-check-circle"></i> Зелёный — в норме</span>
       </div>
+      <figure class="screenshot">
+        <img src="/static/img/help/02_dashboard.png" alt="Дашборд">
+        <figcaption>Дашборд — сводная статистика по всему портфелю проектов</figcaption>
+      </figure>
     </div>
   </div>
 
@@ -431,8 +459,16 @@
         <li>Назначьте ответственного менеджера и укажите плановые даты</li>
         <li>Нажмите «Сохранить»</li>
       </ol>
+      <figure class="screenshot">
+        <img src="/static/img/help/03_projects_reconstruct.png" alt="Реконструкции">
+        <figcaption>Список объектов реконструкции — фильтры, статусы, поиск</figcaption>
+      </figure>
       <h3>Карточка объекта</h3>
       <p>Нажмите на объект для просмотра деталей: основные данные, этапы проекта, файлы, история изменений.</p>
+      <figure class="screenshot">
+        <img src="/static/img/help/12_project_detail.png" alt="Карточка объекта">
+        <figcaption>Карточка проекта — информация, этапы, Gantt-график, задачи</figcaption>
+      </figure>
     </div>
   </div>
 
@@ -442,6 +478,10 @@
     <div class="section-body">
       <p>Раздел для объектов нового строительства. Интерфейс и логика работы идентичны разделу «Реконструкция».</p>
       <div class="info"><strong>Разница:</strong> в таблицах дедлайнов и отчётах Реконструкции и Констракшн отображаются на отдельных вкладках.</div>
+      <figure class="screenshot">
+        <img src="/static/img/help/04_projects_construction.png" alt="Констракшн">
+        <figcaption>Раздел Констракшн — объекты нового строительства</figcaption>
+      </figure>
     </div>
   </div>
 
@@ -463,6 +503,10 @@
         <span class="badge b-yellow">Средний</span>
         <span class="badge b-orange">Высокий</span>
       </div>
+      <figure class="screenshot">
+        <img src="/static/img/help/06_tasks.png" alt="Задачи">
+        <figcaption>Раздел задач — трекер поручений команды</figcaption>
+      </figure>
       <div class="tip"><strong>Совет:</strong> При завершении задачи добавьте комментарий — это помогает вести историю работы по объекту.</div>
     </div>
   </div>
@@ -485,6 +529,10 @@
         <li>Выберите файл (макс. 10 МБ) и нажмите «Загрузить»</li>
         <li>Система обновит даты автоматически по всем объектам</li>
       </ol>
+      <figure class="screenshot">
+        <img src="/static/img/help/05_deadlines.png" alt="Дедлайны">
+        <figcaption>Раздел дедлайнов — сводная таблица этапов всех активных объектов</figcaption>
+      </figure>
     </div>
   </div>
 
@@ -503,6 +551,10 @@
       <div class="info"><strong>Подтверждение</strong> фиксируется в системе с датой и временем — для отчётности и контроля.</div>
       <h3>База контактов</h3>
       <p>Раздел «Контакты» → список подрядчиков с email-адресами. Можно добавлять и удалять контакты.</p>
+      <figure class="screenshot">
+        <img src="/static/img/help/07_smr.png" alt="SMR">
+        <figcaption>График СМР — список объектов и управление уведомлениями</figcaption>
+      </figure>
     </div>
   </div>
 
@@ -517,6 +569,10 @@
         <li>Экспорт реестра в Excel</li>
       </ul>
       <div class="tip"><strong>Индикатор ВПК:</strong> цифра рядом с пунктом меню показывает количество новых непрочитанных отчётов.</div>
+      <figure class="screenshot">
+        <img src="/static/img/help/08_vpk.png" alt="ВПК">
+        <figcaption>ВПК — реестр отчётов по внутреннему контролю</figcaption>
+      </figure>
     </div>
   </div>
 
@@ -543,6 +599,10 @@
         <li>Количество активных объектов у менеджера</li>
         <li>Отметка руководителя (Гаврин Игорь)</li>
       </ul>
+      <figure class="screenshot">
+        <img src="/static/img/help/09_managers.png" alt="Менеджеры">
+        <figcaption>Справочник менеджеров — команда и текущая нагрузка</figcaption>
+      </figure>
       <p>Менеджеры из этого справочника назначаются на объекты в карточках проектов.</p>
     </div>
   </div>
@@ -566,6 +626,10 @@
         <span class="badge b-yellow">Claude — точный анализ</span>
         <span class="badge b-gray">DeepSeek</span>
       </div>
+      <figure class="screenshot">
+        <img src="/static/img/help/10_ai.png" alt="AI-ассистент">
+        <figcaption>AI-ассистент — чат с доступом ко всем данным системы</figcaption>
+      </figure>
       <div class="tip"><strong>Рекомендация:</strong> для быстрых вопросов — Groq, для глубокого анализа и отчётов — Claude.</div>
     </div>
   </div>
@@ -581,6 +645,10 @@
         <li>Нагрузка на менеджеров (активные объекты)</li>
         <li>Доля просроченных объектов в портфеле</li>
       </ul>
+      <figure class="screenshot">
+        <img src="/static/img/help/11_stats.png" alt="Статистика">
+        <figcaption>Раздел статистики — аналитические графики по портфелю</figcaption>
+      </figure>
     </div>
   </div>
 
