@@ -653,7 +653,7 @@ body {
     border-color: #2d3f2e !important;
     color: #e2e8f0;
 }
-[data-bs-theme="dark"] .mgr-card { background: #1e293b; border-color: #2d3f55; }
+[data-bs-theme="dark"] .mgr-card { background: #1e293b; border-left-color: #FFD200; }
 [data-bs-theme="dark"] .mgr-card-warn { border-color: #854d0e !important; }
 [data-bs-theme="dark"] .mgr-name-row .text-muted { color: #64748b !important; }
 
