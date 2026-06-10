@@ -108,7 +108,7 @@
 {% for s in manager_stats %}
 {% set m = s.manager %}
 <div class="col-12 col-md-6 col-xl-4">
-    <div class="mgr-card {% if s.overdue_tasks > 0 %}mgr-card-warn{% endif %}">
+    <div class="data-card mgr-card {% if s.overdue_tasks > 0 %}mgr-card-warn{% endif %}" style="border-left:4px solid #FFD200">
 
         <!-- Имя -->
         <div class="mgr-name-row">
@@ -321,10 +321,6 @@
 
 <style>
 .mgr-card {
-    background: #fff;
-    border: 1px solid #e9ecef;
-    border-left: 4px solid #FFD200;
-    border-radius: 14px;
     padding: 16px;
     transition: box-shadow .2s;
 }
