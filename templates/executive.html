@@ -480,6 +480,14 @@ new Chart(document.getElementById('chartMonthly'), {
     /* Ссылки */
     a { color: #111 !important; text-decoration: none !important; }
 
+    /* ── Прогноз/Просрочки: скрыть колонку Менеджер (она есть в рейтинге выше) ── */
+    #forecast-overdue-row th:nth-child(3),
+    #forecast-overdue-row td:nth-child(3) { display: none !important; }
+    /* Снять max-width с адреса — пусть адаптируется сам */
+    #forecast-overdue-row td[style*="max-width"] { max-width: none !important; }
+    /* Ограничить прогноз 20 строками в печати */
+    #forecast-overdue-row tbody tr:nth-child(n+21) { display: none !important; }
+
     /* ── Футер ── */
     #print-footer {
         display: block !important;
