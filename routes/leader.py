@@ -7,14 +7,14 @@ from sqlalchemy.orm import Session, joinedload
 
 import models
 from database import get_db
-from deps import templates, require_admin
+from deps import templates, require_executive
 
 router = APIRouter()
 
 
 @router.get("/leader", response_class=HTMLResponse)
 async def leader_dashboard(request: Request, db: Session = Depends(get_db),
-                           user: dict = Depends(require_admin)):
+                           user: dict = Depends(require_executive)):
     today = date.today()
     tomorrow = today + timedelta(days=1)
     week_ahead = today + timedelta(days=7)
@@ -116,6 +116,39 @@ async def leader_dashboard(request: Request, db: Session = Depends(get_db),
         models.Project.project_type == "Констракшн"
     ).count()
 
+    # ── Реконструкции: ТОП-3 критичных ──────────────────────────────────────
+    recon_projects = db.query(models.Project).filter(
+        models.Project.project_type == "Реконструкция",
+        models.Project.status == "Активный",
+    ).options(joinedload(models.Project.manager)).all()
+
+    recon_statuses = db.query(models.ReconStageStatus).all()
+    done_set = {(s.project_id, s.stage_key) for s in recon_statuses if s.is_done}
+
+    RECON_END_FIELDS = [
+        ("sid","sid_end"),("zoning","zoning_end"),("mp","mp_end"),("tp","tp_end"),
+        ("viz","visualization_end"),("audit","audit_end"),("pjf","pjf_approval_end"),
+        ("ds","ds_signing_date"),("tz","tz_end"),("closure","closure_date"),
+        ("vpk","vpk_date"),("opening","opening_date"),
+    ]
+    recon_data = []
+    for p in recon_projects:
+        overdue = warn = 0
+        for key, field in RECON_END_FIELDS:
+            end = getattr(p, field, None)
+            if not end or (p.id, key) in done_set:
+                continue
+            days = (end - today).days
+            if days < 0:
+                overdue += 1
+            elif days <= 7:
+                warn += 1
+        recon_data.append({"project": p, "overdue": overdue, "warn": warn})
+
+    recon_data.sort(key=lambda r: -(r["overdue"] * 100 + r["warn"] * 10))
+    recon_overdue_projects = sum(1 for r in recon_data if r["overdue"] > 0)
+    recon_top = recon_data[:4]
+
     return templates.TemplateResponse("leader.html", {
         "request": request, "user": user,
         "today": today,
@@ -133,4 +166,7 @@ async def leader_dashboard(request: Request, db: Session = Depends(get_db),
         "active_projects": active_projects,
         "opens_this_week": opens_this_week,
         "current_manager_photo": current_manager_photo,
+        "recon_overdue_projects": recon_overdue_projects,
+        "recon_total": len(recon_projects),
+        "recon_top": recon_top,
     })

@@ -35,6 +35,49 @@
     </div>
 </div>
 
+{# ── Блок Реконструкций ────────────────────────────────────────────────── #}
+<div class="recon-strip mb-4">
+    <div class="recon-strip-left">
+        <i class="bi bi-grid-3x3-gap-fill recon-strip-icon"></i>
+        <div>
+            <div class="recon-strip-title">Реконструкции</div>
+            <div class="recon-strip-sub">{{ recon_total }} активных объектов</div>
+        </div>
+        {% if recon_overdue_projects > 0 %}
+        <span class="recon-strip-badge recon-badge-danger">
+            <i class="bi bi-exclamation-circle-fill me-1"></i>{{ recon_overdue_projects }} с просрочками
+        </span>
+        {% else %}
+        <span class="recon-strip-badge recon-badge-ok">
+            <i class="bi bi-check-circle-fill me-1"></i>Просрочек нет
+        </span>
+        {% endif %}
+    </div>
+    <div class="recon-strip-projects">
+        {% for r in recon_top %}
+        {% set p = r.project %}
+        <a href="/reconstruction?manager_id={{ p.manager_id or '' }}" class="recon-proj-chip
+            {% if r.overdue > 0 %}chip-danger{% elif r.warn > 0 %}chip-warn{% else %}chip-ok{% endif %}">
+            <span class="chip-tk">ТК {{ p.tk_number }}</span>
+            <span class="chip-city">{{ p.city or '—' }}</span>
+            {% if r.overdue > 0 %}
+            <span class="chip-badge">+{{ r.overdue }}д</span>
+            {% elif r.warn > 0 %}
+            <span class="chip-badge chip-badge-warn">{{ r.warn }}!</span>
+            {% endif %}
+        </a>
+        {% endfor %}
+        {% if recon_total > 4 %}
+        <a href="/reconstruction" class="recon-proj-chip chip-more">
+            <i class="bi bi-arrow-right-circle me-1"></i>Все {{ recon_total }}
+        </a>
+        {% endif %}
+    </div>
+    <a href="/reconstruction" class="btn btn-recon ms-auto">
+        <i class="bi bi-grid-3x3-gap-fill me-1"></i>Открыть
+    </a>
+</div>
+
 {# ── 4 ключевых счётчика ───────────────────────────────────────────────── #}
 <div class="row g-3 mb-4">
     <div class="col-6 col-xl-3">
@@ -403,8 +446,18 @@
                 </span>
             </div>
             <div class="px-3 pb-3 d-grid gap-2">
+                <a href="/reconstruction" class="btn btn-sm text-start fw-semibold"
+                   style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);color:#4ade80">
+                    <i class="bi bi-grid-3x3-gap-fill me-2"></i>Реконструкции
+                    {% if recon_overdue_projects > 0 %}
+                    <span class="badge bg-danger float-end">{{ recon_overdue_projects }}</span>
+                    {% endif %}
+                </a>
                 <a href="/vpk" class="btn btn-outline-secondary btn-sm text-start">
-                    <i class="bi bi-clipboard2-check-fill me-2 text-success"></i>Открыть ВПК отчёты
+                    <i class="bi bi-clipboard2-check-fill me-2 text-success"></i>ВПК отчёты
+                    {% if vpk_unread > 0 %}
+                    <span class="badge bg-danger float-end">{{ vpk_unread }}</span>
+                    {% endif %}
                 </a>
                 <a href="/smr" class="btn btn-outline-secondary btn-sm text-start">
                     <i class="bi bi-bar-chart-steps me-2 text-warning"></i>Графики СМР
@@ -417,9 +470,6 @@
                 </a>
                 <a href="/stats" class="btn btn-outline-secondary btn-sm text-start">
                     <i class="bi bi-bar-chart-fill me-2 text-info"></i>Статистика
-                </a>
-                <a href="/admin/audit" class="btn btn-outline-secondary btn-sm text-start">
-                    <i class="bi bi-shield-lock-fill me-2 text-secondary"></i>Журнал активности
                 </a>
             </div>
         </div>
@@ -571,6 +621,70 @@
 
 /* ── Tiny text ────────────────────────────────────────────────────────── */
 .tiny { font-size: 10px; }
+
+/* ── Reconstruction strip ─────────────────────────────────────────────── */
+.recon-strip {
+    background: linear-gradient(135deg, rgba(22,101,52,.45) 0%, rgba(15,23,42,.9) 100%);
+    border: 1px solid rgba(34,197,94,.2);
+    border-left: 4px solid #22c55e;
+    border-radius: 14px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.recon-strip-left {
+    display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+}
+.recon-strip-icon {
+    font-size: 1.6rem; color: #22c55e; opacity: .85;
+}
+.recon-strip-title {
+    font-size: .95rem; font-weight: 700; color: #e2e8f0; line-height: 1.2;
+}
+.recon-strip-sub {
+    font-size: .72rem; color: #64748b; margin-top: 1px;
+}
+.recon-strip-badge {
+    display: inline-flex; align-items: center;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: .72rem; font-weight: 600; white-space: nowrap;
+}
+.recon-badge-danger { background: rgba(127,29,29,.5); color: #fca5a5; border: 1px solid rgba(239,68,68,.3); }
+.recon-badge-ok     { background: rgba(20,83,45,.5);  color: #86efac; border: 1px solid rgba(34,197,94,.3); }
+
+.recon-strip-projects {
+    display: flex; gap: 6px; flex-wrap: wrap; flex: 1; align-items: center;
+}
+.recon-proj-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 10px; border-radius: 8px;
+    font-size: .75rem; text-decoration: none; font-weight: 600;
+    transition: filter .12s, transform .1s;
+    border: 1px solid transparent;
+}
+.recon-proj-chip:hover { filter: brightness(1.2); transform: translateY(-1px); }
+.chip-danger { background: rgba(127,29,29,.55); color: #fca5a5; border-color: rgba(239,68,68,.25); }
+.chip-warn   { background: rgba(120,53,15,.55);  color: #fde68a; border-color: rgba(245,158,11,.25); }
+.chip-ok     { background: rgba(20,83,45,.45);   color: #86efac; border-color: rgba(34,197,94,.2); }
+.chip-more   { background: rgba(255,255,255,.06); color: #94a3b8; border-color: rgba(255,255,255,.1); }
+.chip-tk     { font-weight: 700; }
+.chip-city   { opacity: .75; font-weight: 400; }
+.chip-badge  {
+    background: rgba(239,68,68,.7); color: #fff;
+    font-size: .65rem; padding: 1px 5px; border-radius: 4px; font-weight: 700;
+}
+.chip-badge-warn { background: rgba(245,158,11,.7); }
+
+.btn-recon {
+    background: #16a34a; color: #fff; border: none;
+    border-radius: 8px; padding: 7px 16px;
+    font-size: .8rem; font-weight: 600;
+    white-space: nowrap; flex-shrink: 0;
+    transition: background .15s;
+}
+.btn-recon:hover { background: #15803d; color: #fff; }
 
 /* ── Dark mode overrides ──────────────────────────────────────────────── */
 [data-bs-theme="dark"] .leader-kpi-ok      { background: rgba(22,163,74,.1);  border-color: rgba(22,163,74,.25); }

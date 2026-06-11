@@ -43,7 +43,7 @@
         <a href="/" class="nav-item {% if request.url.path == '/' %}active{% endif %}">
             <i class="bi bi-speedometer2"></i><span>Дашборд</span>
         </a>
-        {% if user and user.is_admin %}
+        {% if user and (user.is_admin or user.is_leader) %}
         <a href="/leader" class="nav-item {% if '/leader' in request.url.path %}active{% endif %}" style="position:relative">
             <i class="bi bi-shield-fill-check"></i><span>Центр управления</span>
             <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
