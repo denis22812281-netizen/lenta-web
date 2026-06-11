@@ -89,11 +89,11 @@
 .rc-table tbody tr td:first-child {
     border-left: none;
 }
-/* Strong top border on each row for clear separation */
-.rc-table tbody tr { border-top: 1px solid rgba(255,255,255,.08); }
+/* Strong separator between TK rows */
+.rc-table tbody tr { border-top: 2px solid rgba(255,255,255,.18); }
 .rc-table thead th { background: #1e293b; color: #64748b; font-weight: 600;
                      position: sticky; top: 0; z-index: 2; text-align: center;
-                     border-bottom: 2px solid rgba(255,255,255,.1); }
+                     border-bottom: 2px solid rgba(255,255,255,.22); }
 .rc-sticky      { position: sticky; left: 0; background: #0f172a !important; z-index: 1;
                   min-width: 155px; max-width: 170px; }
 thead .rc-sticky{ z-index: 3; }
@@ -810,22 +810,30 @@ if (_savedView && window.innerWidth <= 900) switchView(_savedView);
 
     // Build floating ghost header
     const ghost = document.createElement('div');
-    ghost.style.cssText = 'position:fixed;top:0;z-index:200;overflow:hidden;'
+    ghost.style.cssText = 'position:fixed;top:0;z-index:200;overflow:hidden;pointer-events:none;'
         + 'visibility:hidden;background:#1e293b;'
-        + 'border-bottom:2px solid rgba(255,255,255,.12);box-shadow:0 4px 16px rgba(0,0,0,.5);';
+        + 'border-bottom:2px solid rgba(255,255,255,.22);box-shadow:0 4px 20px rgba(0,0,0,.6);';
     const ghostTbl = document.createElement('table');
     ghostTbl.className = 'rc-table';
-    ghostTbl.style.cssText = 'border-collapse:collapse;margin:0;table-layout:fixed;';
+    ghostTbl.style.cssText = 'border-collapse:collapse;margin:0;table-layout:auto;';
     const ghostHead = document.createElement('thead');
     ghostHead.appendChild(realHead.cloneNode(true));
     ghostTbl.appendChild(ghostHead);
     ghost.appendChild(ghostTbl);
     document.body.appendChild(ghost);
 
+    // Remove position:sticky from ghost's first th — we handle it manually
+    const ghostThs = ghostHead.querySelectorAll('th');
+    if (ghostThs[0]) {
+        ghostThs[0].style.position = 'relative';
+        ghostThs[0].style.zIndex   = '1';
+    }
+
     function sync() {
-        const wRect = wrap.getBoundingClientRect();
-        const hRect = realHead.getBoundingClientRect();
-        const show  = hRect.bottom < 0;
+        const wRect    = wrap.getBoundingClientRect();
+        const hRect    = realHead.getBoundingClientRect();
+        const show     = hRect.bottom < 0;
+        const scrollX  = wrap.scrollLeft;
 
         ghost.style.visibility = show ? 'visible' : 'hidden';
         if (!show) return;
@@ -833,19 +841,34 @@ if (_savedView && window.innerWidth <= 900) switchView(_savedView);
         ghost.style.left  = wRect.left + 'px';
         ghost.style.width = wRect.width + 'px';
 
-        // Sync column widths & horizontal scroll offset
-        const origThs  = realHead.querySelectorAll('th');
-        const ghostThs = ghostHead.querySelectorAll('th');
+        // Sync each column width from real table using offsetWidth (integer, no sub-pixel drift)
+        const origThs = realHead.querySelectorAll('th');
         origThs.forEach((th, i) => {
-            if (ghostThs[i]) ghostThs[i].style.width = th.getBoundingClientRect().width + 'px';
+            if (!ghostThs[i]) return;
+            ghostThs[i].style.minWidth = th.offsetWidth + 'px';
+            ghostThs[i].style.maxWidth = th.offsetWidth + 'px';
+            ghostThs[i].style.width    = th.offsetWidth + 'px';
         });
-        ghostTbl.style.width       = tbl.offsetWidth + 'px';
-        ghostTbl.style.marginLeft  = -wrap.scrollLeft + 'px';
+
+        // Shift ghost table left to match horizontal scroll
+        ghostTbl.style.width      = tbl.offsetWidth + 'px';
+        ghostTbl.style.marginLeft = -scrollX + 'px';
+
+        // Counteract the shift for the sticky first column
+        // Original sticky col always shows at left=0 of rc-wrap;
+        // ghost table shifted by -scrollX, so add +scrollX back to first th
+        if (ghostThs[0]) {
+            ghostThs[0].style.transform = 'translateX(' + scrollX + 'px)';
+            // Re-apply sticky background so it covers sliding columns behind it
+            ghostThs[0].style.background = '#1e293b';
+        }
     }
 
     window.addEventListener('scroll', sync, { passive: true });
     wrap.addEventListener('scroll', sync, { passive: true });
-    window.addEventListener('resize', sync, { passive: true });
+    window.addEventListener('resize', () => { setTimeout(sync, 30); }, { passive: true });
+    // Initial sync after layout settles
+    setTimeout(sync, 100);
 })();
 
 // ══════════════════════════════════════════════════════════════════
