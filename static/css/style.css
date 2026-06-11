@@ -783,11 +783,14 @@ body {
     .quick-actions { grid-template-columns: 1fr 1fr; }
     .page-body { padding: 12px 8px calc(58px + env(safe-area-inset-bottom) + 14px); }
     .topbar { padding: 10px 14px; }
-    /* Фильтры — inputs на полную ширину */
     .filter-bar form .form-control,
     .filter-bar form .form-select { width: 100% !important; flex: 1 1 140px; min-width: 0; }
-    /* Таблицы — убираем горизонтальный зазор */
     .data-card > .table-responsive { margin: 0; }
+    /* Stat cards — компактнее на телефоне */
+    .stat-card { padding: 14px 16px; min-height: unset; }
+    .stat-num  { font-size: 34px; }
+    .stat-icon-wrap { width: 44px; height: 44px; }
+    .stat-icon { font-size: 20px; }
 }
 
 /* ── PRESENTATION POLISH ─────────────────────────────────────── */

@@ -355,7 +355,7 @@
             </div>
             {% if recon_by_manager %}
             <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle" style="font-size:.83rem">
+            <table class="table table-hover mb-0 align-middle recon-mgr-table" style="font-size:.83rem">
                 <thead class="table-head">
                     <tr>
                         <th>Менеджер</th>
@@ -641,9 +641,33 @@
 }
 .lenta-sign-wrap { display: flex; align-items: center; flex-shrink: 0; border-radius: 10px; overflow: hidden; }
 .lenta-logo-img { height: 78px; width: auto; display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,1)) drop-shadow(0 6px 12px rgba(0,0,0,0.8)); }
+@media (max-width: 768px) {
+    .recon-strip, .const-strip { flex-wrap: wrap; gap: 10px; padding: 12px 14px; }
+    .recon-strip-projects { display: none; }
+    .recon-kpis { gap: 10px; padding: 8px 12px; }
+    .recon-kpi-num { font-size: 1.2rem; }
+    .recon-kpi-divider { height: 24px; }
+}
 @media (max-width: 576px) {
+    /* Banner */
     .lenta-banner { flex-wrap: wrap; padding: 12px 16px; gap: 10px; min-height: unset; }
-    .lenta-logo-img { height: 40px; }
+    .lenta-logo-img { height: 36px; }
+    .lenta-sign-wrap { margin: 0 auto; }
+    /* Leader KPI cards */
+    .leader-kpi { padding: 12px; gap: 10px; }
+    .leader-kpi-icon { width: 36px; height: 36px; font-size: 18px; }
+    .leader-kpi-num  { font-size: 22px; }
+    /* Overlay — полный экран на мобилке */
+    .rc-overlay { padding: 8px; }
+    .rc-overlay-box { max-width: 100%; border-radius: 10px; max-height: calc(100vh - 16px); }
+    /* Modal table — скрываем лишние колонки */
+    .rc-modal-table th:nth-child(3),
+    .rc-modal-table td:nth-child(3),
+    .rc-modal-table th:nth-child(5),
+    .rc-modal-table td:nth-child(5) { display: none; }
+    /* Recon manager table */
+    .recon-mgr-table th:nth-child(4),
+    .recon-mgr-table td:nth-child(4) { display: none; }
 }
 
 /* ── Leader Hero avatar (inside lenta-banner) ─────────────────────────────── */
