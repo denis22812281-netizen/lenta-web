@@ -5,6 +5,12 @@
 
 {% block content %}
 
+<!-- Шапка для печати — скрыта на экране, видна только в PDF -->
+<div class="print-header">
+    <img src="/static/img/superlenta-logo.png" alt="Супер Лента">
+    <div class="print-header-sub">Отчёт директора — Констракшн · Лента.PM</div>
+</div>
+
 <!-- KPI row — 2×2 on mobile -->
 <div class="row g-3 mb-4">
   <div class="col-6 col-xl-3">
@@ -339,6 +345,9 @@ new Chart(document.getElementById('chartMonthly'), {
     .stat-label { font-size: 11px; }
 }
 
+/* ── Шапка печати — скрыта на экране ───────────────────────────── */
+.print-header { display: none; }
+
 /* ── @media print — PDF одной кнопкой ──────────────────────────── */
 @media print {
     /* Скрываем навигацию и лишнее */
@@ -349,6 +358,27 @@ new Chart(document.getElementById('chartMonthly'), {
     body { background: #fff !important; color: #000 !important; }
     .main-wrap { margin: 0 !important; padding: 0 !important; }
     .page-body { padding: 12px !important; }
+
+    /* Шапка с логотипом */
+    .print-header {
+        display: flex !important;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #3CB34A;
+    }
+    .print-header img {
+        max-width: 320px;
+        max-height: 70px;
+        object-fit: contain;
+    }
+    .print-header-sub {
+        font-size: 13px;
+        color: #555;
+        margin-top: 6px;
+        letter-spacing: .03em;
+    }
 
     /* Карточки */
     .data-card, .stat-card {
@@ -367,20 +397,8 @@ new Chart(document.getElementById('chartMonthly'), {
     .d-none { display: table-cell !important; }
     .d-none.d-sm-block { display: block !important; }
 
-    /* Заголовок отчёта */
-    .page-body::before {
-        content: "Отчёт директора — Констракшн · Лента.PM";
-        display: block;
-        font-size: 20px;
-        font-weight: 800;
-        margin-bottom: 16px;
-        color: #1A5C22;
-        border-bottom: 2px solid #3CB34A;
-        padding-bottom: 8px;
-    }
-    /* Скрываем canvas (Chart.js) — таблицы важнее */
+    /* Скрываем canvas — таблицы важнее */
     canvas { display: none !important; }
-    .col-lg-8[class*="chart"] { display: none !important; }
 }
 </style>
 {% endblock %}
