@@ -154,13 +154,16 @@ async def reconstruction_page(
             "is_opened": is_opened,
         })
 
-    # Сортировка: рисковые сначала → по дате открытия
     overdue_items.sort(key=lambda x: -x["days"])
-    if sort == "risk":
-        projects_data.sort(key=lambda r: (
-            -_risk_score(r),
-            r["project"].opening_date or date(2099, 1, 1),
-        ))
+
+    # Сортировка: открытые сверху → активные по риску → по дате открытия
+    projects_data.sort(key=lambda r: (
+        0 if r["is_opened"] else 1,                          # открытые первыми
+        r["project"].opening_date if r["is_opened"]          # открытые: по дате открытия
+            else date(2099, 1, 1),
+        -_risk_score(r),                                     # активные: самые рисковые первыми
+        r["project"].opening_date or date(2099, 1, 1),       # затем по плановой дате
+    ))
 
     # Агрегаты для KPI-карточек
     overdue_projects = sum(1 for r in projects_data if r["overdue_count"] > 0)
