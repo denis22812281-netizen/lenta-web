@@ -39,10 +39,12 @@ async def chat_page(request: Request, db: Session = Depends(get_db), partner: st
         name for name, ts in ONLINE_USERS.items()
         if (now - ts).total_seconds() < ONLINE_TIMEOUT
     }
+    in_chat = "partner" in request.query_params
     return templates.TemplateResponse("chat.html", {
         "request": request, "user": user,
         "managers": managers, "partner": partner,
         "my_name": my_name, "unread_by": unread_by, "online_set": online_set,
+        "in_chat": in_chat,
     })
 
 

@@ -3,7 +3,7 @@
 {% block title %}<i class="bi bi-chat-dots-fill me-2"></i>Чат{% endblock %}
 
 {% block content %}
-<div class="chat-wrap {% if partner != '' %}in-conversation{% endif %}">
+<div class="chat-wrap {% if in_chat %}in-conversation{% endif %}">
 
     <!-- Левая панель -->
     <div class="chat-sidebar">
