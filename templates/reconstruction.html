@@ -93,29 +93,29 @@
                   min-width: 155px; max-width: 170px; }
 thead .rc-sticky{ z-index: 3; }
 .rc-table thead th.rc-sticky { text-align: left; }
-.rc-table tbody tr:hover td  { background: rgba(255,255,255,.03); }
-.rc-table tbody tr:hover .rc-sticky { background: #111d2d !important; }
+/* Zebra striping */
+.rc-table tbody tr:nth-child(even) td { background: rgba(255,255,255,.018); }
+.rc-table tbody tr:nth-child(even) .rc-sticky { background: #111827 !important; }
+.rc-table tbody tr:hover td  { background: rgba(255,255,255,.05) !important; }
+.rc-table tbody tr:hover .rc-sticky { background: #1a2640 !important; }
 
-/* Row with problems gets a subtle left glow */
-.row-problem .rc-sticky::after {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 3px;
-    background: #ef4444;
-}
+/* Problem rows — subtle red tint across whole row */
+.row-problem td { background: rgba(127,29,29,.12) !important; }
+.row-problem .rc-sticky { background: rgba(80,10,10,.5) !important; }
+.row-problem:hover td  { background: rgba(127,29,29,.22) !important; }
 .rc-sticky { position: relative; }
 
 /* Stage cells */
-.rc-cell        { cursor: pointer; text-align: center; font-size: .76rem; font-weight: 600;
-                  transition: filter .1s, transform .08s; user-select: none; }
-.rc-cell:active { transform: scale(.93); filter: brightness(1.4); }
-.rc-cell:hover  { filter: brightness(1.3); }
-.cell-done      { background: #14532d; color: #86efac; }
-.cell-ok        { background: #1c3d2a; color: #4ade80; }
-.cell-warn      { background: #78350f; color: #fde68a; }
-.cell-over      { background: #7f1d1d; color: #fca5a5; }
-.cell-empty     { background: rgba(255,255,255,.025); color: #334155; }
+.rc-cell        { cursor: pointer; text-align: center; font-size: .76rem; font-weight: 700;
+                  transition: filter .1s, transform .08s; user-select: none;
+                  min-width: 46px; padding: 5px 5px !important; }
+.rc-cell:active { transform: scale(.93); filter: brightness(1.5); }
+.rc-cell:hover  { filter: brightness(1.35); transform: scale(1.04); }
+.cell-done      { background: #166534; color: #bbf7d0; }
+.cell-ok        { background: #14532d; color: #4ade80; }
+.cell-warn      { background: #92400e; color: #fde68a; }
+.cell-over      { background: #991b1b; color: #fecaca; }
+.cell-empty     { background: transparent; color: rgba(255,255,255,.1); font-weight: 400; }
 /* Animated pulse for overdue */
 @keyframes rc-pulse { 0%,100% { opacity: 1; } 50% { opacity: .65; } }
 .cell-over      { animation: rc-pulse 2.5s ease-in-out infinite; }
@@ -135,10 +135,10 @@ thead .rc-sticky{ z-index: 3; }
                   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
 /* Progress column */
-.prog-bar-wrap  { display: flex; align-items: center; gap: 5px; min-width: 70px; }
-.prog-bar-outer { flex: 1; height: 5px; background: rgba(255,255,255,.08); border-radius: 3px; }
-.prog-bar-inner { height: 100%; border-radius: 3px; background: #22c55e; transition: width .3s; }
-.prog-frac      { font-size: .68rem; color: #64748b; white-space: nowrap; }
+.prog-bar-wrap  { display: flex; flex-direction: column; gap: 3px; min-width: 58px; }
+.prog-bar-outer { width: 100%; height: 7px; background: rgba(255,255,255,.1); border-radius: 4px; }
+.prog-bar-inner { height: 100%; border-radius: 4px; background: linear-gradient(90deg,#16a34a,#22c55e); transition: width .4s; }
+.prog-frac      { font-size: .66rem; color: #64748b; white-space: nowrap; text-align: center; }
 
 /* Comment cell */
 .rc-comment     { max-width: 200px; white-space: normal; font-size: .73rem;
@@ -384,12 +384,12 @@ thead .rc-sticky{ z-index: 3; }
             {% endif %}
         </td>
         {% endfor %}
-        <td>
+        <td style="min-width:62px">
             <div class="prog-bar-wrap">
                 <div class="prog-bar-outer">
                     <div class="prog-bar-inner" style="width:{{ row.progress_pct }}%"></div>
                 </div>
-                <span class="prog-frac">{{ row.stages_done }}/{{ row.stages_total }}</span>
+                <span class="prog-frac">{{ row.progress_pct }}%</span>
             </div>
         </td>
         <td class="small text-center">{{ (p.manager.name | short_name) if p.manager else '—' }}</td>
