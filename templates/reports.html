@@ -98,8 +98,9 @@
             <div>
                 <div class="fw-bold fs-5">
                     ТК {{ r.project.tk_number if r.project else '—' }}
-                    {% if r.project and r.project.address %}
-                    <span class="text-muted fw-normal fs-6 ms-1">{{ r.project.address[:50] }}</span>
+                    {% if r.project %}
+                    <span class="text-muted fw-normal fs-6 ms-1"
+                          title="{{ r.project.address }}">{{ r.project.city or r.project.address[:30] }}</span>
                     {% endif %}
                 </div>
                 <div class="small text-muted">

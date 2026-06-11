@@ -63,8 +63,9 @@
                 <tr class="{% if is_opened %}table-success{% elif days < 0 %}table-danger{% elif days <= 3 %}table-warning{% elif days <= 7 %}table-light{% endif %}">
                     <td class="text-muted small d-none d-sm-table-cell">{{ p.tk_number or '—' }}</td>
                     <td>
-                        <a href="/projects/{{ p.id }}" class="fw-semibold text-decoration-none text-dark">{{ p.name }}</a>
-                        {% if p.city %}<br><small class="text-muted"><i class="bi bi-geo-alt"></i> {{ p.city }}</small>{% endif %}
+                        <a href="/projects/{{ p.id }}" class="fw-semibold text-decoration-none">{{ p.name }}</a>
+                        {% set geo = p.city or (p.address[:28] ~ '…' if p.address and p.address|length > 28 else p.address) %}
+                        {% if geo %}<br><small class="text-muted"><i class="bi bi-geo-alt"></i> {{ geo }}</small>{% endif %}
                     </td>
                     <td>{{ p.manager.name.split()[0] if p.manager else '—' }}</td>
                     <td class="d-none d-sm-table-cell"><span class="badge bg-light text-dark">{{ p.project_type or '—' }}</span></td>

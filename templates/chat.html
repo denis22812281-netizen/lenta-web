@@ -154,7 +154,7 @@
 
 /* ── Мобильная адаптация ─────────────────────────────────────── */
 @media (max-width: 768px) {
-    .chat-wrap { height:calc(100vh - 110px); border-radius:10px; }
+    .chat-wrap { height:calc(100dvh - 110px); border-radius:10px; }
     /* Показываем только список если нет открытого чата */
     .chat-sidebar { width:100%; min-width:0; border-right:none; }
     .chat-main { display:none; }
@@ -404,5 +404,19 @@ setInterval(updateOnline, 15000);
 
 loadMessages();
 setInterval(pollMessages, 3000);
+
+// Keyboard resize — keeps input visible when virtual keyboard opens
+if (window.visualViewport) {
+    const chatWrap = document.querySelector('.chat-wrap');
+    const onVVResize = () => {
+        if (!chatWrap || window.innerWidth > 768) return;
+        const top = chatWrap.getBoundingClientRect().top + window.pageYOffset;
+        chatWrap.style.height = Math.max(300, window.visualViewport.height - top - 10) + 'px';
+        // keep messages scrolled to bottom
+        const box = document.getElementById('chatMessages');
+        if (box) box.scrollTop = box.scrollHeight;
+    };
+    window.visualViewport.addEventListener('resize', onVVResize);
+}
 </script>
 {% endblock %}
