@@ -40,11 +40,10 @@ def _section_response(request, user, q_type, title, icon, color, url, db):
     })
 
 
-@router.get("/reconstruct", response_class=HTMLResponse)
-async def reconstruct_view(request: Request, db: Session = Depends(get_db),
-                           user: dict = Depends(require_login)):
-    return _section_response(request, user, "Реконструкция",
-                              "Реконструкции", "bi-building-fill", "red", "/reconstruct", db)
+@router.get("/reconstruct")
+async def reconstruct_view(request: Request):
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse("/reconstruction", status_code=301)
 
 
 @router.get("/construction", response_class=HTMLResponse)
