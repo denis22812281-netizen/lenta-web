@@ -17,46 +17,65 @@
 
 <!-- Экспорт Excel -->
 <div class="data-card p-3 mb-3">
-    <form method="get" action="/reports/export" class="d-flex flex-wrap gap-2 align-items-center">
-        <span class="fw-semibold me-1"><i class="bi bi-download me-1"></i>Выгрузка Excel:</span>
-        <div class="d-flex align-items-center gap-1">
-            <label class="small text-muted mb-0">с</label>
-            <input type="date" name="date_from" class="form-control form-control-sm" style="width:145px">
+    <div class="fw-semibold mb-2 small"><i class="bi bi-download me-1"></i>Выгрузка в Excel</div>
+    <form method="get" action="/reports/export">
+        <div class="row g-2 align-items-end">
+            <div class="col-6 col-sm-auto">
+                <label class="form-label form-label-sm mb-1 text-muted">с</label>
+                <input type="date" name="date_from" class="form-control form-control-sm">
+            </div>
+            <div class="col-6 col-sm-auto">
+                <label class="form-label form-label-sm mb-1 text-muted">по</label>
+                <input type="date" name="date_to" class="form-control form-control-sm">
+            </div>
+            <div class="col-6 col-sm-auto">
+                <label class="form-label form-label-sm mb-1 text-muted">Тип</label>
+                <select name="vpk_type" class="form-select form-select-sm">
+                    <option value="">Все</option>
+                    <option value="1">ВПК 1</option>
+                    <option value="2">ВПК 2</option>
+                </select>
+            </div>
+            <div class="col-6 col-sm-auto">
+                <button type="submit" class="btn btn-sm btn-success w-100">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Скачать
+                </button>
+            </div>
         </div>
-        <div class="d-flex align-items-center gap-1">
-            <label class="small text-muted mb-0">по</label>
-            <input type="date" name="date_to" class="form-control form-control-sm" style="width:145px">
-        </div>
-        <select name="vpk_type" class="form-select form-select-sm" style="width:120px">
-            <option value="">Все типы</option>
-            <option value="1">ВПК 1</option>
-            <option value="2">ВПК 2</option>
-        </select>
-        <button type="submit" class="btn btn-sm btn-success">
-            <i class="bi bi-file-earmark-excel me-1"></i>Скачать
-        </button>
     </form>
 </div>
 
 <!-- Фильтры -->
 <div class="filter-bar mb-3">
-    <form method="get" class="d-flex flex-wrap gap-2 align-items-center">
-        <select name="vpk_type" class="form-select form-select-sm" style="width:150px">
-            <option value="" {% if not filter_vpk_type %}selected{% endif %}>Все типы</option>
-            <option value="1" {% if filter_vpk_type == '1' %}selected{% endif %}>ВПК 1</option>
-            <option value="2" {% if filter_vpk_type == '2' %}selected{% endif %}>ВПК 2</option>
-        </select>
-        <select name="manager_name" class="form-select form-select-sm" style="width:200px">
-            <option value="">Все менеджеры</option>
-            {% for a in authors %}
-            <option value="{{ a }}" {% if filter_manager == a %}selected{% endif %}>{{ a }}</option>
-            {% endfor %}
-        </select>
-        <button type="submit" class="btn btn-sm btn-primary">Применить</button>
-        {% if filter_vpk_type or filter_manager %}
-        <a href="/reports" class="btn btn-sm btn-outline-secondary">Сбросить</a>
-        {% endif %}
-        <span class="ms-auto text-muted small">{{ reports|length }} отчётов</span>
+    <form method="get">
+        <div class="row g-2 align-items-center">
+            <div class="col-6 col-sm-auto">
+                <select name="vpk_type" class="form-select form-select-sm">
+                    <option value="" {% if not filter_vpk_type %}selected{% endif %}>Все типы</option>
+                    <option value="1" {% if filter_vpk_type == '1' %}selected{% endif %}>ВПК 1</option>
+                    <option value="2" {% if filter_vpk_type == '2' %}selected{% endif %}>ВПК 2</option>
+                </select>
+            </div>
+            <div class="col-12 col-sm-auto">
+                <select name="manager_name" class="form-select form-select-sm">
+                    <option value="">Все менеджеры</option>
+                    {% for a in authors %}
+                    <option value="{{ a }}" {% if filter_manager == a %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-primary">Применить</button>
+            </div>
+            {% if filter_vpk_type or filter_manager %}
+            <div class="col-auto">
+                <a href="/reports" class="btn btn-sm btn-outline-secondary">Сбросить</a>
+            </div>
+            {% endif %}
+            <div class="col-auto ms-auto">
+                <span class="text-muted small">{{ reports|length }} отчётов</span>
+            </div>
+        </div>
     </form>
 </div>
 
