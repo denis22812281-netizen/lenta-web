@@ -423,9 +423,11 @@ new Chart(document.getElementById('chartMonthly'), {
     .data-card {
         box-shadow: none !important; border: 1px solid #dde !important;
         background: #fff !important; color: #111 !important;
-        break-inside: avoid; margin-bottom: 8px !important;
+        margin-bottom: 8px !important;
         border-radius: 8px !important; overflow: hidden !important;
     }
+    /* Только KPI и небольшие блоки не разрываем */
+    #kpi-row .data-card, #mgr-chart-row .data-card { break-inside: avoid; }
     .data-card-header {
         background: #f1f8f1 !important; color: #111 !important;
         padding: 6px 12px !important; font-size: 11px !important;
