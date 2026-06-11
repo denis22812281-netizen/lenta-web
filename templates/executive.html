@@ -359,9 +359,25 @@ new Chart(document.getElementById('chartMonthly'), {
 
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box; }
 
-    /* Сбрасываем тёмную тему */
-    html, body { background: #fff !important; color: #111 !important; font-size: 10.5px !important; }
-    [data-bs-theme], [data-bs-theme="dark"] { color-scheme: light !important; }
+    /* Сбрасываем CSS-переменные тёмной темы Bootstrap */
+    :root, html, body, [data-bs-theme], [data-bs-theme="dark"] {
+        color-scheme: light !important;
+        --bs-body-bg: #ffffff !important;
+        --bs-body-color: #111111 !important;
+        --bs-secondary-bg: #f4f4f4 !important;
+        --bs-tertiary-bg: #efefef !important;
+        --bs-table-bg: #ffffff !important;
+        --bs-table-color: #111111 !important;
+        --bs-table-striped-bg: #f8f8f8 !important;
+        --bs-table-hover-bg: #f0f0f0 !important;
+        --bs-border-color: #d0d0d0 !important;
+        --bs-card-bg: #ffffff !important;
+        --bs-card-border-color: #d0d0d0 !important;
+        --bs-heading-color: #111111 !important;
+        background-color: #ffffff !important;
+        color: #111111 !important;
+    }
+    html, body { font-size: 10.5px !important; }
 
     /* Скрываем UI */
     .sidebar, .topbar, .bottom-nav-mobile, #npbar,
