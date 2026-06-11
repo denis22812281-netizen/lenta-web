@@ -3,6 +3,14 @@
 {% block title %}Дашборд{% endblock %}
 
 {% block content %}
+
+<!-- SuperLenta sticky banner -->
+<div class="dash-banner mb-4">
+    <div class="lenta-sign-wrap">
+        <img src="/static/img/superlenta-logo.png" class="dash-logo" alt="Супер Лента">
+    </div>
+</div>
+
 <!-- Quick action buttons -->
 <div class="quick-actions mb-4">
     <a href="/deadlines" class="quick-btn quick-btn-warn">
@@ -318,4 +326,35 @@ new Chart(document.getElementById('chartMgrTasks'), {
   }
 });
 </script>
+<style>
+.dash-banner {
+    position: sticky;
+    top: 46px;
+    z-index: 99;
+    background: #060606;
+    border-radius: 14px;
+    padding: 10px 32px;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(60,179,74,.85);
+    box-shadow:
+        0 0 10px rgba(60,179,74,.9),
+        0 0 30px rgba(60,179,74,.55),
+        0 0 60px rgba(60,179,74,.25),
+        inset 0 0 30px rgba(60,179,74,.07);
+}
+.lenta-sign-wrap { display: flex; align-items: center; flex-shrink: 0; }
+.dash-logo {
+    height: 62px;
+    width: auto;
+    display: block;
+    filter: drop-shadow(0 3px 8px rgba(0,0,0,1)) drop-shadow(0 6px 16px rgba(0,0,0,.8));
+}
+@media (max-width: 576px) {
+    .dash-banner { min-height: 56px; padding: 8px 16px; top: 46px; }
+    .dash-logo { height: 38px; }
+}
+</style>
 {% endblock %}
