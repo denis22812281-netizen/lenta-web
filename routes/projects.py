@@ -20,11 +20,15 @@ router = APIRouter()
 
 # ─── Список всех проектов ────────────────────────────────────────────────────
 
+_PER_PAGE = 25
+
+
 @router.get("/projects", response_class=HTMLResponse)
 async def projects_list(request: Request, db: Session = Depends(get_db),
                         user: dict = Depends(require_login),
                         manager_id: str = None, status: str = None,
-                        project_type: str = None, search: str = None):
+                        project_type: str = None, search: str = None,
+                        page: int = 1):
     q = db.query(models.Project)
     if manager_id and str(manager_id).isdigit():
         q = q.filter(models.Project.manager_id == int(manager_id))
@@ -33,8 +37,17 @@ async def projects_list(request: Request, db: Session = Depends(get_db),
     if project_type:
         q = q.filter(models.Project.project_type == project_type)
     if search:
-        q = q.filter(models.Project.tk_number.contains(search))
-    projects = q.order_by(models.Project.end_date.nullslast()).all()
+        like = f"%{search}%"
+        q = q.filter(
+            models.Project.tk_number.ilike(like) |
+            models.Project.name.ilike(like) |
+            models.Project.city.ilike(like)
+        )
+    total = q.count()
+    total_pages = max(1, (total + _PER_PAGE - 1) // _PER_PAGE)
+    page = max(1, min(page, total_pages))
+    projects = (q.order_by(models.Project.end_date.nullslast())
+                 .offset((page - 1) * _PER_PAGE).limit(_PER_PAGE).all())
     managers = db.query(models.Manager).all()
     return templates.TemplateResponse("projects.html", {
         "request": request, "user": user,
@@ -42,6 +55,7 @@ async def projects_list(request: Request, db: Session = Depends(get_db),
         "project_types": PROJECT_TYPES, "statuses": STATUSES, "today": date.today(),
         "filter_manager_id": manager_id, "filter_status": status,
         "filter_type": project_type, "search": search or "",
+        "page": page, "total": total, "total_pages": total_pages,
     })
 
 

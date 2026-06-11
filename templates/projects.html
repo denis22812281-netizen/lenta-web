@@ -14,14 +14,14 @@
     <a href="/api/export/projects-excel" class="btn btn-outline-primary">
         <i class="bi bi-download me-1"></i><span class="d-none d-sm-inline">Экспорт Excel</span>
     </a>
-    <span class="ms-auto text-muted small">{{ projects|length }} проектов</span>
+    <span class="ms-auto text-muted small">{{ total }} проектов</span>
 </div>
 
 <!-- Filters -->
 <div class="filter-bar mb-3">
     <form method="get" class="d-flex flex-wrap gap-2">
         <input type="text" name="search" class="form-control form-control-sm" style="width:200px"
-               placeholder="Номер ТК (например 610)" value="{{ search }}">
+               placeholder="ТК, название, город" value="{{ search }}">
         <select name="manager_id" class="form-select form-select-sm" style="width:180px">
             <option value="">Все менеджеры</option>
             {% for m in managers %}
@@ -116,6 +116,36 @@
     </div>
     {% endif %}
 </div>
+
+{% if total_pages > 1 %}
+{% set qs = "" %}
+{% if search %}{% set qs = qs ~ "&search=" ~ search %}{% endif %}
+{% if filter_manager_id %}{% set qs = qs ~ "&manager_id=" ~ filter_manager_id %}{% endif %}
+{% if filter_status %}{% set qs = qs ~ "&status=" ~ filter_status %}{% endif %}
+{% if filter_type %}{% set qs = qs ~ "&project_type=" ~ filter_type %}{% endif %}
+<nav class="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
+    <small class="text-muted">
+        Показано {{ (page - 1) * 25 + 1 }}–{{ [(page - 1) * 25 + projects|length, total]|min }} из {{ total }}
+    </small>
+    <ul class="pagination pagination-sm mb-0">
+        <li class="page-item {% if page == 1 %}disabled{% endif %}">
+            <a class="page-link" href="/projects?page={{ page - 1 }}{{ qs }}">‹</a>
+        </li>
+        {% for p in range(1, total_pages + 1) %}
+            {% if p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+            <li class="page-item {% if p == page %}active{% endif %}">
+                <a class="page-link" href="/projects?page={{ p }}{{ qs }}">{{ p }}</a>
+            </li>
+            {% elif p == page - 3 or p == page + 3 %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+        {% endfor %}
+        <li class="page-item {% if page == total_pages %}disabled{% endif %}">
+            <a class="page-link" href="/projects?page={{ page + 1 }}{{ qs }}">›</a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
 
 <!-- Modal: Create Project -->
 <div class="modal fade" id="modalCreateProject" tabindex="-1">
