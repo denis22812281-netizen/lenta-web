@@ -57,6 +57,8 @@ class Project(Base):
     tasks = relationship("Task", back_populates="project", cascade="all, delete-orphan")
     stages = relationship("ProjectStage", back_populates="project", cascade="all, delete-orphan",
                           order_by="ProjectStage.order")
+    comments = relationship("ProjectComment", back_populates="project", cascade="all, delete-orphan",
+                            order_by="ProjectComment.created_at")
     __table_args__ = (
         Index("ix_project_manager_id", "manager_id"),
         Index("ix_project_status",     "status"),
@@ -75,6 +77,16 @@ class ProjectStage(Base):
     status = Column(String(50), default="Запланировано")
     order = Column(Integer, default=0)
     project = relationship("Project", back_populates="stages")
+
+
+class ProjectComment(Base):
+    __tablename__ = "project_comments"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"))
+    author_name = Column(String(100), default="")
+    text = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    project = relationship("Project", back_populates="comments")
 
 
 class SyncConfig(Base):

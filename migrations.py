@@ -122,6 +122,13 @@ _POSTGRES_MIGRATIONS = [
         done_at TIMESTAMP,
         UNIQUE(project_id, stage_key)
     )""",
+    """CREATE TABLE IF NOT EXISTS project_comments (
+        id SERIAL PRIMARY KEY,
+        project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+        author_name VARCHAR(100) DEFAULT '',
+        text TEXT DEFAULT '',
+        created_at TIMESTAMP DEFAULT NOW()
+    )""",
 ]
 
 _SQLITE_MIGRATIONS = [
@@ -174,6 +181,13 @@ _SQLITE_MIGRATIONS = [
         done_by VARCHAR(100) DEFAULT '',
         done_at TIMESTAMP,
         UNIQUE(project_id, stage_key)
+    )""",
+    """CREATE TABLE IF NOT EXISTS project_comments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+        author_name VARCHAR(100) DEFAULT '',
+        text TEXT DEFAULT '',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""",
 ]
 

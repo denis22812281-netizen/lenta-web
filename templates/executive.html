@@ -338,5 +338,49 @@ new Chart(document.getElementById('chartMonthly'), {
     .stat-icon { font-size: 18px; }
     .stat-label { font-size: 11px; }
 }
+
+/* ── @media print — PDF одной кнопкой ──────────────────────────── */
+@media print {
+    /* Скрываем навигацию и лишнее */
+    .sidebar, .topbar, .bottom-nav-mobile, #npbar,
+    .btn-print, .btn, .topbar-actions,
+    .d-sm-none, #search-bar, #search-overlay { display: none !important; }
+
+    body { background: #fff !important; color: #000 !important; }
+    .main-wrap { margin: 0 !important; padding: 0 !important; }
+    .page-body { padding: 12px !important; }
+
+    /* Карточки */
+    .data-card, .stat-card {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6 !important;
+        break-inside: avoid;
+        background: #fff !important;
+        color: #000 !important;
+    }
+    .data-card-header { background: #f8f9fa !important; color: #000 !important; }
+    .stat-num, .stat-label { color: #000 !important; }
+
+    /* Таблицы */
+    .table { color: #000 !important; }
+    .table-head th { background: #e9ecef !important; color: #000 !important; }
+    .d-none { display: table-cell !important; }
+    .d-none.d-sm-block { display: block !important; }
+
+    /* Заголовок отчёта */
+    .page-body::before {
+        content: "Отчёт директора — Констракшн · Лента.PM";
+        display: block;
+        font-size: 20px;
+        font-weight: 800;
+        margin-bottom: 16px;
+        color: #1A5C22;
+        border-bottom: 2px solid #3CB34A;
+        padding-bottom: 8px;
+    }
+    /* Скрываем canvas (Chart.js) — таблицы важнее */
+    canvas { display: none !important; }
+    .col-lg-8[class*="chart"] { display: none !important; }
+}
 </style>
 {% endblock %}

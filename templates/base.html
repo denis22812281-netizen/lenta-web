@@ -169,6 +169,9 @@
         <h5 class="topbar-title mb-0">{% block title %}{% endblock %}</h5>
         <div class="topbar-actions">{% block topbar_actions %}{% endblock %}</div>
         <div class="topbar-right">
+            <button class="btn-theme-toggle" id="btn-search-toggle" onclick="toggleSearchBar()" title="Поиск" aria-label="Поиск">
+                <i class="bi bi-search"></i>
+            </button>
             <button id="btn-theme" class="btn-theme-toggle" onclick="toggleTheme()" title="Сменить тему">
                 <i class="bi bi-moon-fill" id="theme-icon"></i>
             </button>
@@ -176,6 +179,21 @@
             <span class="notif-badge d-none" id="notif-badge" style="cursor:pointer" onclick="window.location='/deadlines'"></span>
         </div>
     </header>
+
+    <!-- Search overlay -->
+    <div id="search-overlay" style="display:none;position:fixed;inset:0;z-index:1050;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)" onclick="closeSearchBar()"></div>
+    <div id="search-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:1051;padding:10px 12px;background:var(--bs-body-bg);box-shadow:0 4px 20px rgba(0,0,0,.3)">
+        <form method="get" action="/search" class="d-flex gap-2" onsubmit="closeSearchBar()">
+            <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" onclick="closeSearchBar()">
+                <i class="bi bi-arrow-left"></i>
+            </button>
+            <input type="text" name="q" id="search-input" class="form-control"
+                   placeholder="Поиск: ТК, город, менеджер, задача…" autocomplete="off">
+            <button type="submit" class="btn btn-success flex-shrink-0">
+                <i class="bi bi-search"></i>
+            </button>
+        </form>
+    </div>
 
     <div class="page-body">
         {% block content %}{% endblock %}
@@ -543,6 +561,25 @@
         setTimeout(function() { bar.className = ''; }, 550);
     });
 })();
+
+/* ── Глобальный поиск ── */
+function toggleSearchBar() {
+    const bar = document.getElementById('search-bar');
+    const overlay = document.getElementById('search-overlay');
+    const inp = document.getElementById('search-input');
+    const shown = bar.style.display !== 'none';
+    bar.style.display = shown ? 'none' : 'flex';
+    overlay.style.display = shown ? 'none' : 'block';
+    if (!shown) { inp.focus(); inp.select(); }
+}
+function closeSearchBar() {
+    document.getElementById('search-bar').style.display = 'none';
+    document.getElementById('search-overlay').style.display = 'none';
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeSearchBar();
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); toggleSearchBar(); }
+});
 
 /* ── Тема dark/light ── */
 function toggleTheme() {

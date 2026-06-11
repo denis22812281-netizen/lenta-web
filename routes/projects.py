@@ -118,6 +118,35 @@ async def update_project(project_id: int, request: Request, db: Session = Depend
     return RedirectResponse(f"/projects/{project_id}", status_code=303)
 
 
+# ─── Комментарии к проекту ───────────────────────────────────────────────────
+
+@router.post("/projects/{project_id}/comments/add")
+async def add_comment(project_id: int, request: Request, db: Session = Depends(get_db),
+                      user: dict = Depends(require_login),
+                      text: str = Form(...)):
+    text = text.strip()
+    if text:
+        comment = models.ProjectComment(
+            project_id=project_id,
+            author_name=user.get("display_name", ""),
+            text=text,
+        )
+        db.add(comment)
+        db.commit()
+    return RedirectResponse(f"/projects/{project_id}#comments", status_code=303)
+
+
+@router.post("/projects/{project_id}/comments/{comment_id}/delete")
+async def delete_comment(project_id: int, comment_id: int, request: Request,
+                         db: Session = Depends(get_db),
+                         user: dict = Depends(require_login)):
+    c = db.query(models.ProjectComment).filter(models.ProjectComment.id == comment_id).first()
+    if c and (c.author_name == user.get("display_name") or user.get("is_admin")):
+        db.delete(c)
+        db.commit()
+    return RedirectResponse(f"/projects/{project_id}#comments", status_code=303)
+
+
 @router.post("/projects/{project_id}/delete")
 async def delete_project(project_id: int, request: Request, db: Session = Depends(get_db),
                          user: dict = Depends(require_login)):

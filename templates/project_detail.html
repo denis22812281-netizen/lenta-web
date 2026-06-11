@@ -212,6 +212,70 @@
     </div>
 </div>
 
+<!-- ─── КОММЕНТАРИИ ──────────────────────────────────────────────────────── -->
+<div class="data-card mt-3" id="comments">
+    <div class="data-card-header">
+        <span><i class="bi bi-chat-left-text-fill me-2"></i>Заметки и обсуждение</span>
+        <span class="badge bg-secondary">{{ project.comments|length }}</span>
+    </div>
+
+    {% if project.comments %}
+    <div class="px-3 pt-2">
+    {% for c in project.comments %}
+    <div class="comment-row">
+        <div class="comment-avatar" title="{{ c.author_name }}">
+            {{ c.author_name[0] | upper }}
+        </div>
+        <div class="comment-body">
+            <div class="comment-meta">
+                <span class="comment-author">{{ c.author_name }}</span>
+                <span class="comment-time">{{ c.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+            </div>
+            <div class="comment-text">{{ c.text }}</div>
+        </div>
+        {% if c.author_name == user.display_name or user.is_admin %}
+        <form method="post" action="/projects/{{ project.id }}/comments/{{ c.id }}/delete"
+              class="ms-2 flex-shrink-0"
+              onsubmit="return confirm('Удалить заметку?')">
+            <button type="submit" class="btn btn-sm btn-link text-danger p-0 comment-del">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </form>
+        {% endif %}
+    </div>
+    {% endfor %}
+    </div>
+    {% else %}
+    <div class="px-3 py-3 text-muted small"><i class="bi bi-chat-left me-2"></i>Заметок пока нет</div>
+    {% endif %}
+
+    <div class="px-3 pb-3 pt-2 border-top mt-2">
+        <form method="post" action="/projects/{{ project.id }}/comments/add" class="d-flex gap-2 align-items-end">
+            <textarea name="text" class="form-control form-control-sm comment-input"
+                      placeholder="Добавить заметку…" rows="2" required
+                      onkeydown="if(event.ctrlKey&&event.key==='Enter'){this.form.submit();}"></textarea>
+            <button type="submit" class="btn btn-sm btn-success flex-shrink-0">
+                <i class="bi bi-send-fill"></i>
+            </button>
+        </form>
+        <div class="text-muted" style="font-size:.68rem;margin-top:4px">Ctrl+Enter для отправки</div>
+    </div>
+</div>
+
+<style>
+.comment-row { display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06); }
+.comment-row:last-child { border-bottom:none; }
+.comment-avatar { width:32px;height:32px;border-radius:50%;background:#1A5C22;color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:2px solid #3CB34A40; }
+.comment-body { flex:1;min-width:0; }
+.comment-meta { display:flex;gap:8px;align-items:baseline;margin-bottom:3px; }
+.comment-author { font-size:.8rem;font-weight:700;color:#e2e8f0; }
+.comment-time { font-size:.7rem;color:#64748b; }
+.comment-text { font-size:.88rem;color:#cbd5e1;line-height:1.5;word-break:break-word;white-space:pre-wrap; }
+.comment-del { opacity:.4;transition:opacity .15s; }
+.comment-del:hover { opacity:1; }
+.comment-input { resize:none;border-radius:10px; }
+</style>
+
 <!-- Modal: Add Stage -->
 <div class="modal fade" id="modalAddStage" tabindex="-1">
     <div class="modal-dialog">
