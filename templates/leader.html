@@ -47,14 +47,14 @@
         </div>
     </div>
     <div class="recon-kpis">
-        <div class="recon-kpi-item">
+        <div class="recon-kpi-item recon-kpi-btn" data-bs-toggle="modal" data-bs-target="#modalOpened" title="Показать список">
             <div class="recon-kpi-num" style="color:#4ade80">{{ recon_opened }}</div>
-            <div class="recon-kpi-lab">Открыто</div>
+            <div class="recon-kpi-lab">Открыто <i class="bi bi-chevron-down" style="font-size:.55rem"></i></div>
         </div>
         <div class="recon-kpi-divider"></div>
-        <div class="recon-kpi-item">
+        <div class="recon-kpi-item recon-kpi-btn" data-bs-toggle="modal" data-bs-target="#modalInWork" title="Показать список">
             <div class="recon-kpi-num" style="color:#60a5fa">{{ recon_in_work }}</div>
-            <div class="recon-kpi-lab">В работе</div>
+            <div class="recon-kpi-lab">В работе <i class="bi bi-chevron-down" style="font-size:.55rem"></i></div>
         </div>
         <div class="recon-kpi-divider"></div>
         <div class="recon-kpi-item {% if recon_overdue_projects > 0 %}rk-danger{% endif %}">
@@ -482,6 +482,95 @@
 
     </div>
 </div>
+<!-- ── Модал: Открытые ТК ────────────────────────────────────────────── -->
+<div class="modal fade" id="modalOpened" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content" style="background:#1e293b;border:1px solid rgba(255,255,255,.1)">
+      <div class="modal-header" style="border-color:rgba(255,255,255,.1)">
+        <h5 class="modal-title">
+          <i class="bi bi-door-open-fill text-success me-2"></i>
+          Открытые ТК после реконструкции — {{ recon_opened }} объектов
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <table class="table table-hover mb-0 align-middle" style="font-size:.82rem">
+          <thead style="position:sticky;top:0;background:#0f172a;z-index:1">
+            <tr style="color:#64748b;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">
+              <th class="ps-3">ТК</th><th>Город</th><th>Менеджер</th><th>Дата открытия</th><th>Формат</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for p in recon_opened_list %}
+          <tr onclick="window.location='/reconstruction'" style="cursor:pointer">
+            <td class="ps-3 fw-bold text-success">{{ p.tk_number }}</td>
+            <td>{{ p.city or '—' }}</td>
+            <td class="text-muted">{{ (p.manager.name | short_name) if p.manager else '—' }}</td>
+            <td class="fw-semibold">{{ p.opening_date.strftime('%d.%m.%Y') }}</td>
+            <td><span class="badge" style="background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.2);font-size:.65rem">{{ p.format_type or '—' }}</span></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-center text-muted py-4">Нет данных</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer" style="border-color:rgba(255,255,255,.1)">
+        <a href="/reconstruction" class="btn btn-sm" style="background:#16a34a;color:#fff">Открыть дашборд →</a>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Модал: В работе ───────────────────────────────────────────────── -->
+<div class="modal fade" id="modalInWork" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content" style="background:#1e293b;border:1px solid rgba(255,255,255,.1)">
+      <div class="modal-header" style="border-color:rgba(255,255,255,.1)">
+        <h5 class="modal-title">
+          <i class="bi bi-tools text-primary me-2"></i>
+          ТК в работе — {{ recon_in_work }} объектов
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <table class="table table-hover mb-0 align-middle" style="font-size:.82rem">
+          <thead style="position:sticky;top:0;background:#0f172a;z-index:1">
+            <tr style="color:#64748b;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">
+              <th class="ps-3">ТК</th><th>Город</th><th>Менеджер</th><th>План открытия</th><th>Осталось</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for p in recon_in_work_list %}
+          {% set days_left = (p.opening_date - today).days if p.opening_date else None %}
+          <tr onclick="window.location='/reconstruction'" style="cursor:pointer">
+            <td class="ps-3 fw-bold" style="color:#60a5fa">{{ p.tk_number }}</td>
+            <td>{{ p.city or '—' }}</td>
+            <td class="text-muted">{{ (p.manager.name | short_name) if p.manager else '—' }}</td>
+            <td>{% if p.opening_date %}{{ p.opening_date.strftime('%d.%m.%Y') }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td>
+              {% if days_left is not none %}
+                <span class="badge {% if days_left < 0 %}bg-danger{% elif days_left <= 14 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                  {% if days_left < 0 %}+{{ -days_left }} дн.{% else %}{{ days_left }} дн.{% endif %}
+                </span>
+              {% else %}<span class="text-muted small">нет даты</span>{% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-center text-muted py-4">Нет данных</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer" style="border-color:rgba(255,255,255,.1)">
+        <a href="/reconstruction" class="btn btn-sm" style="background:#1d4ed8;color:#fff">Открыть дашборд →</a>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -653,6 +742,8 @@
 .recon-kpi-lab  { font-size: .65rem; color: #64748b; text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
 .rk-danger .recon-kpi-num { color: #f87171; }
 .recon-kpi-divider { width: 1px; height: 32px; background: rgba(255,255,255,.1); }
+.recon-kpi-btn { cursor: pointer; border-radius: 6px; padding: 4px 8px; transition: background .12s; }
+.recon-kpi-btn:hover { background: rgba(255,255,255,.08); }
 .recon-strip-icon {
     font-size: 1.6rem; color: #22c55e; opacity: .85;
 }
