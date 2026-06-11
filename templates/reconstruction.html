@@ -358,17 +358,24 @@ thead .rc-sticky{ z-index: 3; }
         </td>
         {% for si in row.stages %}
         <td class="rc-cell {{ si.css }}"
-            style="position:relative;overflow:hidden"
+            style="position:relative;overflow:hidden;line-height:1.15"
             data-pid="{{ p.id }}"
             data-stage="{{ si.key }}"
             data-label="{{ si.label }}"
+            data-start="{{ si.start_date.strftime('%d.%m') if si.start_date else '' }}"
+            data-end="{{ si.end_date.strftime('%d.%m') if si.end_date else '' }}"
             data-done-by="{{ si.done_by }}"
-            title="{{ si.label }}: {% if si.end_date %}{{ si.end_date.strftime('%d.%m.%Y') }}{% else %}нет даты{% endif %}{% if si.is_done %} ✓ {{ si.done_by }}{% endif %}">
+            title="{{ si.label }}{% if si.start_date %}: {{ si.start_date.strftime('%d.%m.%Y') }} → {% elif si.end_date %}: {% endif %}{% if si.end_date %}{{ si.end_date.strftime('%d.%m.%Y') }}{% else %}: нет даты{% endif %}{% if si.is_done %} ✓ {{ si.done_by }}{% endif %}">
             {% if si.is_done %}
             <i class="bi bi-check-lg"></i>
-            {% elif si.end_date %}
-            {{ si.end_date.strftime('%d.%m') }}
-            {% else %}—{% endif %}
+            {% else %}
+            {% if si.start_date %}
+            <div style="font-size:.62rem;opacity:.65">{{ si.start_date.strftime('%d.%m') }}</div>
+            {% endif %}
+            {% if si.end_date %}
+            <div>{{ si.end_date.strftime('%d.%m') }}</div>
+            {% else %}<div>—</div>{% endif %}
+            {% endif %}
         </td>
         {% endfor %}
         <td>
@@ -426,12 +433,17 @@ thead .rc-sticky{ z-index: 3; }
                 <div class="sg-cell {{ si.css }}"
                      data-pid="{{ p.id }}"
                      data-stage="{{ si.key }}"
-                     data-label="{{ si.label }}">
+                     data-label="{{ si.label }}"
+                     data-start="{{ si.start_date.strftime('%d.%m') if si.start_date else '' }}"
+                     data-end="{{ si.end_date.strftime('%d.%m') if si.end_date else '' }}">
                     <div class="sg-label">{{ si.short }}</div>
-                    <div class="sg-val">
-                        {% if si.is_done %}<i class="bi bi-check"></i>
-                        {% elif si.end_date %}{{ si.end_date.strftime('%d.%m') }}
-                        {% else %}—{% endif %}
+                    <div class="sg-val" style="line-height:1.15">
+                        {% if si.is_done %}
+                        <i class="bi bi-check"></i>
+                        {% else %}
+                        {% if si.start_date %}<div style="font-size:.6rem;opacity:.6">{{ si.start_date.strftime('%d.%m') }}</div>{% endif %}
+                        <div>{% if si.end_date %}{{ si.end_date.strftime('%d.%m') }}{% else %}—{% endif %}</div>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
@@ -510,10 +522,11 @@ async function toggleCell(el, pid, stage, label, e) {
             el.classList.add(data.css);
             if (data.is_done) {
                 el.innerHTML = '<i class="bi bi-check-lg"></i>';
-                el.title = el.title.replace(/$/m, ` ✓ ${data.done_by}`);
             } else {
-                const dateMatch = el.getAttribute('title')?.match(/\d{2}\.\d{2}\.\d{4}/);
-                el.innerHTML = dateMatch ? dateMatch[0].slice(0,5) : '—';
+                const s = el.dataset.start || '';
+                const e = el.dataset.end   || '';
+                el.innerHTML = (s ? `<div style="font-size:.62rem;opacity:.65">${s}</div>` : '')
+                             + `<div>${e || '—'}</div>`;
             }
             // Sync all cells with same pid+stage (table + cards)
             document.querySelectorAll(`[data-pid="${pid}"][data-stage="${stage}"]`).forEach(other => {

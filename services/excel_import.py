@@ -78,11 +78,57 @@ def _detect_cols(ws, hdr_rows, defaults):
     return r
 
 
+# Маппинг stage_key → ключ колонки конца в SHEETS (для чтения цвета ячейки)
+_STAGE_COL_KEY = [
+    ("sid",     "sid_e"),
+    ("zoning",  "zon_e"),
+    ("mp",      "mp_e"),
+    ("tp",      "tp_e"),
+    ("viz",     "viz_e"),
+    ("audit",   "audit_e"),
+    ("pjf",     "pjf_e"),
+    ("ds",      "ds"),
+    ("tz",      "tz_e"),
+    ("closure", "clos"),
+    ("vpk",     "vpk"),
+    ("opening", "opening"),
+]
+
+# Зелёные RGB-цвета Excel → этап выполнен
+_GREEN_RGB = {
+    "92D050", "00B050", "70AD47", "339966", "00CC00",
+    "C6EFCE", "4CAF50", "2ECC71", "27AE60", "1ABC9C",
+    "00FF00", "228B22", "008000", "006400", "33CC33",
+    "CCFFCC", "99FF99", "66CC66", "038303", "00B300",
+}
+
+
+def _cell_excel_color(ws, row: int, col: int) -> str:
+    """Возвращает 'done' если ячейка залита зелёным, иначе ''."""
+    if not col:
+        return ""
+    try:
+        cell = ws.cell(row=row, column=col)
+        fill = cell.fill
+        if not fill or fill.fill_type != "solid":
+            return ""
+        fg = fill.fgColor
+        if fg.type == "rgb":
+            rgb = fg.rgb[-6:].upper()
+            if rgb in _GREEN_RGB:
+                return "done"
+    except Exception:
+        pass
+    return ""
+
+
 def import_reconstruct_excel(content: bytes, db: Session) -> dict:
     wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
     managers = db.query(models.Manager).all()
     today = date.today()
     created = updated = 0
+    # Собираем (project_obj, stage_key, is_done) для синхронизации после flush
+    _stage_sync: list = []
 
     # Статичные параметры листов + дефолтные позиции колонок (авто-определяются из заголовков)
     SHEETS = [
@@ -229,9 +275,10 @@ def import_reconstruct_excel(content: bytes, db: Session) -> dict:
                     existing.status = status
                 if manager_id:
                     existing.manager_id = manager_id
+                proj_obj = existing
                 updated += 1
             else:
-                db.add(models.Project(
+                proj_obj = models.Project(
                     name=proj_name, tk_number=tk_num,
                     city=city, address=address,
                     project_type="Реконструкция",
@@ -241,10 +288,43 @@ def import_reconstruct_excel(content: bytes, db: Session) -> dict:
                     pjf_code=pjf_code_val,
                     status_comment=status_comment,
                     **stage_fields,
-                ))
+                )
+                db.add(proj_obj)
                 created += 1
 
+            # Собираем цвета ячеек для синхронизации статусов этапов
+            for stage_key, col_key in _STAGE_COL_KEY:
+                col = cols.get(col_key, 0)
+                color = _cell_excel_color(ws, row_idx, col) if col else ""
+                _stage_sync.append((proj_obj, stage_key, color == "done"))
+
         db.flush()
+
+    # После flush все project_id назначены — синхронизируем статусы из Excel
+    now = datetime.utcnow()
+    for proj_obj, stage_key, is_done in _stage_sync:
+        if not proj_obj.id:
+            continue
+        rec = db.query(models.ReconStageStatus).filter_by(
+            project_id=proj_obj.id,
+            stage_key=stage_key,
+        ).first()
+        if rec:
+            rec.is_done = is_done
+            if is_done:
+                rec.done_by = rec.done_by or "Excel"
+                rec.done_at = rec.done_at or now
+            else:
+                rec.done_by = ""
+                rec.done_at = None
+        elif is_done:
+            db.add(models.ReconStageStatus(
+                project_id=proj_obj.id,
+                stage_key=stage_key,
+                is_done=True,
+                done_by="Excel",
+                done_at=now,
+            ))
 
     try:
         db.commit()

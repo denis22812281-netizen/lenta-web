@@ -13,18 +13,18 @@ from deps import templates, require_executive
 router = APIRouter()
 
 RECON_STAGES = [
-    {"key": "sid",     "label": "Сбор ИД",   "short": "ИД",  "end_field": "sid_end"},
-    {"key": "zoning",  "label": "Зонирование","short": "Зон", "end_field": "zoning_end"},
-    {"key": "mp",      "label": "МП",         "short": "МП",  "end_field": "mp_end"},
-    {"key": "tp",      "label": "ТП",         "short": "ТП",  "end_field": "tp_end"},
-    {"key": "viz",     "label": "Визуал",     "short": "Виз", "end_field": "visualization_end"},
-    {"key": "audit",   "label": "Аудит",      "short": "Ауд", "end_field": "audit_end"},
-    {"key": "pjf",     "label": "PJF согл.",  "short": "PJF", "end_field": "pjf_approval_end"},
-    {"key": "ds",      "label": "ДС",         "short": "ДС",  "end_field": "ds_signing_date"},
-    {"key": "tz",      "label": "ТЗ/Тендеры","short": "ТЗ",  "end_field": "tz_end"},
-    {"key": "closure", "label": "Закрытие",   "short": "Закр","end_field": "closure_date"},
-    {"key": "vpk",     "label": "ВПК1",       "short": "ВПК", "end_field": "vpk_date"},
-    {"key": "opening", "label": "Открытие",   "short": "Откр","end_field": "opening_date"},
+    {"key": "sid",     "label": "Сбор ИД",   "short": "ИД",  "start_field": "sid_start",           "end_field": "sid_end"},
+    {"key": "zoning",  "label": "Зонирование","short": "Зон", "start_field": "zoning_start",        "end_field": "zoning_end"},
+    {"key": "mp",      "label": "МП",         "short": "МП",  "start_field": "mp_start",            "end_field": "mp_end"},
+    {"key": "tp",      "label": "ТП",         "short": "ТП",  "start_field": "tp_start",            "end_field": "tp_end"},
+    {"key": "viz",     "label": "Визуал",     "short": "Виз", "start_field": "visualization_start", "end_field": "visualization_end"},
+    {"key": "audit",   "label": "Аудит",      "short": "Ауд", "start_field": "audit_start",         "end_field": "audit_end"},
+    {"key": "pjf",     "label": "PJF согл.",  "short": "PJF", "start_field": "pjf_approval_start",  "end_field": "pjf_approval_end"},
+    {"key": "ds",      "label": "ДС",         "short": "ДС",  "start_field": None,                  "end_field": "ds_signing_date"},
+    {"key": "tz",      "label": "ТЗ/Тендеры","short": "ТЗ",  "start_field": "tz_start",            "end_field": "tz_end"},
+    {"key": "closure", "label": "Закрытие",   "short": "Закр","start_field": None,                  "end_field": "closure_date"},
+    {"key": "vpk",     "label": "ВПК1",       "short": "ВПК", "start_field": None,                  "end_field": "vpk_date"},
+    {"key": "opening", "label": "Открытие",   "short": "Откр","start_field": None,                  "end_field": "opening_date"},
 ]
 
 TABS = [
@@ -94,7 +94,8 @@ async def reconstruction_page(
         proj_warn = 0
 
         for s in RECON_STAGES:
-            end_val = getattr(p, s["end_field"], None)
+            end_val   = getattr(p, s["end_field"], None)
+            start_val = getattr(p, s["start_field"], None) if s.get("start_field") else None
             status_rec = done_map.get((p.id, s["key"]))
             is_done = status_rec.is_done if status_rec else False
             done_by = status_rec.done_by if (status_rec and status_rec.is_done) else ""
@@ -127,6 +128,7 @@ async def reconstruction_page(
                 "key": s["key"],
                 "label": s["label"],
                 "short": s["short"],
+                "start_date": start_val,
                 "end_date": end_val,
                 "is_done": is_done,
                 "done_by": done_by,
