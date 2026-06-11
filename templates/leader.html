@@ -5,32 +5,35 @@
 {% block content %}
 
 {# ── Персональное приветствие ──────────────────────────────────────────── #}
-<div class="leader-hero mb-4">
-    <div class="leader-hero-inner">
+{% set uname = user.display_name or user.username %}
+{% set days_ru = ['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'] %}
+{% set months_ru = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'] %}
+<div class="lenta-banner mb-4">
+    <div class="d-flex align-items-center gap-3">
         <div class="leader-hero-avatar">
-            {% set uname = user.display_name or user.username %}
             {% if current_manager_photo %}
-                <img src="{{ media_url(current_manager_photo) }}" alt="{{ uname }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <img src="{{ media_url(current_manager_photo) }}" alt="{{ uname }}" onerror="this.src='/static/img/raccoon.png'">
             {% else %}
-                <img src="/static/img/raccoon.png" alt="{{ uname }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <img src="/static/img/raccoon.png" alt="{{ uname }}">
             {% endif %}
-            <span class="leader-hero-avatar-fallback" style="display:none">{{ (uname[:1])|upper }}</span>
         </div>
-        <div class="leader-hero-text">
-            <div class="leader-hero-greeting">Добро пожаловать,</div>
-            <div class="leader-hero-name">{{ uname }}</div>
-            <div class="leader-hero-date">
-                <i class="bi bi-calendar3 me-1"></i>
-                {% set days_ru = ['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'] %}
-                {% set months_ru = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'] %}
-                {{ days_ru[today.weekday()] }}, {{ today.day }} {{ months_ru[today.month-1] }} {{ today.year }}
+        <div>
+            <div style="color:rgba(255,255,255,.55);font-size:12px">Добро пожаловать,</div>
+            <div style="color:#fff;font-size:1.2rem;font-weight:700;line-height:1.2">{{ uname }}</div>
+            <div style="color:rgba(255,255,255,.4);font-size:11px;margin-top:3px">
+                <i class="bi bi-calendar3 me-1"></i>{{ days_ru[today.weekday()] }}, {{ today.day }} {{ months_ru[today.month-1] }} {{ today.year }}
             </div>
         </div>
-        <div class="leader-hero-actions ms-auto d-none d-md-flex gap-2">
-            <a href="/tasks/create" class="btn btn-lenta-outline btn-sm">
+    </div>
+    <div class="ms-auto d-flex align-items-center gap-3">
+        <div class="lenta-sign-wrap d-none d-sm-flex">
+            <img src="/static/img/superlenta-logo.png" class="lenta-logo-img" alt="Супер Лента">
+        </div>
+        <div class="d-none d-md-flex gap-2">
+            <a href="/tasks/create" class="btn btn-warning btn-sm fw-semibold">
                 <i class="bi bi-plus-lg me-1"></i>Задача
             </a>
-            <a href="/smr" class="btn btn-lenta-outline btn-sm">
+            <a href="/smr" class="btn btn-outline-light btn-sm">
                 <i class="bi bi-bar-chart-steps me-1"></i>СМР
             </a>
         </div>
@@ -624,44 +627,35 @@
 
 {% block scripts %}
 <style>
-/* ── Leader Hero ──────────────────────────────────────────────────────────── */
-.leader-hero {
-    background: linear-gradient(135deg, #0D2010 0%, #1A5C22 60%, #3CB34A 100%);
+/* ── Lenta banner (shared with managers page) ────────────────────────────── */
+.lenta-banner {
+    background: #060606;
     border-radius: 16px;
-    padding: 0;
-    overflow: hidden;
-    box-shadow: 0 4px 24px rgba(60,179,74,.18);
-}
-.leader-hero-inner {
+    padding: 8px 24px;
+    min-height: 72px;
     display: flex;
     align-items: center;
-    padding: 20px 28px;
-    gap: 18px;
+    gap: 20px;
+    border: 1px solid rgba(60,179,74,0.8);
+    box-shadow: 0 0 10px rgba(60,179,74,0.9), 0 0 30px rgba(60,179,74,0.6), 0 0 60px rgba(60,179,74,0.3), inset 0 0 30px rgba(60,179,74,0.08);
 }
+.lenta-sign-wrap { display: flex; align-items: center; flex-shrink: 0; border-radius: 10px; overflow: hidden; }
+.lenta-logo-img { height: 54px; width: auto; display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,1)) drop-shadow(0 6px 12px rgba(0,0,0,0.8)); }
+@media (max-width: 576px) {
+    .lenta-banner { flex-wrap: wrap; padding: 12px 16px; gap: 10px; min-height: unset; }
+    .lenta-logo-img { height: 32px; }
+}
+
+/* ── Leader Hero avatar (inside lenta-banner) ─────────────────────────────── */
 .leader-hero-avatar {
-    width: 62px; height: 62px;
+    width: 58px; height: 58px;
     border-radius: 50%;
     overflow: hidden;
-    border: 3px solid rgba(255,255,255,.3);
+    border: 2px solid rgba(60,179,74,.5);
     flex-shrink: 0;
-    background: rgba(255,255,255,.15);
-    display: flex; align-items: center; justify-content: center;
+    background: #111;
 }
-.leader-hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.leader-hero-avatar-fallback {
-    color: #fff; font-size: 22px; font-weight: 700;
-}
-.leader-hero-greeting { color: rgba(255,255,255,.6); font-size: 13px; }
-.leader-hero-name { color: #fff; font-size: 22px; font-weight: 700; line-height: 1.2; }
-.leader-hero-date { color: rgba(255,255,255,.5); font-size: 12px; margin-top: 3px; }
-.btn-lenta-outline {
-    border: 1.5px solid rgba(255,255,255,.4); color: #fff;
-    background: transparent;
-    border-radius: 8px;
-    font-size: 13px; font-weight: 500;
-    transition: all .15s;
-}
-.btn-lenta-outline:hover { background: rgba(255,255,255,.15); color: #fff; }
+.leader-hero-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .btn-lenta {
     background: #3CB34A; color: #fff; border: none;
     border-radius: 8px; font-weight: 600;
