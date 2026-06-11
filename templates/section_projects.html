@@ -5,8 +5,11 @@
 {% endblock %}
 
 {% block content %}
-<!-- Toolbar -->
-<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+
+<!-- ── Toolbar ───────────────────────────────────────────────────────────── -->
+
+<!-- Desktop -->
+<div class="d-none d-sm-flex flex-wrap gap-2 mb-3 align-items-center">
     <button class="btn btn-success fw-semibold" data-bs-toggle="modal" data-bs-target="#modalCreateProject">
         <i class="bi bi-plus-lg me-1"></i>Новый проект
     </button>
@@ -39,27 +42,82 @@
     <span class="ms-auto text-muted small">{{ projects|length }} проектов</span>
 </div>
 
-<!-- Filters -->
+<!-- Mobile -->
+<div class="d-flex d-sm-none gap-2 mb-3 align-items-center">
+    <button class="btn btn-success btn-sm fw-semibold px-3" data-bs-toggle="modal" data-bs-target="#modalCreateProject">
+        <i class="bi bi-plus-lg me-1"></i>Новый
+    </button>
+    <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalImport">
+        <i class="bi bi-upload me-1"></i>Excel
+    </button>
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="bi bi-three-dots"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="/api/export/projects-excel?type={{ section_type }}">
+                <i class="bi bi-download me-2 text-primary"></i>Экспорт Excel
+            </a></li>
+            <li><a class="dropdown-item" href="/sync-settings">
+                <i class="bi bi-arrow-repeat me-2 text-secondary"></i>Авто-синхронизация
+            </a></li>
+            {% if user and user.is_admin %}
+            {% if section_type == "Констракшн" %}
+            <li><hr class="dropdown-divider"></li>
+            <li>
+                <form method="post" action="/construction/clear-all" onsubmit="return confirm('Удалить ВСЕ проекты Констракшн?')">
+                    <button type="submit" class="dropdown-item text-danger">
+                        <i class="bi bi-trash me-2"></i>Очистить и перезагрузить
+                    </button>
+                </form>
+            </li>
+            {% endif %}
+            {% if section_type == "Реконструкция" %}
+            <li><hr class="dropdown-divider"></li>
+            <li>
+                <form method="post" action="/reconstruct/delete-tk-prefix"
+                      onsubmit="return confirm('Удалить лишние проекты?')">
+                    <button type="submit" class="dropdown-item text-danger">
+                        <i class="bi bi-trash me-2"></i>Удалить лишние
+                    </button>
+                </form>
+            </li>
+            {% endif %}
+            {% endif %}
+        </ul>
+    </div>
+    <span class="ms-auto text-muted small">{{ projects|length }} пр.</span>
+</div>
+
+<!-- ── Filters ─────────────────────────────────────────────────────────── -->
 <div class="filter-bar mb-3">
-    <form method="get" class="d-flex flex-wrap gap-2">
-        <input type="text" name="search" class="form-control form-control-sm" style="width:200px"
-               placeholder="Номер ТК (например 610)" value="{{ search }}">
-        <select name="manager_id" class="form-select form-select-sm" style="width:180px">
-            <option value="">Все менеджеры</option>
-            {% for m in managers %}
-            <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>{{ m.name }}</option>
-            {% endfor %}
-        </select>
-        <select name="status" class="form-select form-select-sm" style="width:150px">
-            <option value="">Все статусы</option>
-            {% for s in statuses %}
-            <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ s }}</option>
-            {% endfor %}
-        </select>
-        <button type="submit" class="btn btn-sm btn-primary">Применить</button>
-        {% if search or filter_manager_id or filter_status %}
-        <a href="{{ section_url }}" class="btn btn-sm btn-outline-secondary">Сбросить</a>
-        {% endif %}
+    <form method="get" class="row g-2">
+        <div class="col-12 col-sm-auto">
+            <input type="text" name="search" class="form-control form-control-sm w-100"
+                   placeholder="Номер ТК (например 610)" value="{{ search }}">
+        </div>
+        <div class="col-6 col-sm-auto">
+            <select name="manager_id" class="form-select form-select-sm">
+                <option value="">Все менеджеры</option>
+                {% for m in managers %}
+                <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>{{ m.name | short_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-6 col-sm-auto">
+            <select name="status" class="form-select form-select-sm">
+                <option value="">Все статусы</option>
+                {% for s in statuses %}
+                <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-sm-auto d-flex gap-2">
+            <button type="submit" class="btn btn-sm btn-primary flex-fill flex-sm-grow-0">Применить</button>
+            {% if search or filter_manager_id or filter_status %}
+            <a href="{{ section_url }}" class="btn btn-sm btn-outline-secondary">Сбросить</a>
+            {% endif %}
+        </div>
     </form>
 </div>
 
@@ -76,10 +134,11 @@
     <button class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">Отмена</button>
 </div>
 
-<!-- Table -->
+<!-- ── Desktop Table ──────────────────────────────────────────────────── -->
 <div class="data-card">
     {% if projects %}
-    <div class="table-responsive">
+    <!-- Desktop -->
+    <div class="table-responsive d-none d-sm-block">
     <table class="table table-hover mb-0 align-middle" id="projects-table">
         <thead class="table-head">
             <tr>
@@ -88,8 +147,8 @@
                 <th>Название / Город</th>
                 <th>Менеджер</th>
                 <th>Статус</th>
-                <th>Этап</th>
-                <th>Начало</th>
+                <th class="d-none d-lg-table-cell">Этап</th>
+                <th class="d-none d-md-table-cell">Начало</th>
                 <th>Окончание</th>
                 <th>Осталось</th>
                 <th></th>
@@ -108,17 +167,12 @@
             </td>
             <td class="small">{{ p.manager.name if p.manager else '—' }}</td>
             <td>
-                {% if is_opened %}
-                <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Открыт</span>
-                {% elif p.status == 'Приостановлен' %}
-                <span class="badge bg-warning text-dark">{{ p.status }}</span>
-                {% elif p.status == 'Завершён' %}
-                <span class="badge bg-secondary">{{ p.status }}</span>
-                {% else %}
-                <span class="badge bg-success">Активный</span>
-                {% endif %}
+                {% if is_opened %}<span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Открыт</span>
+                {% elif p.status == 'Приостановлен' %}<span class="badge bg-warning text-dark">{{ p.status }}</span>
+                {% elif p.status == 'Завершён' %}<span class="badge bg-secondary">{{ p.status }}</span>
+                {% else %}<span class="badge bg-success">Активный</span>{% endif %}
             </td>
-            <td class="small text-muted" style="max-width:120px">
+            <td class="small text-muted d-none d-lg-table-cell" style="max-width:120px">
                 {{ p.stage or '—' }}
                 {% if p.start_date and p.end_date and not is_opened %}
                   {% set total_d = (p.end_date - p.start_date).days %}
@@ -126,13 +180,13 @@
                   {% if total_d > 0 %}
                     {% set pct = [[0, (elapsed_d * 100 // total_d)|int]|max, 100]|min %}
                     <div style="margin-top:4px;height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden">
-                      <div style="height:100%;width:{{pct}}%;background:{% if pct >= 90 %}#ef4444{% elif pct >= 70 %}#f97316{% else %}#3CB34A{% endif %};border-radius:2px;transition:width .3s"></div>
+                      <div style="height:100%;width:{{pct}}%;background:{% if pct >= 90 %}#ef4444{% elif pct >= 70 %}#f97316{% else %}#3CB34A{% endif %};border-radius:2px"></div>
                     </div>
                     <div style="font-size:10px;color:#94a3b8;margin-top:1px">{{pct}}%</div>
                   {% endif %}
                 {% endif %}
             </td>
-            <td class="small">{{ p.start_date.strftime('%d.%m.%y') if p.start_date else '—' }}</td>
+            <td class="small d-none d-md-table-cell">{{ p.start_date.strftime('%d.%m.%y') if p.start_date else '—' }}</td>
             <td class="small fw-semibold">{{ p.end_date.strftime('%d.%m.%Y') if p.end_date else '—' }}</td>
             <td style="white-space:nowrap">
                 {% if days is not none %}
@@ -151,6 +205,41 @@
         </tbody>
     </table>
     </div>
+
+    <!-- ── Mobile card list ──────────────────────────────────────────────── -->
+    <div class="d-sm-none" id="mobile-proj-list">
+        {% for p in projects %}
+        {% if p.end_date %}{% set days = (p.end_date - today).days %}{% else %}{% set days = None %}{% endif %}
+        {% set is_opened = p.opening_date and p.opening_date <= today %}
+        <a href="/projects/{{ p.id }}" class="proj-mob-card text-decoration-none
+            {% if is_opened %}proj-mob-opened{% elif days is not none and days < 0 %}proj-mob-overdue{% elif days is not none and days <= 7 %}proj-mob-warn{% endif %}">
+            <div class="proj-mob-top">
+                <span class="proj-mob-tk">{{ p.tk_number or '—' }}</span>
+                <span class="proj-mob-name">{{ p.name | truncate(32, true, '…') }}</span>
+                <span class="ms-auto">
+                    {% if is_opened %}<span class="badge bg-success" style="font-size:.65rem">Открыт</span>
+                    {% elif p.status == 'Приостановлен' %}<span class="badge bg-warning text-dark" style="font-size:.65rem">Пауза</span>
+                    {% elif p.status == 'Завершён' %}<span class="badge bg-secondary" style="font-size:.65rem">Завершён</span>
+                    {% else %}<span class="badge bg-success" style="font-size:.65rem">Актив.</span>{% endif %}
+                </span>
+            </div>
+            <div class="proj-mob-bottom">
+                <i class="bi bi-geo-alt me-1" style="font-size:.7rem"></i>
+                <span>{{ p.city or (p.address[:20] if p.address else '—') }}</span>
+                <span class="mx-1" style="color:#475569">·</span>
+                <span>{{ p.manager.name | short_name if p.manager else '—' }}</span>
+                {% if days is not none %}
+                <span class="ms-auto">
+                    <span class="dl-badge {% if days < 0 %}dl-over{% elif days <= 3 %}dl-crit{% elif days <= 14 %}dl-warn{% else %}dl-ok{% endif %}" style="font-size:.65rem;padding:2px 6px">
+                        {% if days < 0 %}{{ -days }} д назад{% elif days == 0 %}Сегодня{% else %}{{ days }} д{% endif %}
+                    </span>
+                </span>
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
     {% else %}
     <div class="empty-state py-5">
         <i class="bi {{ section_icon }}"></i>
@@ -159,11 +248,11 @@
     {% endif %}
 </div>
 
-<!-- Modal: Create Project -->
+<!-- ── Modals ─────────────────────────────────────────────────────────── -->
 <div class="modal fade" id="modalCreateProject" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
+            <div class="modal-header bg-success text-white">
                 <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Новый проект — {{ section_title }}</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -172,19 +261,19 @@
             <input type="hidden" name="redirect_to" value="{{ section_url }}">
             <div class="modal-body">
                 <div class="row g-3">
-                    <div class="col-md-8">
+                    <div class="col-12 col-md-8">
                         <label class="form-label fw-semibold">Название проекта *</label>
                         <input type="text" name="name" class="form-control" required placeholder="ТК 651 Москва">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-6 col-md-2">
                         <label class="form-label fw-semibold">ТК №</label>
                         <input type="text" name="tk_number" class="form-control" placeholder="651">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-6 col-md-2">
                         <label class="form-label fw-semibold">Город</label>
                         <input type="text" name="city" class="form-control" placeholder="Москва">
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-6 col-md-4">
                         <label class="form-label fw-semibold">Менеджер</label>
                         <select name="manager_id" class="form-select">
                             <option value="">— не назначен —</option>
@@ -193,7 +282,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-6 col-md-4">
                         <label class="form-label fw-semibold">Статус</label>
                         <select name="status" class="form-select">
                             {% for s in statuses %}
@@ -201,19 +290,19 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-12 col-md-4">
                         <label class="form-label fw-semibold">Этап</label>
                         <input type="text" name="stage" class="form-control" placeholder="Текущий этап">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-3">
                         <label class="form-label fw-semibold">Дата начала</label>
                         <input type="date" name="start_date" class="form-control">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-3">
                         <label class="form-label fw-semibold">Дата окончания</label>
                         <input type="date" name="end_date" class="form-control">
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-12 col-md-6">
                         <label class="form-label fw-semibold">Бюджет (руб.)</label>
                         <input type="text" name="budget" class="form-control" placeholder="0">
                     </div>
@@ -225,16 +314,15 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="submit" class="btn btn-danger">Создать проект</button>
+                <button type="submit" class="btn btn-success">Создать проект</button>
             </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Modal: Import Excel -->
 <div class="modal fade" id="modalImport" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="bi bi-upload me-2"></i>Загрузка Excel</h5>
@@ -247,10 +335,7 @@
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Файл Excel (.xlsx)</label>
                     <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required>
-                    <div class="form-text">
-                        Система автоматически найдёт существующие проекты по ТК-номеру и обновит даты.
-                        Новые проекты будут созданы.
-                    </div>
+                    <div class="form-text">Система найдёт существующие проекты по ТК-номеру и обновит даты. Новые — создаст.</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Назначить менеджера (для новых)</label>
@@ -264,9 +349,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="submit" class="btn btn-success">
-                    <i class="bi bi-upload me-1"></i>Загрузить и обновить
-                </button>
+                <button type="submit" class="btn btn-success"><i class="bi bi-upload me-1"></i>Загрузить</button>
             </div>
             </form>
         </div>
@@ -283,9 +366,12 @@
 
     const tbody   = document.querySelector('table tbody');
     const allRows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
-    if (!allRows.length) return;
 
-    // Быстрый клиентский поиск — добавляем поле рядом с серверным
+    // Mobile card list
+    const mobileList = document.getElementById('mobile-proj-list');
+    const allCards = mobileList ? Array.from(mobileList.querySelectorAll('.proj-mob-card')) : [];
+
+    // Quick search field
     const serverSearch = document.querySelector('input[name="search"]');
     if (serverSearch) {
         const qi = document.createElement('input');
@@ -293,27 +379,36 @@
         qi.id = 'proj-quick-search';
         qi.className = 'form-control form-control-sm';
         qi.placeholder = '⚡ Быстрый поиск...';
-        qi.style.cssText = 'width:180px;border-color:#3CB34A';
-        qi.title = 'Мгновенный поиск по уже загруженным проектам';
-        serverSearch.parentNode.insertBefore(qi, serverSearch.nextSibling);
+        qi.style.cssText = 'border-color:#3CB34A';
+        const col = document.createElement('div');
+        col.className = 'col-12 col-sm-auto';
+        col.appendChild(qi);
+        serverSearch.closest('.row').insertBefore(col, serverSearch.closest('.col-12.col-sm-auto').nextSibling);
         qi.addEventListener('input', () => { currentPage = 1; clearTimeout(searchTimer); searchTimer = setTimeout(update, 150); });
     }
 
-    function getVisible() {
+    function getQuery() {
         const qi = document.getElementById('proj-quick-search');
-        const q = qi ? qi.value.toLowerCase().trim() : '';
-        return q ? allRows.filter(r => r.textContent.toLowerCase().includes(q)) : allRows;
+        return qi ? qi.value.toLowerCase().trim() : '';
     }
 
     function update() {
-        const visible = getVisible();
-        const total   = visible.length;
-        const pages   = Math.max(1, Math.ceil(total / PAGE_SIZE));
+        const q = getQuery();
+        const visRows = q ? allRows.filter(r => r.textContent.toLowerCase().includes(q)) : allRows;
+        const visCards = q ? allCards.filter(c => c.textContent.toLowerCase().includes(q)) : allCards;
+
+        const total = visRows.length;
+        const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
         if (currentPage > pages) currentPage = pages;
+
         allRows.forEach(r => r.style.display = 'none');
-        visible.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE).forEach(r => r.style.display = '');
+        visRows.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE).forEach(r => r.style.display = '');
+
+        allCards.forEach(c => c.style.display = 'none');
+        visCards.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE).forEach(c => c.style.display = 'flex');
+
         const cnt = document.querySelector('.ms-auto.text-muted.small');
-        if (cnt) cnt.textContent = total + ' проектов';
+        if (cnt) cnt.textContent = total + ' пр.';
         renderPager(total, pages);
     }
 
@@ -323,23 +418,59 @@
             p = document.createElement('div');
             p.id = 'proj-pager';
             p.className = 'd-flex justify-content-between align-items-center px-3 py-2 border-top';
-            (document.querySelector('.data-card') || document.querySelector('.table-responsive').parentNode).appendChild(p);
+            (document.querySelector('.data-card') || document.body).appendChild(p);
         }
         if (total <= PAGE_SIZE) { p.innerHTML = ''; return; }
         const mk = (id, icon, disabled) => disabled
             ? `<button class="btn btn-sm btn-outline-secondary" disabled><i class="bi ${icon}"></i></button>`
             : `<button id="${id}" class="btn btn-sm btn-outline-secondary"><i class="bi ${icon}"></i></button>`;
         p.innerHTML = mk('pprev','bi-chevron-left', currentPage<=1)
-            + `<span class="text-muted small">Стр. ${currentPage} из ${pages} · ${total} проектов</span>`
+            + `<span class="text-muted small">Стр. ${currentPage} из ${pages} · ${total} пр.</span>`
             + mk('pnext','bi-chevron-right', currentPage>=pages);
         const pp = document.getElementById('pprev'), pn = document.getElementById('pnext');
         if (pp) pp.onclick = () => { currentPage--; update(); window.scrollTo(0,0); };
         if (pn) pn.onclick = () => { currentPage++; update(); window.scrollTo(0,0); };
     }
 
-    update();
+    if (allRows.length || allCards.length) update();
 })();
 </script>
+
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
+function getChecked() { return [...document.querySelectorAll('.row-chk:checked')].map(c => c.value); }
+function updateBulkBar() {
+    const ids = getChecked();
+    const bar = document.getElementById('bulk-bar');
+    const cnt = document.getElementById('bulk-count');
+    if (ids.length > 0) { bar.classList.remove('d-none'); cnt.textContent = ids.length + ' выбрано'; }
+    else { bar.classList.add('d-none'); }
+    const all = document.getElementById('chk-all');
+    const total = document.querySelectorAll('.row-chk').length;
+    if (all) { all.indeterminate = ids.length > 0 && ids.length < total; all.checked = ids.length === total && total > 0; }
+}
+function toggleAll(el) { document.querySelectorAll('.row-chk').forEach(c => c.checked = el.checked); updateBulkBar(); }
+function clearSelection() {
+    document.querySelectorAll('.row-chk').forEach(c => c.checked = false);
+    const all = document.getElementById('chk-all');
+    if (all) { all.checked = false; all.indeterminate = false; }
+    document.getElementById('bulk-bar').classList.add('d-none');
+}
+function applyBulk() {
+    const ids = getChecked();
+    const action = document.getElementById('bulk-action').value;
+    if (!ids.length) return alert('Выберите проекты');
+    if (!action) return alert('Выберите действие');
+    if (!confirm(`Применить "${action.split(':')[1]}" к ${ids.length} проектам?`)) return;
+    fetch('/api/projects/bulk-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
+        body: JSON.stringify({ ids, action }),
+    }).then(r => r.json()).then(d => { if (d.ok) location.reload(); else alert('Ошибка: ' + (d.error || 'неизвестно')); })
+    .catch(() => alert('Ошибка сети'));
+}
+</script>
+
 <style>
 [data-bs-theme="dark"] .table a.text-dark,
 [data-bs-theme="dark"] a.fw-semibold.text-dark,
@@ -348,62 +479,53 @@
 [data-bs-theme="dark"] .table-success { --bs-table-bg: #052e16 !important; --bs-table-color: #e2e8f0 !important; }
 [data-bs-theme="dark"] .filter-bar .form-control,
 [data-bs-theme="dark"] .filter-bar .form-select { background:#0f172a; color:#e2e8f0; border-color:#334155; }
+
+/* ── Mobile project card ────────────────────────────────────────────── */
+.proj-mob-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 11px 14px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    border-left: 3px solid transparent;
+    transition: background .1s;
+}
+.proj-mob-card:active { background: rgba(255,255,255,.04); }
+.proj-mob-opened  { border-left-color: #22c55e; }
+.proj-mob-overdue { border-left-color: #ef4444; background: rgba(239,68,68,.04); }
+.proj-mob-warn    { border-left-color: #f59e0b; }
+
+.proj-mob-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.proj-mob-tk {
+    font-size: .72rem;
+    font-weight: 700;
+    color: #60a5fa;
+    background: rgba(96,165,250,.1);
+    border: 1px solid rgba(96,165,250,.2);
+    border-radius: 5px;
+    padding: 2px 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.proj-mob-name {
+    font-size: .875rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+.proj-mob-bottom {
+    display: flex;
+    align-items: center;
+    font-size: .75rem;
+    color: #64748b;
+}
 </style>
-
-<script>
-/* ── Bulk operations ── */
-const CSRF = document.querySelector('meta[name="csrf-token"]')?.content || '';
-
-function getChecked() {
-    return [...document.querySelectorAll('.row-chk:checked')].map(c => c.value);
-}
-
-function updateBulkBar() {
-    const ids = getChecked();
-    const bar = document.getElementById('bulk-bar');
-    const cnt = document.getElementById('bulk-count');
-    if (ids.length > 0) {
-        bar.classList.remove('d-none');
-        cnt.textContent = ids.length + ' выбрано';
-    } else {
-        bar.classList.add('d-none');
-    }
-    const all = document.getElementById('chk-all');
-    const total = document.querySelectorAll('.row-chk').length;
-    if (all) all.indeterminate = ids.length > 0 && ids.length < total;
-    if (all) all.checked = ids.length === total && total > 0;
-}
-
-function toggleAll(el) {
-    document.querySelectorAll('.row-chk').forEach(c => c.checked = el.checked);
-    updateBulkBar();
-}
-
-function clearSelection() {
-    document.querySelectorAll('.row-chk').forEach(c => c.checked = false);
-    const all = document.getElementById('chk-all');
-    if (all) { all.checked = false; all.indeterminate = false; }
-    document.getElementById('bulk-bar').classList.add('d-none');
-}
-
-function applyBulk() {
-    const ids = getChecked();
-    const action = document.getElementById('bulk-action').value;
-    if (!ids.length) return alert('Выберите проекты');
-    if (!action) return alert('Выберите действие');
-    if (!confirm(`Применить "${action.split(':')[1]}" к ${ids.length} проектам?`)) return;
-
-    fetch('/api/projects/bulk-update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF },
-        body: JSON.stringify({ ids, action }),
-    })
-    .then(r => r.json())
-    .then(d => {
-        if (d.ok) { location.reload(); }
-        else { alert('Ошибка: ' + (d.error || 'неизвестно')); }
-    })
-    .catch(() => alert('Ошибка сети'));
-}
-</script>
 {% endblock %}
