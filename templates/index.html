@@ -12,42 +12,32 @@
 </div>
 
 <!-- Quick action buttons -->
-<div class="quick-actions mb-4">
-    <a href="/deadlines" class="quick-btn quick-btn-warn">
-        <i class="bi bi-clock-history"></i>
+<div class="dash-quick-actions mb-4">
+    <a href="/deadlines" class="dash-qbtn">
+        <div class="dash-qbtn-icon" style="background:rgba(255,210,0,.15);color:#FFD200;box-shadow:0 0 14px rgba(255,210,0,.2)">
+            <i class="bi bi-clock-history"></i>
+        </div>
         <span>Дедлайны</span>
     </a>
-    <a href="/projects" class="quick-btn quick-btn-blue">
-        <i class="bi bi-building-fill"></i>
+    <a href="/projects" class="dash-qbtn">
+        <div class="dash-qbtn-icon" style="background:rgba(96,165,250,.15);color:#60a5fa;box-shadow:0 0 14px rgba(96,165,250,.2)">
+            <i class="bi bi-building-fill"></i>
+        </div>
         <span>Список проектов</span>
     </a>
-    <a href="/managers" class="quick-btn quick-btn-green">
-        <i class="bi bi-people-fill"></i>
+    <a href="/managers" class="dash-qbtn">
+        <div class="dash-qbtn-icon" style="background:rgba(74,222,128,.15);color:#4ade80;box-shadow:0 0 14px rgba(74,222,128,.2)">
+            <i class="bi bi-people-fill"></i>
+        </div>
         <span>Менеджеры проектов</span>
     </a>
-    <a href="/tasks" class="quick-btn quick-btn-dark">
-        <i class="bi bi-check2-square"></i>
+    <a href="/tasks" class="dash-qbtn">
+        <div class="dash-qbtn-icon" style="background:rgba(167,139,250,.15);color:#a78bfa;box-shadow:0 0 14px rgba(167,139,250,.2)">
+            <i class="bi bi-check2-square"></i>
+        </div>
         <span>Задачи</span>
     </a>
 </div>
-
-{% if user and user.is_admin %}
-<div class="mb-4">
-    <details>
-        <summary class="text-muted small" style="cursor:pointer;user-select:none">
-            <i class="bi bi-shield-lock me-1"></i>Опасные операции (только администратор)
-        </summary>
-        <div class="mt-2">
-            <form method="post" action="/projects/clear-all"
-                  onsubmit="return confirm('Удалить ВСЕ проекты Реконструкций и Констракшн? Это необратимо!')">
-                <button type="submit" class="btn btn-sm btn-outline-danger">
-                    <i class="bi bi-trash-fill me-1"></i>Удалить ВСЕ проекты (Реконструкции + Констракшн)
-                </button>
-            </form>
-        </div>
-    </details>
-</div>
-{% endif %}
 
 <!-- Stats row -->
 <div class="row g-3 mb-4">
@@ -229,6 +219,24 @@
   </div>
 
 </div>
+{% if user and user.is_admin %}
+<div class="mt-4">
+    <details>
+        <summary class="text-muted small" style="cursor:pointer;user-select:none;opacity:.5">
+            <i class="bi bi-shield-lock me-1"></i>Опасные операции (только администратор)
+        </summary>
+        <div class="mt-2">
+            <form method="post" action="/projects/clear-all"
+                  onsubmit="return confirm('Удалить ВСЕ проекты Реконструкций и Констракшн? Это необратимо!')">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-trash-fill me-1"></i>Удалить ВСЕ проекты (Реконструкции + Констракшн)
+                </button>
+            </form>
+        </div>
+    </details>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block scripts %}
@@ -345,6 +353,51 @@ new Chart(document.getElementById('chartMgrTasks'), {
         0 0 60px rgba(60,179,74,.25),
         inset 0 0 30px rgba(60,179,74,.07);
 }
+/* ── Dashboard quick buttons ─────────────────────────────────── */
+.dash-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+.dash-qbtn {
+    background: #0f172a;
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 16px;
+    padding: 22px 16px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: #cbd5e1;
+    font-weight: 600;
+    font-size: .88rem;
+    transition: all .18s;
+    text-align: center;
+}
+.dash-qbtn:hover {
+    transform: translateY(-3px);
+    border-color: rgba(60,179,74,.35);
+    box-shadow: 0 10px 28px rgba(0,0,0,.35);
+    color: #fff;
+}
+.dash-qbtn-icon {
+    width: 58px; height: 58px;
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    transition: transform .18s;
+}
+.dash-qbtn:hover .dash-qbtn-icon { transform: scale(1.08); }
+@media (max-width: 768px) {
+    .dash-quick-actions { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 400px) {
+    .dash-quick-actions { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .dash-qbtn { padding: 16px 10px 14px; }
+    .dash-qbtn-icon { width: 46px; height: 46px; font-size: 22px; }
+}
+
 .lenta-sign-wrap { display: flex; align-items: center; flex-shrink: 0; }
 .dash-logo {
     height: 62px;
