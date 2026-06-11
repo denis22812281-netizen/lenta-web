@@ -47,12 +47,12 @@
         </div>
     </div>
     <div class="recon-kpis">
-        <div class="recon-kpi-item recon-kpi-btn" data-bs-toggle="modal" data-bs-target="#modalOpened" title="Показать список">
+        <div class="recon-kpi-item recon-kpi-btn" onclick="rcOverlay('overlayOpened')" title="Показать список">
             <div class="recon-kpi-num" style="color:#4ade80">{{ recon_opened }}</div>
             <div class="recon-kpi-lab">Открыто <i class="bi bi-chevron-down" style="font-size:.55rem"></i></div>
         </div>
         <div class="recon-kpi-divider"></div>
-        <div class="recon-kpi-item recon-kpi-btn" data-bs-toggle="modal" data-bs-target="#modalInWork" title="Показать список">
+        <div class="recon-kpi-item recon-kpi-btn" onclick="rcOverlay('overlayInWork')" title="Показать список">
             <div class="recon-kpi-num" style="color:#60a5fa">{{ recon_in_work }}</div>
             <div class="recon-kpi-lab">В работе <i class="bi bi-chevron-down" style="font-size:.55rem"></i></div>
         </div>
@@ -482,95 +482,83 @@
 
     </div>
 </div>
-<!-- ── Модал: Открытые ТК ────────────────────────────────────────────── -->
-<div class="modal fade" id="modalOpened" tabindex="-1" aria-labelledby="modalOpenedLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content rc-modal">
-      <div class="rc-modal-header">
-        <div class="rc-modal-title">
-          <i class="bi bi-door-open-fill" style="color:#4ade80"></i>
-          Открытые ТК — <span style="color:#4ade80">{{ recon_opened }}</span> объектов
-        </div>
-        <button type="button" class="rc-modal-close" data-bs-dismiss="modal" aria-label="Close">
-          <i class="bi bi-x-lg"></i>
-        </button>
+<!-- ── Оверлей: Открытые ТК ──────────────────────────────────────────── -->
+<div class="rc-overlay" id="overlayOpened" onclick="if(event.target===this)rcClose('overlayOpened')">
+  <div class="rc-overlay-box">
+    <div class="rc-modal-header">
+      <div class="rc-modal-title">
+        <i class="bi bi-door-open-fill" style="color:#4ade80"></i>
+        Открытые ТК — <span style="color:#4ade80">{{ recon_opened }}</span> объектов
       </div>
-      <div class="modal-body p-0" style="overflow-y:auto;max-height:60vh">
-        <table class="table mb-0 align-middle rc-modal-table">
-          <thead>
-            <tr><th class="ps-3">ТК</th><th>Город</th><th>Менеджер</th><th>Дата открытия</th><th>Формат</th></tr>
-          </thead>
-          <tbody>
-          {% for p in recon_opened_list %}
-          <tr>
-            <td class="ps-3 fw-bold" style="color:#4ade80">{{ p.tk_number }}</td>
-            <td>{{ p.city or '—' }}</td>
-            <td style="color:#94a3b8">{{ (p.manager.name | short_name) if p.manager else '—' }}</td>
-            <td class="fw-semibold">{{ p.opening_date.strftime('%d.%m.%Y') }}</td>
-            <td><span class="rc-fmt-badge">{{ p.format_type or '—' }}</span></td>
-          </tr>
-          {% else %}
-          <tr><td colspan="5" class="text-center py-4" style="color:#64748b">Нет данных</td></tr>
-          {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <div class="rc-modal-footer">
-        <a href="/reconstruction" class="btn btn-sm" style="background:#16a34a;color:#fff;border-radius:8px;font-weight:600">
-          <i class="bi bi-arrow-right-circle me-1"></i>Открыть дашборд
-        </a>
-        <button type="button" class="btn btn-sm rc-btn-close-footer" data-bs-dismiss="modal">Закрыть</button>
-      </div>
+      <button class="rc-modal-close" onclick="rcClose('overlayOpened')"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="rc-overlay-body">
+      <table class="rc-modal-table w-100">
+        <thead><tr><th class="ps-3">ТК</th><th>Город</th><th>Менеджер</th><th>Дата открытия</th><th>Формат</th></tr></thead>
+        <tbody>
+        {% for p in recon_opened_list %}
+        <tr>
+          <td class="ps-3 fw-bold" style="color:#4ade80">{{ p.tk_number }}</td>
+          <td>{{ p.city or '—' }}</td>
+          <td style="color:#94a3b8">{{ (p.manager.name | short_name) if p.manager else '—' }}</td>
+          <td class="fw-semibold">{{ p.opening_date.strftime('%d.%m.%Y') }}</td>
+          <td><span class="rc-fmt-badge">{{ p.format_type or '—' }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center py-4" style="color:#64748b">Нет данных</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="rc-modal-footer">
+      <a href="/reconstruction" class="btn btn-sm" style="background:#16a34a;color:#fff;border-radius:8px;font-weight:600">
+        <i class="bi bi-arrow-right-circle me-1"></i>Открыть дашборд
+      </a>
+      <button class="btn btn-sm rc-btn-close-footer" onclick="rcClose('overlayOpened')">Закрыть</button>
     </div>
   </div>
 </div>
 
-<!-- ── Модал: В работе ───────────────────────────────────────────────── -->
-<div class="modal fade" id="modalInWork" tabindex="-1" aria-labelledby="modalInWorkLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content rc-modal">
-      <div class="rc-modal-header">
-        <div class="rc-modal-title">
-          <i class="bi bi-tools" style="color:#60a5fa"></i>
-          ТК в работе — <span style="color:#60a5fa">{{ recon_in_work }}</span> объектов
-        </div>
-        <button type="button" class="rc-modal-close" data-bs-dismiss="modal" aria-label="Close">
-          <i class="bi bi-x-lg"></i>
-        </button>
+<!-- ── Оверлей: В работе ─────────────────────────────────────────────── -->
+<div class="rc-overlay" id="overlayInWork" onclick="if(event.target===this)rcClose('overlayInWork')">
+  <div class="rc-overlay-box">
+    <div class="rc-modal-header">
+      <div class="rc-modal-title">
+        <i class="bi bi-tools" style="color:#60a5fa"></i>
+        ТК в работе — <span style="color:#60a5fa">{{ recon_in_work }}</span> объектов
       </div>
-      <div class="modal-body p-0" style="overflow-y:auto;max-height:60vh">
-        <table class="table mb-0 align-middle rc-modal-table">
-          <thead>
-            <tr><th class="ps-3">ТК</th><th>Город</th><th>Менеджер</th><th>План открытия</th><th>Осталось</th></tr>
-          </thead>
-          <tbody>
-          {% for p in recon_in_work_list %}
-          {% set days_left = (p.opening_date - today).days if p.opening_date else None %}
-          <tr>
-            <td class="ps-3 fw-bold" style="color:#60a5fa">{{ p.tk_number }}</td>
-            <td>{{ p.city or '—' }}</td>
-            <td style="color:#94a3b8">{{ (p.manager.name | short_name) if p.manager else '—' }}</td>
-            <td>{% if p.opening_date %}{{ p.opening_date.strftime('%d.%m.%Y') }}{% else %}<span style="color:#475569">—</span>{% endif %}</td>
-            <td>
-              {% if days_left is not none %}
-                <span class="badge {% if days_left < 0 %}bg-danger{% elif days_left <= 14 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                  {% if days_left < 0 %}просрочено {{ -days_left }} дн.{% else %}{{ days_left }} дн.{% endif %}
-                </span>
-              {% else %}<span style="color:#475569;font-size:.75rem">нет даты</span>{% endif %}
-            </td>
-          </tr>
-          {% else %}
-          <tr><td colspan="5" class="text-center py-4" style="color:#64748b">Нет данных</td></tr>
-          {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      <div class="rc-modal-footer">
-        <a href="/reconstruction" class="btn btn-sm" style="background:#1d4ed8;color:#fff;border-radius:8px;font-weight:600">
-          <i class="bi bi-arrow-right-circle me-1"></i>Открыть дашборд
-        </a>
-        <button type="button" class="btn btn-sm rc-btn-close-footer" data-bs-dismiss="modal">Закрыть</button>
-      </div>
+      <button class="rc-modal-close" onclick="rcClose('overlayInWork')"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="rc-overlay-body">
+      <table class="rc-modal-table w-100">
+        <thead><tr><th class="ps-3">ТК</th><th>Город</th><th>Менеджер</th><th>План открытия</th><th>Осталось</th></tr></thead>
+        <tbody>
+        {% for p in recon_in_work_list %}
+        {% set days_left = (p.opening_date - today).days if p.opening_date else None %}
+        <tr>
+          <td class="ps-3 fw-bold" style="color:#60a5fa">{{ p.tk_number }}</td>
+          <td>{{ p.city or '—' }}</td>
+          <td style="color:#94a3b8">{{ (p.manager.name | short_name) if p.manager else '—' }}</td>
+          <td>{% if p.opening_date %}{{ p.opening_date.strftime('%d.%m.%Y') }}{% else %}<span style="color:#475569">—</span>{% endif %}</td>
+          <td>
+            {% if days_left is not none %}
+              <span class="badge {% if days_left < 0 %}bg-danger{% elif days_left <= 14 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                {% if days_left < 0 %}просрочено {{ -days_left }} д.{% else %}{{ days_left }} д.{% endif %}
+              </span>
+            {% else %}<span style="color:#475569;font-size:.75rem">нет даты</span>{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center py-4" style="color:#64748b">Нет данных</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="rc-modal-footer">
+      <a href="/reconstruction" class="btn btn-sm" style="background:#1d4ed8;color:#fff;border-radius:8px;font-weight:600">
+        <i class="bi bi-arrow-right-circle me-1"></i>Открыть дашборд
+      </a>
+      <button class="btn btn-sm rc-btn-close-footer" onclick="rcClose('overlayInWork')">Закрыть</button>
     </div>
   </div>
 </div>
@@ -811,8 +799,23 @@
 [data-bs-theme="dark"] .leader-mgr-avatar { background: #374151; }
 [data-bs-theme="dark"] .leader-mgr-initials { color: #9ca3af; }
 
-/* ── Modals ──────────────────────────────────────────────────────── */
-.rc-modal { background: #1e293b; border: 1px solid rgba(255,255,255,.12); border-radius: 14px; overflow: hidden; }
+/* ── Overlays (custom, no Bootstrap modal) ───────────────────────── */
+.rc-overlay {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,.65); backdrop-filter: blur(3px);
+    align-items: center; justify-content: center; padding: 16px;
+}
+.rc-overlay.open { display: flex; }
+.rc-overlay-box {
+    background: #1e293b; border: 1px solid rgba(255,255,255,.12);
+    border-radius: 14px; overflow: hidden;
+    width: 100%; max-width: 780px;
+    max-height: 85vh; display: flex; flex-direction: column;
+    box-shadow: 0 24px 64px rgba(0,0,0,.6);
+}
+.rc-overlay-body { overflow-y: auto; flex: 1; }
+
+/* ── Modal shared styles ──────────────────────────────────────────── */
 .rc-modal-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,.1);
@@ -840,4 +843,21 @@
 .rc-btn-close-footer { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: #94a3b8; border-radius: 8px; }
 .rc-btn-close-footer:hover { background: rgba(255,255,255,.12); color: #e2e8f0; }
 </style>
+<script>
+function rcOverlay(id) {
+    document.getElementById(id).classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+function rcClose(id) {
+    document.getElementById(id).classList.remove('open');
+    document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.rc-overlay.open').forEach(function(el) {
+            rcClose(el.id);
+        });
+    }
+});
+</script>
 {% endblock %}
