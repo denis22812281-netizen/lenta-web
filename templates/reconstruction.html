@@ -103,6 +103,20 @@ thead .rc-sticky{ z-index: 3; }
 .row-problem td { background: rgba(127,29,29,.12) !important; }
 .row-problem .rc-sticky { background: rgba(80,10,10,.5) !important; }
 .row-problem:hover td  { background: rgba(127,29,29,.22) !important; }
+
+/* Opened rows — dimmed, green left border */
+.row-opened td  { opacity: .55; }
+.row-opened:hover td { opacity: .85 !important; }
+.row-opened .rc-sticky::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: #22c55e;
+}
+.badge-opened { display: inline-block; background: #166534; color: #bbf7d0;
+                font-size: .6rem; font-weight: 700; padding: 1px 5px;
+                border-radius: 4px; letter-spacing: .04em; margin-top: 2px; }
 .rc-sticky { position: relative; }
 
 /* Stage cells */
@@ -149,7 +163,9 @@ thead .rc-sticky{ z-index: 3; }
 ═══════════════════════════════════════════════════════════════ */
 .proj-card      { background: #1e293b; border-radius: 14px; margin-bottom: 8px;
                   border: 1px solid rgba(255,255,255,.07); overflow: hidden; }
-.proj-card.has-risk { border-left: 3px solid #ef4444; }
+.proj-card.has-risk   { border-left: 3px solid #ef4444; }
+.proj-card.has-opened { border-left: 3px solid #22c55e; opacity: .6; }
+.proj-card.has-opened:hover { opacity: 1; }
 .proj-card-hdr  { display: flex; align-items: center; gap: 10px;
                   padding: 11px 14px; cursor: pointer; user-select: none; }
 .proj-card-hdr:active { background: rgba(255,255,255,.04); }
@@ -351,11 +367,13 @@ thead .rc-sticky{ z-index: 3; }
     <tbody>
     {% for row in projects_data %}
     {% set p = row.project %}
-    <tr class="{% if row.has_problem %}row-problem{% endif %}"
+    <tr class="{% if row.is_opened %}row-opened{% elif row.has_problem %}row-problem{% endif %}"
         data-tk="{{ p.tk_number }}" data-city="{{ p.city or '' }}"
         data-mgr="{{ row.mgr_name }}" data-pid="{{ p.id }}">
         <td class="rc-sticky" title="{{ p.address or '' }}">
-            <div class="rc-tk">ТК {{ p.tk_number }}</div>
+            <div class="rc-tk">ТК {{ p.tk_number }}
+                {% if row.is_opened %}<span class="badge-opened">ОТКРЫТ</span>{% endif %}
+            </div>
             <div class="rc-city">{{ p.city or '—' }}</div>
             {% if p.pjf_code %}<div class="rc-pjf">{{ p.pjf_code }}</div>{% endif %}
             {% if p.status_comment %}
@@ -403,7 +421,7 @@ thead .rc-sticky{ z-index: 3; }
 <div class="card-list" id="card-view" style="display:none">
     {% for row in projects_data %}
     {% set p = row.project %}
-    <div class="proj-card {% if row.has_problem %}has-risk{% endif %}"
+    <div class="proj-card {% if row.is_opened %}has-opened{% elif row.has_problem %}has-risk{% endif %}"
          data-tk="{{ p.tk_number }}" data-city="{{ p.city or '' }}"
          data-mgr="{{ row.mgr_name }}" data-pid="{{ p.id }}">
         <div class="proj-card-hdr" onclick="toggleCard(this.parentElement)">

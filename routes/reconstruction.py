@@ -140,6 +140,7 @@ async def reconstruction_page(
             continue
 
         progress_pct = round(proj_done / proj_with_date * 100) if proj_with_date else 0
+        is_opened = bool(p.opening_date and p.opening_date <= today)
         projects_data.append({
             "project": p,
             "stages": stages_info,
@@ -150,6 +151,7 @@ async def reconstruction_page(
             "warn_count": proj_warn,
             "progress_pct": progress_pct,
             "mgr_name": (p.manager.name if p.manager else ""),
+            "is_opened": is_opened,
         })
 
     # Сортировка: рисковые сначала → по дате открытия
