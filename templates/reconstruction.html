@@ -177,8 +177,8 @@ thead .rc-sticky{ z-index: 3; }
 .proj-card-info { flex: 1; min-width: 0; }
 .proj-card-meta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .proj-prog-wrap { width: 50px; }
-.proj-prog-outer{ height: 4px; background: rgba(255,255,255,.1); border-radius: 3px; }
-.proj-prog-inner{ height: 100%; border-radius: 3px; background: #22c55e; }
+.proj-prog-outer{ height: 5px; background: rgba(255,255,255,.1); border-radius: 3px; }
+.proj-prog-inner{ height: 100%; border-radius: 3px; background: linear-gradient(90deg,#16a34a,#22c55e); }
 .proj-prog-frac { font-size: .65rem; color: #64748b; white-space: nowrap; }
 .card-chevron   { color: #475569; font-size: .8rem; transition: transform .2s; flex-shrink: 0; }
 .proj-card.open .card-chevron { transform: rotate(180deg); }
@@ -223,13 +223,60 @@ thead .rc-sticky{ z-index: 3; }
    RESPONSIVE SHOW/HIDE
 ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 900px) {
-    .rc-wrap      { display: none; }
-    .card-list    { display: block !important; }
-    .view-toggle  { display: flex !important; }
+    .rc-wrap     { display: none; }
+    .card-list   { display: block !important; padding-bottom: calc(58px + 24px); }
+    .view-toggle { display: flex !important; }
+
+    /* Вкладки: горизонтальный скролл, без переноса */
+    .rc-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+               padding-bottom: 2px; scrollbar-width: none; }
+    .rc-tabs::-webkit-scrollbar { display: none; }
+    .rc-tab  { flex-shrink: 0; }
+
+    /* Фильтры: стопкой на мобилке */
+    .rc-filters { flex-direction: column; align-items: stretch !important; gap: 8px !important; }
+    .search-input { width: 100% !important; box-sizing: border-box; }
+    .rc-filters select { width: 100% !important; }
+    .rc-filters .form-check { margin: 0 !important; }
+    #visible-count { display: none; }
+
+    /* KPI: убрать подпись, увеличить цифру */
+    .kpi-sub  { display: none; }
+    .kpi-val  { font-size: 1.6rem !important; }
+    .kpi-icon { font-size: 1.5rem; }
+
+    /* Легенда: убрать подсказку "нажмите" */
+    .rc-legend .ms-auto { display: none; }
+
+    /* Toast снизу, над bottom nav */
+    #rc-toast { bottom: calc(58px + 16px); }
 }
+
+@media (max-width: 480px) {
+    .kpi-row  { gap: 8px; }
+    .kpi-card { padding: 12px 14px; border-radius: 12px; }
+    .kpi-val  { font-size: 1.35rem !important; }
+    .kpi-lab  { font-size: .7rem; }
+
+    /* Карточки проекта */
+    .proj-card-hdr { padding: 10px 12px; gap: 8px; }
+    .rc-tk    { font-size: .82rem; }
+
+    /* Ячейки этапов — минимум 44px высоты для удобства тапа */
+    .sg-cell  { min-height: 44px; display: flex; flex-direction: column;
+                justify-content: center; padding: 8px 3px; }
+    .sg-label { font-size: .63rem; }
+    .sg-val   { font-size: .8rem; }
+
+    /* Меньше отступы в блоке рисков */
+    .risk-block { padding: 12px 14px; }
+    .risk-row   { gap: 5px 8px; }
+    .risk-date  { display: none; }
+}
+
 @media (min-width: 901px) {
-    .card-list    { display: none; }
-    .view-toggle  { display: none !important; }
+    .card-list   { display: none; }
+    .view-toggle { display: none !important; }
 }
 </style>
 
@@ -312,22 +359,22 @@ thead .rc-sticky{ z-index: 3; }
         {% endfor %}
     </div>
     <!-- Filters row -->
+    <form method="get" id="filter-form">
+    <input type="hidden" name="tab" value="{{ active_tab }}">
+    <input type="hidden" name="only_problems" id="op-hidden" value="{% if only_problems %}1{% endif %}">
     <div class="rc-filters">
         <input type="text" id="search" class="search-input" placeholder="Поиск: ТК, город…"
                oninput="filterTable(this.value)">
-        <form method="get" id="filter-form" style="display:contents">
-            <input type="hidden" name="tab" value="{{ active_tab }}">
-            <input type="hidden" name="only_problems" id="op-hidden" value="{% if only_problems %}1{% endif %}">
-            <select name="manager_id" class="form-select form-select-sm" style="width:160px;background:#0f172a;color:#e2e8f0;border-color:rgba(255,255,255,.1)"
-                    onchange="this.form.submit()">
-                <option value="">Все менеджеры</option>
-                {% for m in managers %}
-                <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>
-                    {{ m.name | short_name }}
-                </option>
-                {% endfor %}
-            </select>
-        </form>
+        <select name="manager_id" class="form-select form-select-sm"
+                style="width:160px;background:#0f172a;color:#e2e8f0;border-color:rgba(255,255,255,.1)"
+                onchange="this.form.submit()">
+            <option value="">Все менеджеры</option>
+            {% for m in managers %}
+            <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>
+                {{ m.name | short_name }}
+            </option>
+            {% endfor %}
+        </select>
         <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" id="only-problems"
                    {% if only_problems %}checked{% endif %}
@@ -337,12 +384,15 @@ thead .rc-sticky{ z-index: 3; }
         <span class="text-muted small ms-auto" id="visible-count">{{ total }} объектов</span>
         <!-- view toggle (mobile) -->
         <div class="view-toggle gap-1" style="display:none">
-            <button class="btn btn-sm" id="btn-table" style="background:#0f172a;border:1px solid rgba(255,255,255,.15);color:#94a3b8"
+            <button type="button" class="btn btn-sm" id="btn-table"
+                    style="background:#0f172a;border:1px solid rgba(255,255,255,.15);color:#94a3b8"
                     onclick="switchView('table')"><i class="bi bi-table"></i></button>
-            <button class="btn btn-sm" id="btn-cards" style="background:#FFD200;border-color:#FFD200;color:#0f172a"
+            <button type="button" class="btn btn-sm" id="btn-cards"
+                    style="background:#FFD200;border-color:#FFD200;color:#0f172a"
                     onclick="switchView('cards')"><i class="bi bi-card-list"></i></button>
         </div>
     </div>
+    </form>
 </div>
 
 <!-- ── Legend ────────────────────────────────────────────────────── -->
@@ -430,29 +480,39 @@ thead .rc-sticky{ z-index: 3; }
          data-tk="{{ p.tk_number }}" data-city="{{ p.city or '' }}"
          data-mgr="{{ row.mgr_name }}" data-pid="{{ p.id }}">
         <div class="proj-card-hdr" onclick="toggleCard(this.parentElement)">
-            <div class="proj-card-info">
-                <div class="rc-tk">ТК {{ p.tk_number }} — {{ p.city or '—' }}</div>
-                <div class="rc-city" style="font-size:.72rem;margin-top:1px">
+            <div class="proj-card-info" style="flex:1;min-width:0">
+                <div class="rc-tk" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+                    ТК {{ p.tk_number }}
+                    {% if row.is_opened %}
+                    <span class="badge-opened">ОТКРЫТ</span>
+                    {% endif %}
+                    {% if p.city %}· {{ p.city }}{% endif %}
+                </div>
+                <div class="rc-city" style="font-size:.7rem;margin-top:2px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
                     {% if p.manager %}{{ p.manager.name | short_name }}{% endif %}
                     {% if p.pjf_code %} · PJF {{ p.pjf_code }}{% endif %}
                 </div>
             </div>
-            <div class="proj-card-meta">
-                {% if row.overdue_count > 0 %}
-                <span class="badge" style="background:#7f1d1d;color:#fca5a5;font-size:.7rem">
-                    {{ row.overdue_count }} просроч.
+            <div class="proj-card-meta" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+                {% if row.is_opened %}
+                <span class="badge" style="background:rgba(34,197,94,.12);color:#4ade80;font-size:.66rem;border:1px solid rgba(34,197,94,.2)">
+                    <i class="bi bi-door-open me-1"></i>открыт
+                </span>
+                {% elif row.overdue_count > 0 %}
+                <span class="badge" style="background:#7f1d1d;color:#fca5a5;font-size:.66rem">
+                    <i class="bi bi-exclamation-circle me-1"></i>{{ row.overdue_count }} просроч.
                 </span>
                 {% elif row.warn_count > 0 %}
-                <span class="badge" style="background:#78350f;color:#fde68a;font-size:.7rem">
-                    {{ row.warn_count }} горит
+                <span class="badge" style="background:#78350f;color:#fde68a;font-size:.66rem">
+                    <i class="bi bi-clock me-1"></i>{{ row.warn_count }} горит
                 </span>
                 {% endif %}
-                <div>
+                <div style="min-width:70px">
                     <div class="proj-prog-outer"><div class="proj-prog-inner" style="width:{{ row.progress_pct }}%"></div></div>
                     <div class="proj-prog-frac text-center">{{ row.stages_done }}/{{ row.stages_total }}</div>
                 </div>
             </div>
-            <i class="bi bi-chevron-down card-chevron"></i>
+            <i class="bi bi-chevron-down card-chevron" style="flex-shrink:0;margin-left:6px"></i>
         </div>
         <div class="proj-stages">
             <div class="stages-grid">
@@ -722,6 +782,21 @@ function switchView(mode) {
 // restore preference
 const _savedView = localStorage.getItem('recon-view');
 if (_savedView && window.innerWidth <= 900) switchView(_savedView);
+
+// Прокрутить к активной вкладке (мобилка)
+(function(){
+    const active = document.querySelector('.rc-tab.active');
+    if (active && window.innerWidth <= 900) {
+        active.scrollIntoView({ inline: 'center', block: 'nearest' });
+    }
+})();
+
+// Авто-раскрыть первую проблемную карточку на мобилке
+(function(){
+    if (window.innerWidth > 900) return;
+    const first = document.querySelector('.proj-card.has-risk');
+    if (first) first.classList.add('open');
+})();
 
 // ══════════════════════════════════════════════════════════════════
 //  Sticky thead (CSS sticky breaks inside overflow-x:auto — JS clone)
