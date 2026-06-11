@@ -9,21 +9,27 @@
 {% block content %}
 <!-- Filters -->
 <div class="filter-bar mb-4">
-    <form method="get" class="d-flex flex-wrap gap-2 align-items-center">
-        <select name="manager_id" class="form-select form-select-sm" style="width:200px" onchange="this.form.submit()">
-            <option value="">Все менеджеры</option>
-            {% for m in managers %}
-            <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>{{ m.name }}</option>
-            {% endfor %}
-        </select>
-        <select name="view" class="form-select form-select-sm" style="width:160px" onchange="this.form.submit()">
-            <option value="all" {% if view == 'all' %}selected{% endif %}>Все</option>
-            <option value="overdue" {% if view == 'overdue' %}selected{% endif %}>Просроченные</option>
-            <option value="week" {% if view == 'week' %}selected{% endif %}>На этой неделе</option>
-            <option value="month" {% if view == 'month' %}selected{% endif %}>В этом месяце</option>
-        </select>
+    <form method="get" class="row g-2">
+        <div class="col-6 col-sm-auto">
+            <select name="manager_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">Все менеджеры</option>
+                {% for m in managers %}
+                <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>{{ m.name | short_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-6 col-sm-auto">
+            <select name="view" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="all" {% if view == 'all' %}selected{% endif %}>Все</option>
+                <option value="overdue" {% if view == 'overdue' %}selected{% endif %}>Просроченные</option>
+                <option value="week" {% if view == 'week' %}selected{% endif %}>На этой неделе</option>
+                <option value="month" {% if view == 'month' %}selected{% endif %}>В этом месяце</option>
+            </select>
+        </div>
         {% if filter_manager_id or view != 'all' %}
-        <a href="/deadlines" class="btn btn-sm btn-outline-secondary">Сбросить</a>
+        <div class="col-auto">
+            <a href="/deadlines" class="btn btn-sm btn-outline-secondary">Сбросить</a>
+        </div>
         {% endif %}
     </form>
 </div>
@@ -58,7 +64,7 @@
                     <td class="text-muted small d-none d-sm-table-cell">{{ p.tk_number or '—' }}</td>
                     <td>
                         <a href="/projects/{{ p.id }}" class="fw-semibold text-decoration-none text-dark">{{ p.name }}</a>
-                        {% if p.address %}<br><small class="text-muted">{{ p.address }}</small>{% elif p.city %}<br><small class="text-muted">{{ p.city }}</small>{% endif %}
+                        {% if p.city %}<br><small class="text-muted"><i class="bi bi-geo-alt"></i> {{ p.city }}</small>{% endif %}
                     </td>
                     <td>{{ p.manager.name.split()[0] if p.manager else '—' }}</td>
                     <td class="d-none d-sm-table-cell"><span class="badge bg-light text-dark">{{ p.project_type or '—' }}</span></td>

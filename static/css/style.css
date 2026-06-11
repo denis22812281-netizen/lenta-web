@@ -332,12 +332,32 @@ body {
 .stat-label { font-size: 13px; color: #666; margin-top: 3px; }
 
 /* ── DATA CARD ──────────────────────────────────────────────── */
+@keyframes dcEntrance { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+@keyframes dcShimmer  { to { transform: translateX(220%); } }
+
 .data-card {
     background: #fff;
     border-radius: 14px;
     overflow: hidden;
     box-shadow: var(--card-shadow);
+    position: relative;
+    animation: dcEntrance .35s ease both;
 }
+.data-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: 55%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent);
+    transform: translateX(-100%);
+    animation: dcShimmer .7s ease forwards;
+    pointer-events: none;
+    z-index: 1;
+}
+/* Stagger cards in a row */
+.row > [class*="col"]:nth-child(2) .data-card { animation-delay: 60ms; }
+.row > [class*="col"]:nth-child(3) .data-card { animation-delay: 120ms; }
+.row > [class*="col"]:nth-child(4) .data-card { animation-delay: 180ms; }
 .data-card-header {
     display: flex;
     justify-content: space-between;

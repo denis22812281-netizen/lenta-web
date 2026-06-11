@@ -7,7 +7,7 @@
 
 <!-- Итоговые карточки -->
 <div class="row g-3 mb-4">
-    <div class="col-12 col-sm-6 col-xl-3">
+    <div class="col-6 col-xl-3">
         <div class="stat-card" style="background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;border-left-color:#14532d">
             <div class="stat-icon-wrap" style="background:rgba(255,255,255,.2)"><i class="bi bi-lightning-charge-fill stat-icon" style="color:#fff"></i></div>
             <div class="stat-body">
@@ -16,7 +16,7 @@
             </div>
         </div>
     </div>
-    <div class="col-12 col-sm-6 col-xl-3">
+    <div class="col-6 col-xl-3">
         <div class="stat-card stat-green">
             <div class="stat-icon-wrap"><i class="bi bi-check-circle-fill stat-icon"></i></div>
             <div class="stat-body">
@@ -25,7 +25,7 @@
             </div>
         </div>
     </div>
-    <div class="col-12 col-sm-6 col-xl-3">
+    <div class="col-6 col-xl-3">
         <div class="stat-card" style="background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;border-left-color:#7f1d1d">
             <div class="stat-icon-wrap" style="background:rgba(255,255,255,.2)"><i class="bi bi-exclamation-triangle-fill stat-icon" style="color:#fff"></i></div>
             <div class="stat-body">
@@ -34,7 +34,7 @@
             </div>
         </div>
     </div>
-    <div class="col-12 col-sm-6 col-xl-3">
+    <div class="col-6 col-xl-3">
         <div class="stat-card" style="background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;border-left-color:#1e3a8a">
             <div class="stat-icon-wrap" style="background:rgba(255,255,255,.2)"><i class="bi bi-building-fill stat-icon" style="color:#fff"></i></div>
             <div class="stat-body">
@@ -142,13 +142,13 @@
                 <thead class="table-head">
                     <tr>
                         <th>ТК №</th>
-                        <th>Адрес</th>
-                        <th>Формат</th>
+                        <th class="d-none d-md-table-cell">Адрес</th>
+                        <th class="d-none d-sm-table-cell">Формат</th>
                         <th>Менеджер</th>
-                        <th>План открытия</th>
+                        <th class="d-none d-sm-table-cell">План открытия</th>
                         <th>Факт открытия</th>
                         <th>Отклонение</th>
-                        <th style="min-width:160px">Чья вина</th>
+                        <th class="d-none d-lg-table-cell" style="min-width:160px">Чья вина</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -157,16 +157,16 @@
                     <td class="fw-semibold">
                         <a href="/projects/{{ p.id }}" class="text-decoration-none">ТК {{ p.tk_number }}</a>
                     </td>
-                    <td style="max-width:160px">
+                    <td class="d-none d-md-table-cell" style="max-width:160px">
                         <div class="text-truncate small" title="{{ p.address }}">{{ p.address }}</div>
                     </td>
-                    <td>
+                    <td class="d-none d-sm-table-cell">
                         {% if p.format_type %}
                         <span class="badge bg-info text-dark">{{ p.format_type }}</span>
                         {% else %}—{% endif %}
                     </td>
                     <td class="text-nowrap">{{ p.manager_name }}</td>
-                    <td class="text-nowrap">{{ p.end_date.strftime('%d.%m.%Y') if p.end_date else '—' }}</td>
+                    <td class="text-nowrap d-none d-sm-table-cell">{{ p.end_date.strftime('%d.%m.%Y') if p.end_date else '—' }}</td>
                     <td class="text-nowrap fw-semibold">
                         {{ p.opening_date.strftime('%d.%m.%Y') if p.opening_date else '—' }}
                     </td>
@@ -183,7 +183,7 @@
                             <span class="text-muted">+{{ p.days_left }} дн</span>
                         {% else %}—{% endif %}
                     </td>
-                    <td>
+                    <td class="d-none d-lg-table-cell">
                         <input type="text"
                                class="form-control form-control-sm delay-reason-input"
                                data-project-id="{{ p.id }}"
