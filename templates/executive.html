@@ -145,7 +145,7 @@
   </div>
 
   <!-- Открытия по месяцам -->
-  <div class="col-12 col-lg-5">
+  <div class="col-12 col-lg-5" id="exec-chart-block">
     <div class="data-card h-100">
       <div class="data-card-header">
         <span><i class="bi bi-bar-chart-fill me-2 text-success"></i>По месяцам — {{ year }}</span>
@@ -348,57 +348,115 @@ new Chart(document.getElementById('chartMonthly'), {
 /* ── Шапка печати — скрыта на экране ───────────────────────────── */
 .print-header { display: none; }
 
-/* ── @media print — PDF одной кнопкой ──────────────────────────── */
+/* ── @media print ───────────────────────────────────────────────── */
 @media print {
-    /* Скрываем навигацию и лишнее */
+    @page { margin: 12mm 14mm; size: A4 portrait; }
+
+    /* Скрываем всё лишнее */
     .sidebar, .topbar, .bottom-nav-mobile, #npbar,
-    .btn-print, .btn, .topbar-actions,
-    .d-sm-none, #search-bar, #search-overlay { display: none !important; }
+    .btn-print, .topbar-actions, .d-sm-none,
+    #search-bar, #search-overlay,
+    #exec-chart-block { display: none !important; }
 
-    body { background: #fff !important; color: #000 !important; }
+    body { background: #fff !important; color: #000 !important; font-size: 11px !important; }
     .main-wrap { margin: 0 !important; padding: 0 !important; }
-    .page-body { padding: 12px !important; }
+    .page-body { padding: 0 !important; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-    /* Шапка с логотипом */
+    /* ── Шапка логотипа ── */
     .print-header {
         display: flex !important;
         flex-direction: column;
         align-items: center;
-        margin-bottom: 20px;
-        padding-bottom: 12px;
+        margin-bottom: 14px;
+        padding-bottom: 10px;
         border-bottom: 2px solid #3CB34A;
     }
-    .print-header img {
-        max-width: 320px;
-        max-height: 70px;
-        object-fit: contain;
-    }
-    .print-header-sub {
-        font-size: 13px;
-        color: #555;
-        margin-top: 6px;
-        letter-spacing: .03em;
-    }
+    .print-header img { max-width: 260px; max-height: 56px; object-fit: contain; }
+    .print-header-sub { font-size: 11px; color: #555; margin-top: 5px; }
 
-    /* Карточки */
-    .data-card, .stat-card {
+    /* ── KPI: компактная горизонтальная полоска ── */
+    .row.g-3.mb-4:first-of-type {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        gap: 8px !important;
+        margin-bottom: 12px !important;
+    }
+    .row.g-3.mb-4:first-of-type > [class*="col"] {
+        flex: 1 !important;
+        width: auto !important;
+        max-width: none !important;
+        padding: 0 !important;
+    }
+    .stat-card {
+        padding: 8px 12px !important;
+        min-height: unset !important;
         box-shadow: none !important;
         border: 1px solid #dee2e6 !important;
-        break-inside: avoid;
         background: #fff !important;
         color: #000 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
     }
-    .data-card-header { background: #f8f9fa !important; color: #000 !important; }
-    .stat-num, .stat-label { color: #000 !important; }
+    .stat-icon-wrap { width: 32px !important; height: 32px !important; }
+    .stat-icon { font-size: 14px !important; }
+    .stat-num { font-size: 22px !important; line-height: 1 !important; }
+    .stat-label { font-size: 10px !important; }
 
-    /* Таблицы */
-    .table { color: #000 !important; }
-    .table-head th { background: #e9ecef !important; color: #000 !important; }
-    .d-none { display: table-cell !important; }
+    /* ── Менеджер col — полная ширина при скрытом графике ── */
+    .col-12.col-lg-7 { width: 100% !important; max-width: 100% !important; flex: 0 0 100% !important; }
+
+    /* ── Карточки данных ── */
+    .data-card {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6 !important;
+        background: #fff !important;
+        color: #000 !important;
+        break-inside: avoid;
+        margin-bottom: 10px !important;
+    }
+    .data-card-header {
+        background: #f1f5f1 !important;
+        color: #000 !important;
+        padding: 6px 12px !important;
+        font-size: 11px !important;
+    }
+    .h-100 { height: auto !important; }
+
+    /* ── Таблицы ── */
+    .table { font-size: 10.5px !important; color: #000 !important; }
+    .table-head th, thead th {
+        background: #e8f5e9 !important;
+        color: #000 !important;
+        font-size: 10px !important;
+        padding: 5px 8px !important;
+    }
+    td { padding: 5px 8px !important; }
+    .d-none.d-md-table-cell { display: table-cell !important; }
     .d-none.d-sm-block { display: block !important; }
+    .table-responsive { overflow: visible !important; }
 
-    /* Скрываем canvas — таблицы важнее */
-    canvas { display: none !important; }
+    /* Прогноз + Просрочки рядом */
+    .row.g-3:last-of-type {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        gap: 8px !important;
+        break-before: page;
+    }
+    .row.g-3:last-of-type > [class*="col"] {
+        flex: 1 !important; width: 50% !important; max-width: 50% !important;
+    }
+
+    /* Ссылки без цвета */
+    a { color: #000 !important; text-decoration: none !important; }
+
+    /* Бейджи */
+    .badge { border: 1px solid #ccc !important; background: #f3f4f6 !important; color: #000 !important; }
+    .badge.bg-success { background: #d1fae5 !important; color: #065f46 !important; }
+    .badge.bg-danger  { background: #fee2e2 !important; color: #991b1b !important; }
+    .badge.bg-primary { background: #dbeafe !important; color: #1e40af !important; }
+    .dl-badge { font-size: 10px !important; padding: 2px 6px !important; }
 }
 </style>
 {% endblock %}
