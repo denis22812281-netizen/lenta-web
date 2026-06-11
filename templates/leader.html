@@ -253,13 +253,14 @@
             {% endif %}
         </div>
 
-        {# Критичные проекты — открытие #}
-        {% if critical_projects %}
+        {# Открытия в ближайший месяц — оба типа #}
+        {% if all_critical_projects %}
         <div class="data-card mb-3">
             <div class="data-card-header">
                 <span class="d-flex align-items-center gap-2">
                     <i class="bi bi-calendar-event-fill text-success fs-5"></i>
                     <strong>Открытия в ближайший месяц</strong>
+                    <span class="badge bg-secondary">{{ all_critical_projects|length }}</span>
                 </span>
                 <a href="/projects" class="btn btn-sm btn-outline-secondary">Все проекты →</a>
             </div>
@@ -267,24 +268,30 @@
             <table class="table table-hover mb-0 align-middle">
                 <thead class="table-head">
                     <tr>
-                        <th>Проект</th>
+                        <th>Проект / ТК</th>
+                        <th>Тип</th>
                         <th>Менеджер</th>
                         <th>Дата открытия</th>
                         <th>Осталось</th>
                     </tr>
                 </thead>
                 <tbody>
-                {% for p in critical_projects %}
+                {% for p in all_critical_projects %}
                 {% set days = (p.opening_date - today).days %}
                 <tr style="cursor:pointer" onclick="window.location='/projects/{{ p.id }}'">
                     <td>
-                        <div class="fw-semibold">{{ p.name[:32] }}{% if p.name|length > 32 %}…{% endif %}</div>
+                        <div class="fw-semibold">{{ p.name[:28] }}{% if p.name|length > 28 %}…{% endif %}</div>
                         {% if p.tk_number %}<div class="small text-muted">{{ p.tk_number }}</div>{% endif %}
                     </td>
-                    <td class="text-muted small">{{ p.manager.name if p.manager else '—' }}</td>
+                    <td>
+                        <span class="badge {% if p.project_type == 'Реконструкция' %}proj-type-recon{% else %}proj-type-const{% endif %}">
+                            {% if p.project_type == 'Реконструкция' %}Рекон{% else %}Const{% endif %}
+                        </span>
+                    </td>
+                    <td class="text-muted small">{{ p.manager.name | short_name if p.manager else '—' }}</td>
                     <td class="small fw-semibold">{{ p.opening_date.strftime('%d.%m.%Y') }}</td>
                     <td>
-                        <span class="dl-badge {% if days <= 7 %}dl-warn{% elif days <= 14 %}dl-ok{% else %}bg-light text-dark border{% endif %}">
+                        <span class="dl-badge {% if days <= 7 %}dl-warn{% elif days <= 14 %}dl-ok{% else %}bg-secondary text-white{% endif %}" style="border-radius:6px;padding:2px 8px;font-size:.72rem">
                             {{ days }} дн.
                         </span>
                     </td>
@@ -296,44 +303,69 @@
         </div>
         {% endif %}
 
-        {# Мои задачи #}
+        {# Реконструкции по менеджерам — риск-разбивка #}
         <div class="data-card mb-3">
             <div class="data-card-header">
                 <span class="d-flex align-items-center gap-2">
-                    <i class="bi bi-person-check-fill text-primary fs-5"></i>
-                    <strong>Мои задачи</strong>
-                    {% if my_tasks_overdue > 0 %}
-                    <span class="badge bg-danger">{{ my_tasks_overdue }} просрочено</span>
+                    <i class="bi bi-people-fill text-success fs-5"></i>
+                    <strong>Реконструкции по менеджерам</strong>
+                    {% if recon_overdue_projects > 0 %}
+                    <span class="badge bg-danger">{{ recon_overdue_projects }} проектов с просрочкой</span>
                     {% endif %}
                 </span>
-                <div class="d-flex gap-2">
-                    <span class="text-muted small align-self-center">Открытых: {{ my_tasks_open }}</span>
-                    <a href="/tasks/create" class="btn btn-sm btn-lenta">+ Задача</a>
-                </div>
+                <a href="/reconstruction" class="btn btn-sm btn-outline-secondary">Дашборд →</a>
             </div>
-            {% if my_recent_tasks %}
+            {% if recon_by_manager %}
             <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle">
+            <table class="table table-hover mb-0 align-middle" style="font-size:.83rem">
                 <thead class="table-head">
-                    <tr><th>Задача</th><th>Назначено</th><th>Проект</th><th>Дедлайн</th><th>Статус</th></tr>
+                    <tr>
+                        <th>Менеджер</th>
+                        <th class="text-center">ТК всего</th>
+                        <th class="text-center">Просроч. этапов</th>
+                        <th class="text-center">На грани</th>
+                        <th class="text-center">Статус</th>
+                    </tr>
                 </thead>
                 <tbody>
-                {% for t in my_recent_tasks %}
-                {% set overdue = t.deadline and t.deadline < today and t.status != 'Завершена' %}
-                <tr style="cursor:pointer" onclick="window.location='/tasks'" class="{% if overdue %}table-danger-soft{% endif %}">
+                {% for row in recon_by_manager %}
+                <tr>
                     <td>
-                        <div class="fw-semibold small">{{ t.title[:30] }}{% if t.title|length > 30 %}…{% endif %}</div>
-                        {% if overdue %}<div class="tiny text-danger">Просрочена</div>{% endif %}
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="leader-mgr-avatar" style="width:28px;height:28px;flex-shrink:0">
+                                {% if row.photo %}
+                                <img src="/static/{{ row.photo }}" alt="{{ row.name }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                                {% endif %}
+                                <span class="leader-mgr-initials" {% if row.photo %}style="display:none"{% endif %}>
+                                    {{ row.name.split()[0][:1] }}{{ row.name.split()[-1][:1] if row.name.split()|length > 1 else '' }}
+                                </span>
+                            </div>
+                            <span class="fw-semibold">{{ row.name.split()[0] }}</span>
+                        </div>
                     </td>
-                    <td class="text-muted small">{{ t.assignee.name.split()[-1] if t.assignee else '—' }}</td>
-                    <td class="text-muted small">{{ t.project.name[:20] if t.project else '—' }}</td>
-                    <td class="small {% if overdue %}text-danger fw-semibold{% endif %}">
-                        {% if t.deadline %}{{ t.deadline.strftime('%d.%m') }}{% else %}—{% endif %}
+                    <td class="text-center text-muted">{{ row.total }}</td>
+                    <td class="text-center">
+                        {% if row.overdue > 0 %}
+                        <span class="badge bg-danger">{{ row.overdue }}</span>
+                        {% else %}
+                        <span class="text-success small">—</span>
+                        {% endif %}
                     </td>
-                    <td>
-                        <span class="badge {% if t.status == 'Завершена' %}bg-success{% elif t.status == 'В работе' %}bg-primary{% elif t.status == 'На проверке' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                            {{ t.status }}
-                        </span>
+                    <td class="text-center">
+                        {% if row.warn > 0 %}
+                        <span class="badge bg-warning text-dark">{{ row.warn }}</span>
+                        {% else %}
+                        <span class="text-muted small">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if row.overdue > 0 %}
+                        <span class="badge" style="background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)">Риск</span>
+                        {% elif row.warn > 0 %}
+                        <span class="badge" style="background:rgba(245,158,11,.12);color:#fbbf24;border:1px solid rgba(245,158,11,.25)">Внимание</span>
+                        {% else %}
+                        <span class="badge" style="background:rgba(34,197,94,.1);color:#4ade80;border:1px solid rgba(34,197,94,.2)">ОК</span>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -341,10 +373,9 @@
             </table>
             </div>
             {% else %}
-            <div class="empty-state">
-                <i class="bi bi-clipboard2 fs-3 text-muted"></i>
-                <p class="mt-2 mb-0 text-muted">Вы ещё не создавали задачи</p>
-                <a href="/tasks/create" class="btn btn-sm btn-lenta mt-2">Создать первую</a>
+            <div class="empty-state py-3">
+                <i class="bi bi-emoji-smile text-success fs-3"></i>
+                <p class="mt-2 mb-0 small text-muted">Все менеджеры в норме</p>
             </div>
             {% endif %}
         </div>
@@ -785,6 +816,10 @@
 }
 .btn-recon:hover { background: #15803d; color: #fff; }
 
+/* ── Project type badges ──────────────────────────────────────────────── */
+.proj-type-recon { background: rgba(34,197,94,.15); color: #4ade80; border: 1px solid rgba(34,197,94,.25); }
+.proj-type-const { background: rgba(96,165,250,.15); color: #60a5fa; border: 1px solid rgba(96,165,250,.25); }
+
 /* ── Dark mode overrides ──────────────────────────────────────────────── */
 [data-bs-theme="dark"] .leader-kpi-ok      { background: rgba(22,163,74,.1);  border-color: rgba(22,163,74,.25); }
 [data-bs-theme="dark"] .leader-kpi-alert   { background: rgba(234,88,12,.1);  border-color: rgba(234,88,12,.25); }
@@ -855,11 +890,15 @@
 </style>
 <script>
 function rcOverlay(id) {
-    document.getElementById(id).classList.add('open');
+    var el = document.getElementById(id);
+    // Move to <body> to escape any parent stacking-context (overflow/transform/filter)
+    document.body.appendChild(el);
+    el.classList.add('open');
     document.body.style.overflow = 'hidden';
 }
 function rcClose(id) {
-    document.getElementById(id).classList.remove('open');
+    var el = document.getElementById(id);
+    el.classList.remove('open');
     document.body.style.overflow = '';
 }
 document.addEventListener('keydown', function(e) {

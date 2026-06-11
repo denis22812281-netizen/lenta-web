@@ -159,6 +159,28 @@ async def leader_dashboard(request: Request, db: Session = Depends(get_db),
     recon_in_work = len(recon_in_work_list)
     recon_top = recon_data[:4]
 
+    # ── Реконструкции по менеджерам ───────────────────────────────────────────
+    from collections import defaultdict
+    _mgr_map: dict = defaultdict(lambda: {"name": "—", "photo": "", "overdue": 0, "warn": 0, "total": 0})
+    for r in recon_data:
+        mgr = r["project"].manager
+        key = mgr.id if mgr else 0
+        _mgr_map[key]["name"]    = mgr.name if mgr else "—"
+        _mgr_map[key]["photo"]   = mgr.photo or "" if mgr else ""
+        _mgr_map[key]["overdue"] += r["overdue"]
+        _mgr_map[key]["warn"]    += r["warn"]
+        _mgr_map[key]["total"]   += 1
+    recon_by_manager = sorted(_mgr_map.values(), key=lambda x: -(x["overdue"] * 100 + x["warn"] * 10))
+
+    # ── Ближайшие открытия (оба типа) ────────────────────────────────────────
+    all_critical_projects = db.query(models.Project).options(
+        joinedload(models.Project.manager)
+    ).filter(
+        models.Project.opening_date >= today,
+        models.Project.opening_date <= month_ahead,
+        models.Project.status.in_(["Активный", "Завершён"]),
+    ).order_by(models.Project.opening_date).limit(8).all()
+
     return templates.TemplateResponse("leader.html", {
         "request": request, "user": user,
         "today": today,
@@ -183,4 +205,6 @@ async def leader_dashboard(request: Request, db: Session = Depends(get_db),
         "recon_opened_list": recon_opened_list,
         "recon_in_work_list": recon_in_work_list,
         "recon_top": recon_top,
+        "recon_by_manager": recon_by_manager,
+        "all_critical_projects": all_critical_projects,
     })
