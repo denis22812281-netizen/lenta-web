@@ -333,12 +333,8 @@
                     <td>
                         <div class="d-flex align-items-center gap-2">
                             <div class="leader-mgr-avatar" style="width:28px;height:28px;flex-shrink:0">
-                                {% if row.photo %}
-                                <img src="{{ media_url(row.photo) }}" alt="{{ row.name }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                                {% endif %}
-                                <span class="leader-mgr-initials" style="background:{{ row.name | avatar_color }};color:#fff;{% if row.photo %}display:none{% endif %}">
-                                    {{ row.name.split()[0][:1] }}{{ row.name.split()[-1][:1] if row.name.split()|length > 1 else '' }}
-                                </span>
+                                <img src="{% if row.photo %}{{ media_url(row.photo) }}{% else %}/static/img/raccoon.png{% endif %}"
+                                     alt="{{ row.name }}" onerror="this.src='/static/img/raccoon.png'">
                             </div>
                             <span class="fw-semibold">{{ row.name.split()[0] }}</span>
                         </div>
@@ -449,13 +445,8 @@
                 {% for row in overdue_by_manager %}
                 <div class="leader-mgr-row">
                     <div class="leader-mgr-avatar">
-                        {% if row.photo %}
-                        <img src="{{ media_url(row.photo) }}" alt="{{ row.name }}"
-                             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                        {% endif %}
-                        <span class="leader-mgr-initials" style="background:{{ row.name | avatar_color }};color:#fff;{% if row.photo %}display:none{% endif %}">
-                            {{ row.name.split()[0][:1] }}{{ row.name.split()[-1][:1] if row.name.split()|length > 1 else '' }}
-                        </span>
+                        <img src="{% if row.photo %}{{ media_url(row.photo) }}{% else %}/static/img/raccoon.png{% endif %}"
+                             alt="{{ row.name }}" onerror="this.src='/static/img/raccoon.png'">
                     </div>
                     <div class="leader-mgr-name small fw-semibold">{{ row.name.split()[0] }}</div>
                     <div class="ms-auto">
