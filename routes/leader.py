@@ -119,7 +119,7 @@ async def leader_dashboard(request: Request, db: Session = Depends(get_db),
     # ── Реконструкции: ТОП-3 критичных ──────────────────────────────────────
     recon_projects = db.query(models.Project).filter(
         models.Project.project_type == "Реконструкция",
-        models.Project.status == "Активный",
+        models.Project.status != "Приостановлен",
     ).options(joinedload(models.Project.manager)).all()
 
     recon_statuses = db.query(models.ReconStageStatus).all()
