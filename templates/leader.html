@@ -19,7 +19,7 @@
         </div>
         <div>
             <div style="color:rgba(255,255,255,.55);font-size:12px">Добро пожаловать,</div>
-            <div style="color:#fff;font-size:1.2rem;font-weight:700;line-height:1.2">{{ uname }}</div>
+            <div style="color:#fff;font-size:1.4rem;font-weight:700;line-height:1.2">{{ uname }}</div>
             <div style="color:rgba(255,255,255,.4);font-size:11px;margin-top:3px">
                 <i class="bi bi-calendar3 me-1"></i>{{ days_ru[today.weekday()] }}, {{ today.day }} {{ months_ru[today.month-1] }} {{ today.year }}
             </div>
@@ -631,24 +631,24 @@
 .lenta-banner {
     background: #060606;
     border-radius: 16px;
-    padding: 8px 24px;
-    min-height: 72px;
+    padding: 16px 32px;
+    min-height: 96px;
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 24px;
     border: 1px solid rgba(60,179,74,0.8);
     box-shadow: 0 0 10px rgba(60,179,74,0.9), 0 0 30px rgba(60,179,74,0.6), 0 0 60px rgba(60,179,74,0.3), inset 0 0 30px rgba(60,179,74,0.08);
 }
 .lenta-sign-wrap { display: flex; align-items: center; flex-shrink: 0; border-radius: 10px; overflow: hidden; }
-.lenta-logo-img { height: 54px; width: auto; display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,1)) drop-shadow(0 6px 12px rgba(0,0,0,0.8)); }
+.lenta-logo-img { height: 78px; width: auto; display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,1)) drop-shadow(0 6px 12px rgba(0,0,0,0.8)); }
 @media (max-width: 576px) {
     .lenta-banner { flex-wrap: wrap; padding: 12px 16px; gap: 10px; min-height: unset; }
-    .lenta-logo-img { height: 32px; }
+    .lenta-logo-img { height: 40px; }
 }
 
 /* ── Leader Hero avatar (inside lenta-banner) ─────────────────────────────── */
 .leader-hero-avatar {
-    width: 58px; height: 58px;
+    width: 72px; height: 72px;
     border-radius: 50%;
     overflow: hidden;
     border: 2px solid rgba(60,179,74,.5);
