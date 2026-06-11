@@ -483,89 +483,93 @@
     </div>
 </div>
 <!-- ── Модал: Открытые ТК ────────────────────────────────────────────── -->
-<div class="modal fade" id="modalOpened" tabindex="-1">
+<div class="modal fade" id="modalOpened" tabindex="-1" aria-labelledby="modalOpenedLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content" style="background:#1e293b;border:1px solid rgba(255,255,255,.1)">
-      <div class="modal-header" style="border-color:rgba(255,255,255,.1)">
-        <h5 class="modal-title">
-          <i class="bi bi-door-open-fill text-success me-2"></i>
-          Открытые ТК после реконструкции — {{ recon_opened }} объектов
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+    <div class="modal-content rc-modal">
+      <div class="rc-modal-header">
+        <div class="rc-modal-title">
+          <i class="bi bi-door-open-fill" style="color:#4ade80"></i>
+          Открытые ТК — <span style="color:#4ade80">{{ recon_opened }}</span> объектов
+        </div>
+        <button type="button" class="rc-modal-close" data-bs-dismiss="modal" aria-label="Close">
+          <i class="bi bi-x-lg"></i>
+        </button>
       </div>
-      <div class="modal-body p-0">
-        <table class="table table-hover mb-0 align-middle" style="font-size:.82rem">
-          <thead style="position:sticky;top:0;background:#0f172a;z-index:1">
-            <tr style="color:#64748b;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">
-              <th class="ps-3">ТК</th><th>Город</th><th>Менеджер</th><th>Дата открытия</th><th>Формат</th>
-            </tr>
+      <div class="modal-body p-0" style="overflow-y:auto;max-height:60vh">
+        <table class="table mb-0 align-middle rc-modal-table">
+          <thead>
+            <tr><th class="ps-3">ТК</th><th>Город</th><th>Менеджер</th><th>Дата открытия</th><th>Формат</th></tr>
           </thead>
           <tbody>
           {% for p in recon_opened_list %}
-          <tr onclick="window.location='/reconstruction'" style="cursor:pointer">
-            <td class="ps-3 fw-bold text-success">{{ p.tk_number }}</td>
+          <tr>
+            <td class="ps-3 fw-bold" style="color:#4ade80">{{ p.tk_number }}</td>
             <td>{{ p.city or '—' }}</td>
-            <td class="text-muted">{{ (p.manager.name | short_name) if p.manager else '—' }}</td>
+            <td style="color:#94a3b8">{{ (p.manager.name | short_name) if p.manager else '—' }}</td>
             <td class="fw-semibold">{{ p.opening_date.strftime('%d.%m.%Y') }}</td>
-            <td><span class="badge" style="background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.2);font-size:.65rem">{{ p.format_type or '—' }}</span></td>
+            <td><span class="rc-fmt-badge">{{ p.format_type or '—' }}</span></td>
           </tr>
           {% else %}
-          <tr><td colspan="5" class="text-center text-muted py-4">Нет данных</td></tr>
+          <tr><td colspan="5" class="text-center py-4" style="color:#64748b">Нет данных</td></tr>
           {% endfor %}
           </tbody>
         </table>
       </div>
-      <div class="modal-footer" style="border-color:rgba(255,255,255,.1)">
-        <a href="/reconstruction" class="btn btn-sm" style="background:#16a34a;color:#fff">Открыть дашборд →</a>
-        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
+      <div class="rc-modal-footer">
+        <a href="/reconstruction" class="btn btn-sm" style="background:#16a34a;color:#fff;border-radius:8px;font-weight:600">
+          <i class="bi bi-arrow-right-circle me-1"></i>Открыть дашборд
+        </a>
+        <button type="button" class="btn btn-sm rc-btn-close-footer" data-bs-dismiss="modal">Закрыть</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- ── Модал: В работе ───────────────────────────────────────────────── -->
-<div class="modal fade" id="modalInWork" tabindex="-1">
+<div class="modal fade" id="modalInWork" tabindex="-1" aria-labelledby="modalInWorkLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content" style="background:#1e293b;border:1px solid rgba(255,255,255,.1)">
-      <div class="modal-header" style="border-color:rgba(255,255,255,.1)">
-        <h5 class="modal-title">
-          <i class="bi bi-tools text-primary me-2"></i>
-          ТК в работе — {{ recon_in_work }} объектов
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+    <div class="modal-content rc-modal">
+      <div class="rc-modal-header">
+        <div class="rc-modal-title">
+          <i class="bi bi-tools" style="color:#60a5fa"></i>
+          ТК в работе — <span style="color:#60a5fa">{{ recon_in_work }}</span> объектов
+        </div>
+        <button type="button" class="rc-modal-close" data-bs-dismiss="modal" aria-label="Close">
+          <i class="bi bi-x-lg"></i>
+        </button>
       </div>
-      <div class="modal-body p-0">
-        <table class="table table-hover mb-0 align-middle" style="font-size:.82rem">
-          <thead style="position:sticky;top:0;background:#0f172a;z-index:1">
-            <tr style="color:#64748b;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em">
-              <th class="ps-3">ТК</th><th>Город</th><th>Менеджер</th><th>План открытия</th><th>Осталось</th>
-            </tr>
+      <div class="modal-body p-0" style="overflow-y:auto;max-height:60vh">
+        <table class="table mb-0 align-middle rc-modal-table">
+          <thead>
+            <tr><th class="ps-3">ТК</th><th>Город</th><th>Менеджер</th><th>План открытия</th><th>Осталось</th></tr>
           </thead>
           <tbody>
           {% for p in recon_in_work_list %}
           {% set days_left = (p.opening_date - today).days if p.opening_date else None %}
-          <tr onclick="window.location='/reconstruction'" style="cursor:pointer">
+          <tr>
             <td class="ps-3 fw-bold" style="color:#60a5fa">{{ p.tk_number }}</td>
             <td>{{ p.city or '—' }}</td>
-            <td class="text-muted">{{ (p.manager.name | short_name) if p.manager else '—' }}</td>
-            <td>{% if p.opening_date %}{{ p.opening_date.strftime('%d.%m.%Y') }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            <td style="color:#94a3b8">{{ (p.manager.name | short_name) if p.manager else '—' }}</td>
+            <td>{% if p.opening_date %}{{ p.opening_date.strftime('%d.%m.%Y') }}{% else %}<span style="color:#475569">—</span>{% endif %}</td>
             <td>
               {% if days_left is not none %}
                 <span class="badge {% if days_left < 0 %}bg-danger{% elif days_left <= 14 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                  {% if days_left < 0 %}+{{ -days_left }} дн.{% else %}{{ days_left }} дн.{% endif %}
+                  {% if days_left < 0 %}просрочено {{ -days_left }} дн.{% else %}{{ days_left }} дн.{% endif %}
                 </span>
-              {% else %}<span class="text-muted small">нет даты</span>{% endif %}
+              {% else %}<span style="color:#475569;font-size:.75rem">нет даты</span>{% endif %}
             </td>
           </tr>
           {% else %}
-          <tr><td colspan="5" class="text-center text-muted py-4">Нет данных</td></tr>
+          <tr><td colspan="5" class="text-center py-4" style="color:#64748b">Нет данных</td></tr>
           {% endfor %}
           </tbody>
         </table>
       </div>
-      <div class="modal-footer" style="border-color:rgba(255,255,255,.1)">
-        <a href="/reconstruction" class="btn btn-sm" style="background:#1d4ed8;color:#fff">Открыть дашборд →</a>
-        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
+      <div class="rc-modal-footer">
+        <a href="/reconstruction" class="btn btn-sm" style="background:#1d4ed8;color:#fff;border-radius:8px;font-weight:600">
+          <i class="bi bi-arrow-right-circle me-1"></i>Открыть дашборд
+        </a>
+        <button type="button" class="btn btn-sm rc-btn-close-footer" data-bs-dismiss="modal">Закрыть</button>
       </div>
     </div>
   </div>
@@ -806,5 +810,34 @@
 [data-bs-theme="dark"] .table-danger-soft { background: rgba(220,38,38,.07) !important; }
 [data-bs-theme="dark"] .leader-mgr-avatar { background: #374151; }
 [data-bs-theme="dark"] .leader-mgr-initials { color: #9ca3af; }
+
+/* ── Modals ──────────────────────────────────────────────────────── */
+.rc-modal { background: #1e293b; border: 1px solid rgba(255,255,255,.12); border-radius: 14px; overflow: hidden; }
+.rc-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,.1);
+    background: #0f172a;
+}
+.rc-modal-title { display: flex; align-items: center; gap: 10px; font-size: 1rem; font-weight: 700; color: #e2e8f0; }
+.rc-modal-close {
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+    color: #94a3b8; border-radius: 8px; width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all .15s; font-size: 1rem;
+}
+.rc-modal-close:hover { background: rgba(239,68,68,.2); border-color: rgba(239,68,68,.4); color: #f87171; }
+.rc-modal-table { font-size: .82rem; color: #e2e8f0; }
+.rc-modal-table thead tr { background: #0f172a; }
+.rc-modal-table thead th { color: #64748b; font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,.1) !important; padding: 10px 8px; }
+.rc-modal-table tbody tr { border-bottom: 1px solid rgba(255,255,255,.06); transition: background .1s; }
+.rc-modal-table tbody tr:hover { background: rgba(255,255,255,.04); }
+.rc-modal-table tbody td { padding: 9px 8px; border: none; }
+.rc-fmt-badge { background: rgba(34,197,94,.1); color: #4ade80; border: 1px solid rgba(34,197,94,.2); border-radius: 5px; padding: 2px 7px; font-size: .65rem; font-weight: 600; }
+.rc-modal-footer {
+    display: flex; align-items: center; gap: 8px; justify-content: flex-end;
+    padding: 12px 20px; border-top: 1px solid rgba(255,255,255,.1); background: #0f172a;
+}
+.rc-btn-close-footer { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: #94a3b8; border-radius: 8px; }
+.rc-btn-close-footer:hover { background: rgba(255,255,255,.12); color: #e2e8f0; }
 </style>
 {% endblock %}
