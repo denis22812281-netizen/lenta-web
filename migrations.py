@@ -98,6 +98,30 @@ _POSTGRES_MIGRATIONS = [
         ip         VARCHAR(50)  DEFAULT '',
         created_at TIMESTAMP DEFAULT NOW()
     )""",
+    # Расширенные этапы реконструкции
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS mp_start DATE",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS mp_end DATE",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS tp_start DATE",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS tp_end DATE",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS visualization_start DATE",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS visualization_end DATE",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS audit_start DATE",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS audit_end DATE",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pjf_approval_start DATE",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS pjf_approval_end DATE",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS ds_signing_date DATE",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS tz_start DATE",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS tz_end DATE",
+    "ALTER TABLE projects ADD COLUMN IF NOT EXISTS status_comment TEXT DEFAULT ''",
+    """CREATE TABLE IF NOT EXISTS recon_stage_statuses (
+        id SERIAL PRIMARY KEY,
+        project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE NOT NULL,
+        stage_key VARCHAR(30) NOT NULL,
+        is_done BOOLEAN DEFAULT FALSE,
+        done_by VARCHAR(100) DEFAULT '',
+        done_at TIMESTAMP,
+        UNIQUE(project_id, stage_key)
+    )""",
 ]
 
 _SQLITE_MIGRATIONS = [
@@ -128,6 +152,29 @@ _SQLITE_MIGRATIONS = [
     "CREATE INDEX IF NOT EXISTS ix_chat_sender_name ON chat_messages (sender_name)",
     "CREATE INDEX IF NOT EXISTS ix_vpk_report_submitted_at ON vpk_reports (submitted_at)",
     "CREATE INDEX IF NOT EXISTS ix_ai_chat_user_name ON ai_chat_messages (user_name)",
+    "ALTER TABLE projects ADD COLUMN mp_start DATE",
+    "ALTER TABLE projects ADD COLUMN mp_end DATE",
+    "ALTER TABLE projects ADD COLUMN tp_start DATE",
+    "ALTER TABLE projects ADD COLUMN tp_end DATE",
+    "ALTER TABLE projects ADD COLUMN visualization_start DATE",
+    "ALTER TABLE projects ADD COLUMN visualization_end DATE",
+    "ALTER TABLE projects ADD COLUMN audit_start DATE",
+    "ALTER TABLE projects ADD COLUMN audit_end DATE",
+    "ALTER TABLE projects ADD COLUMN pjf_approval_start DATE",
+    "ALTER TABLE projects ADD COLUMN pjf_approval_end DATE",
+    "ALTER TABLE projects ADD COLUMN ds_signing_date DATE",
+    "ALTER TABLE projects ADD COLUMN tz_start DATE",
+    "ALTER TABLE projects ADD COLUMN tz_end DATE",
+    "ALTER TABLE projects ADD COLUMN status_comment TEXT DEFAULT ''",
+    """CREATE TABLE IF NOT EXISTS recon_stage_statuses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        stage_key VARCHAR(30) NOT NULL,
+        is_done BOOLEAN DEFAULT 0,
+        done_by VARCHAR(100) DEFAULT '',
+        done_at TIMESTAMP,
+        UNIQUE(project_id, stage_key)
+    )""",
 ]
 
 

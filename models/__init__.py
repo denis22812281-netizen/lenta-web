@@ -5,6 +5,7 @@ from models.project import Project, ProjectStage, SyncConfig
 from models.task import Task, TaskPhoto, TaskNotification
 from models.vpk import VpkCriterion, VpkReport, VpkReportRead, VpkReportItem
 from models.smr import SmrContact, SmrSchedule, SmrTask, SmrConfirmation
+from models.recon import ReconStageStatus
 
 __all__ = [
     "PhoneWhitelist", "User", "WebAuthnCredential",
@@ -13,4 +14,5 @@ __all__ = [
     "Task", "TaskPhoto", "TaskNotification",
     "VpkCriterion", "VpkReport", "VpkReportRead", "VpkReportItem",
     "SmrContact", "SmrSchedule", "SmrTask", "SmrConfirmation",
+    "ReconStageStatus",
 ]

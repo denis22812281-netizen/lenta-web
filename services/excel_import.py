@@ -86,18 +86,42 @@ def import_reconstruct_excel(content: bytes, db: Session) -> dict:
 
     # Статичные параметры листов + дефолтные позиции колонок (авто-определяются из заголовков)
     SHEETS = [
-        {"idx": 9,  "hdr": [2, 3], "start": 4, "tk": 1, "city": 4, "addr": 5, "area": 12,
+        {"idx": 9,  "label": "Реконструкции 2026",
+         "hdr": [2, 3], "start": 4, "tk": 1, "city": 4, "addr": 5, "area": 12,
          "sid_s": 14, "sid_e": 15, "zon_s": 16, "zon_e": 17,
-         "clos": 36, "vpk": 40, "opening": 41, "mgr": 52, "mgr2": 51},
-        {"idx": 10, "hdr": [2, 3], "start": 4, "tk": 1, "city": 4, "addr": 5, "area": 12,
+         "mp_s": 18,  "mp_e": 19,  "tp_s": 20,  "tp_e": 21,
+         "viz_s": 23, "viz_e": 24, "audit_s": 25, "audit_e": 26,
+         "pjf_s": 27, "pjf_e": 28, "ds": 29,
+         "tz_s": 30,  "tz_e": 31,
+         "clos": 36, "vpk": 40, "opening": 41, "pjf_code": 45,
+         "mgr": 52, "mgr2": 51, "status_col": 53},
+        {"idx": 10, "label": "Лайт реконструкции 2026",
+         "hdr": [2, 3], "start": 4, "tk": 1, "city": 4, "addr": 5, "area": 12,
          "sid_s": 13, "sid_e": 14, "zon_s": 15, "zon_e": 16,
-         "clos": 35, "vpk": 36, "opening": 37, "mgr": 42, "mgr2": 41},
-        {"idx": 11, "hdr": [1, 2], "start": 3, "tk": 1, "city": 2, "addr": 3, "area": 7,
+         "mp_s": 17,  "mp_e": 18,  "tp_s": 19,  "tp_e": 20,
+         "viz_s": 22, "viz_e": 23, "audit_s": 24, "audit_e": 25,
+         "pjf_s": 26, "pjf_e": 27, "ds": 28,
+         "tz_s": 29,  "tz_e": 30,
+         "clos": 35, "vpk": 36, "opening": 37, "pjf_code": 38,
+         "mgr": 42, "mgr2": 41, "status_col": 43},
+        {"idx": 11, "label": "Рисковые объекты 2026 АЛ",
+         "hdr": [1, 2], "start": 3, "tk": 1, "city": 2, "addr": 3, "area": 7,
          "sid_s": 9,  "sid_e": 10, "zon_s": 11, "zon_e": 12,
-         "clos": 32, "vpk": 33, "opening": 34, "mgr": 41, "mgr2": 40},
-        {"idx": 12, "hdr": [1, 2], "start": 3, "tk": 1, "city": 2, "addr": 3, "area": 7,
+         "mp_s": 13,  "mp_e": 14,  "tp_s": 15,  "tp_e": 16,
+         "viz_s": 18, "viz_e": 19, "audit_s": 20, "audit_e": 21,
+         "pjf_s": 22, "pjf_e": 23, "ds": 24,
+         "tz_s": 25,  "tz_e": 26,
+         "clos": 32, "vpk": 33, "opening": 34, "pjf_code": 35,
+         "mgr": 41, "mgr2": 40, "status_col": 42},
+        {"idx": 12, "label": "Рисковые объекты Малая площадь",
+         "hdr": [1, 2], "start": 3, "tk": 1, "city": 2, "addr": 3, "area": 7,
          "sid_s": 9,  "sid_e": 10, "zon_s": 11, "zon_e": 12,
-         "clos": 32, "vpk": 33, "opening": 34, "mgr": 37, "mgr2": 36},
+         "mp_s": 13,  "mp_e": 14,  "tp_s": 15,  "tp_e": 16,
+         "viz_s": 18, "viz_e": 19, "audit_s": 20, "audit_e": 21,
+         "pjf_s": 22, "pjf_e": 23, "ds": 24,
+         "tz_s": 25,  "tz_e": 26,
+         "clos": 32, "vpk": 33, "opening": 34, "pjf_code": 0,
+         "mgr": 37, "mgr2": 36, "status_col": 38},
     ]
 
     for sheet_cfg in SHEETS:
@@ -128,9 +152,39 @@ def import_reconstruct_excel(content: bytes, db: Session) -> dict:
             sid_e   = safe_date(ws.cell(row_idx, cols["sid_e"]).value)
             zon_s   = safe_date(ws.cell(row_idx, cols["zon_s"]).value)
             zon_e   = safe_date(ws.cell(row_idx, cols["zon_e"]).value)
+            mp_s    = safe_date(ws.cell(row_idx, cols["mp_s"]).value)
+            mp_e    = safe_date(ws.cell(row_idx, cols["mp_e"]).value)
+            tp_s    = safe_date(ws.cell(row_idx, cols["tp_s"]).value)
+            tp_e    = safe_date(ws.cell(row_idx, cols["tp_e"]).value)
+            viz_s   = safe_date(ws.cell(row_idx, cols["viz_s"]).value)
+            viz_e   = safe_date(ws.cell(row_idx, cols["viz_e"]).value)
+            aud_s   = safe_date(ws.cell(row_idx, cols["audit_s"]).value)
+            aud_e   = safe_date(ws.cell(row_idx, cols["audit_e"]).value)
+            pjf_s   = safe_date(ws.cell(row_idx, cols["pjf_s"]).value)
+            pjf_e   = safe_date(ws.cell(row_idx, cols["pjf_e"]).value)
+            ds      = safe_date(ws.cell(row_idx, cols["ds"]).value)
+            tz_s    = safe_date(ws.cell(row_idx, cols["tz_s"]).value)
+            tz_e    = safe_date(ws.cell(row_idx, cols["tz_e"]).value)
             clos    = safe_date(ws.cell(row_idx, cols["clos"]).value)
             vpk     = safe_date(ws.cell(row_idx, cols["vpk"]).value)
             opening = safe_date(ws.cell(row_idx, cols["opening"]).value)
+
+            pjf_code_val = ""
+            if cols.get("pjf_code"):
+                raw = ws.cell(row_idx, cols["pjf_code"]).value
+                pjf_code_val = str(raw).strip() if raw else ""
+
+            # Последний комментарий — первая непустая текстовая ячейка в статус-колонках
+            status_comment = ""
+            sc = cols.get("status_col", 0)
+            if sc:
+                for c in range(sc, min(sc + 60, ws.max_column + 1)):
+                    v = ws.cell(row_idx, c).value
+                    if v and not hasattr(v, "year"):
+                        txt = str(v).strip()
+                        if txt:
+                            status_comment = txt
+                            break
 
             mgr_raw  = str(ws.cell(row_idx, cols["mgr"]).value  or "").strip()
             mgr_raw2 = str(ws.cell(row_idx, cols["mgr2"]).value or "").strip()
@@ -138,24 +192,39 @@ def import_reconstruct_excel(content: bytes, db: Session) -> dict:
 
             status = "Завершён" if (opening and opening <= today) else "Активный"
             proj_name = f"ТК {tk_num}" + (f" {city}" if city else "")
+            sheet_label = sheet_cfg.get("label", "Реконструкция")
 
             existing = db.query(models.Project).filter(
-                models.Project.tk_number == tk_num).first()
+                models.Project.tk_number == tk_num,
+                models.Project.project_type == "Реконструкция",
+            ).first()
+
+            stage_fields = dict(
+                sid_start=sid_s, sid_end=sid_e,
+                zoning_start=zon_s, zoning_end=zon_e,
+                mp_start=mp_s, mp_end=mp_e,
+                tp_start=tp_s, tp_end=tp_e,
+                visualization_start=viz_s, visualization_end=viz_e,
+                audit_start=aud_s, audit_end=aud_e,
+                pjf_approval_start=pjf_s, pjf_approval_end=pjf_e,
+                ds_signing_date=ds,
+                tz_start=tz_s, tz_end=tz_e,
+                closure_date=clos, vpk_date=vpk, opening_date=opening,
+            )
 
             if existing:
                 if city:    existing.city    = city
                 if address: existing.address = address
                 if area:    existing.area    = area
                 existing.project_type  = "Реконструкция"
+                existing.format_type   = sheet_label
                 existing.start_date    = sid_s
                 existing.end_date      = opening
-                existing.sid_start     = sid_s
-                existing.sid_end       = sid_e
-                existing.zoning_start  = zon_s
-                existing.zoning_end    = zon_e
-                existing.closure_date  = clos
-                existing.vpk_date      = vpk
-                existing.opening_date  = opening
+                existing.status_comment = status_comment
+                if pjf_code_val:
+                    existing.pjf_code = pjf_code_val
+                for field, val in stage_fields.items():
+                    setattr(existing, field, val)
                 if existing.status != "Приостановлен":
                     existing.status = status
                 if manager_id:
@@ -166,11 +235,12 @@ def import_reconstruct_excel(content: bytes, db: Session) -> dict:
                     name=proj_name, tk_number=tk_num,
                     city=city, address=address,
                     project_type="Реконструкция",
+                    format_type=sheet_label,
                     manager_id=manager_id, status=status,
                     start_date=sid_s, end_date=opening, area=area,
-                    sid_start=sid_s, sid_end=sid_e,
-                    zoning_start=zon_s, zoning_end=zon_e,
-                    closure_date=clos, vpk_date=vpk, opening_date=opening,
+                    pjf_code=pjf_code_val,
+                    status_comment=status_comment,
+                    **stage_fields,
                 ))
                 created += 1
 

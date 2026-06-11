@@ -185,13 +185,14 @@ from routes.smr       import router as smr_router
 from routes.leader    import router as leader_router
 from routes.executive import router as executive_router
 from routes.help      import router as help_router
-from routes.case      import router as case_router
+from routes.case           import router as case_router
+from routes.reconstruction import router as reconstruction_router
 
 for r in [auth_router, dashboard_router, projects_router, sections_router,
           kso_router, tasks_router, managers_router, deadlines_router,
           vpk_router, stats_router, admin_router, chat_router,
           ai_router, api_router, sync_router, smr_router, leader_router,
-          executive_router, help_router, case_router]:
+          executive_router, help_router, case_router, reconstruction_router]:
     app.include_router(r)
 
 

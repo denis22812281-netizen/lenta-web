@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block page_title %}Реконструкции — Лента{% endblock %}
+{% block title %}<i class="bi bi-grid-3x3-gap-fill me-2"></i>Реконструкции{% endblock %}
+
+{% block content %}
+<style>
+/* ── Таблица-светофор ───────────────────────────────────────────── */
+.rc-wrap        { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; }
+.rc-table       { border-collapse: collapse; min-width: 1100px; width: 100%; }
+.rc-table th,
+.rc-table td    { padding: 7px 8px; white-space: nowrap; font-size: .8rem;
+                  border: 1px solid rgba(255,255,255,.06); vertical-align: middle; }
+.rc-table thead th { background: #1e293b; color: #94a3b8; font-weight: 600;
+                     position: sticky; top: 0; z-index: 2; text-align: center; }
+.rc-sticky      { position: sticky; left: 0; background: #0f172a !important;
+                  z-index: 1; min-width: 140px; max-width: 160px; }
+thead .rc-sticky { z-index: 3; }
+
+/* Ячейки этапов */
+.rc-cell        { cursor: pointer; text-align: center; font-size: .78rem; font-weight: 600;
+                  transition: filter .12s, transform .1s; user-select: none; }
+.rc-cell:hover  { filter: brightness(1.35); transform: scale(1.05); }
+.cell-done      { background: #166534; color: #bbf7d0; }
+.cell-ok        { background: #14532d; color: #6ee7b7; }
+.cell-warn      { background: #78350f; color: #fde68a; }
+.cell-over      { background: #7f1d1d; color: #fca5a5; }
+.cell-empty     { background: rgba(255,255,255,.03); color: #475569; }
+
+/* Строки */
+.rc-table tbody tr:hover td { background: rgba(255,255,255,.04); }
+.rc-table tbody tr:hover .rc-sticky { background: #1a2234 !important; }
+
+/* Комментарий */
+.rc-comment     { max-width: 180px; white-space: normal; font-size: .75rem;
+                  color: #94a3b8; line-height: 1.3; }
+.rc-tk          { font-weight: 700; font-size: .85rem; color: #e2e8f0; }
+.rc-city        { font-size: .72rem; color: #64748b; }
+.rc-addr        { font-size: .68rem; color: #475569; white-space: normal; max-width: 140px; }
+
+/* Просрочки */
+.overdue-block  { border-left: 4px solid #dc2626; background: rgba(127,29,29,.35);
+                  border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; }
+.overdue-row    { display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+                  padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+.overdue-row:last-child { border-bottom: none; }
+.od-tk          { font-weight: 700; color: #fca5a5; min-width: 52px; }
+.od-city        { color: #cbd5e1; }
+.od-stage       { background: #7f1d1d; color: #fca5a5; border-radius: 4px;
+                  padding: 1px 7px; font-size: .75rem; font-weight: 600; }
+.od-days        { color: #f87171; font-size: .8rem; }
+.od-mgr         { color: #fbbf24; font-size: .78rem; }
+
+/* Вкладки */
+.rc-tabs        { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.rc-tab         { padding: 5px 14px; border-radius: 20px; font-size: .82rem; cursor: pointer;
+                  border: 1px solid rgba(255,255,255,.12); color: #94a3b8;
+                  text-decoration: none; transition: all .15s; }
+.rc-tab:hover   { border-color: #FFD200; color: #FFD200; }
+.rc-tab.active  { background: #FFD200; color: #0f172a; font-weight: 700; border-color: #FFD200; }
+.rc-tab .badge-num { font-size: .7rem; margin-left: 4px; opacity: .8; }
+
+/* Легенда */
+.rc-legend      { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+.leg-item       { display: flex; align-items: center; gap: 5px; font-size: .75rem; color: #94a3b8; }
+.leg-dot        { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+/* Мобиль */
+@media (max-width: 576px) {
+    .rc-table th, .rc-table td { padding: 5px 5px; font-size: .72rem; }
+    .rc-sticky { min-width: 110px; }
+    .rc-comment { display: none; }
+    .overdue-block { padding: 10px 12px; }
+}
+</style>
+
+<!-- Toolbar -->
+<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+    <form method="get" class="d-flex gap-2 flex-wrap align-items-center">
+        <input type="hidden" name="tab" value="{{ active_tab }}">
+        <select name="manager_id" class="form-select form-select-sm" style="width:160px"
+                onchange="this.form.submit()">
+            <option value="">Все менеджеры</option>
+            {% for m in managers %}
+            <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>
+                {{ m.name | short_name }}
+            </option>
+            {% endfor %}
+        </select>
+        <div class="form-check form-switch mb-0 ms-1">
+            <input class="form-check-input" type="checkbox" id="only-problems" name="only_problems"
+                   value="1" {% if only_problems %}checked{% endif %} onchange="this.form.submit()">
+            <label class="form-check-label small" for="only-problems">Только с просрочкой</label>
+        </div>
+    </form>
+    <span class="ms-auto text-muted small">{{ total }} объектов</span>
+</div>
+
+<!-- Вкладки -->
+<div class="rc-tabs">
+    {% for t in tabs %}
+    <a href="?tab={{ t.key }}{% if filter_manager_id %}&manager_id={{ filter_manager_id }}{% endif %}{% if only_problems %}&only_problems=1{% endif %}"
+       class="rc-tab {% if active_tab == t.key %}active{% endif %}">
+        {{ t.label }}
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Просрочено сегодня -->
+{% if overdue_items %}
+<div class="overdue-block">
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+        <strong style="color:#fca5a5">Просрочено: {{ overdue_items|length }} этапов</strong>
+        <span class="text-muted small">— нужно срочно разобраться</span>
+    </div>
+    {% for item in overdue_items %}
+    <div class="overdue-row">
+        <span class="od-tk">ТК {{ item.tk }}</span>
+        <span class="od-city">{{ item.city }}</span>
+        <span class="od-stage">{{ item.stage_label }}</span>
+        <span class="od-days">+{{ item.days }} дн.</span>
+        <span class="od-mgr"><i class="bi bi-person-fill me-1"></i>{{ item.manager }}</span>
+        {% if item.end_date %}
+        <span class="text-muted" style="font-size:.72rem">план: {{ item.end_date.strftime('%d.%m.%Y') }}</span>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% elif total > 0 %}
+<div class="alert alert-success py-2 mb-3">
+    <i class="bi bi-check-circle-fill me-2"></i>
+    <strong>Всё в норме</strong> — просроченных этапов нет
+</div>
+{% endif %}
+
+<!-- Легенда -->
+<div class="rc-legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#166534"></div>Выполнено</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#14532d"></div>В норме</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#78350f"></div>Осталось ≤7 дн.</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#7f1d1d"></div>Просрочено</div>
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)"></div>Нет даты</div>
+    <span class="text-muted small ms-2">← клик на ячейке = отметить выполненным</span>
+</div>
+
+<!-- Таблица -->
+{% if projects_data %}
+<div class="rc-wrap">
+<table class="rc-table">
+    <thead>
+        <tr>
+            <th class="rc-sticky" style="text-align:left">ТК / Город</th>
+            {% for s in stages %}
+            <th title="{{ s.label }}">{{ s.label }}</th>
+            {% endfor %}
+            <th>PJF код</th>
+            <th>МП</th>
+            <th class="d-none d-md-table-cell">Комментарий</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for row in projects_data %}
+    {% set p = row.project %}
+    <tr>
+        <td class="rc-sticky">
+            <div class="rc-tk">ТК {{ p.tk_number }}</div>
+            <div class="rc-city">{{ p.city or '—' }}</div>
+            {% if p.address %}
+            <div class="rc-addr">{{ p.address }}</div>
+            {% endif %}
+        </td>
+        {% for si in row.stages %}
+        <td class="rc-cell {{ si.css }}"
+            data-pid="{{ p.id }}"
+            data-stage="{{ si.key }}"
+            title="{% if si.end_date %}{{ si.end_date.strftime('%d.%m.%Y') }}{% else %}нет даты{% endif %}{% if si.is_done %} ✓ выполнено{% endif %}">
+            {% if si.is_done %}
+            <i class="bi bi-check-lg"></i>
+            {% elif si.end_date %}
+            {{ si.end_date.strftime('%d.%m') }}
+            {% else %}—{% endif %}
+        </td>
+        {% endfor %}
+        <td class="small text-muted" style="text-align:center">{{ p.pjf_code or '—' }}</td>
+        <td class="small">{{ (p.manager.name | short_name) if p.manager else '—' }}</td>
+        <td class="rc-comment d-none d-md-table-cell">{{ p.status_comment or '—' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="bi bi-grid-3x3-gap"></i>
+    <p>Нет объектов. Загрузите файл реконструкции через раздел <a href="/projects">Проекты → Импорт Excel</a></p>
+</div>
+{% endif %}
+
+<script>
+// ── Переключение этапа выполнено / не выполнено ───────────────────
+document.querySelectorAll('.rc-cell').forEach(cell => {
+    cell.addEventListener('click', async function () {
+        const pid   = parseInt(this.dataset.pid);
+        const stage = this.dataset.stage;
+        const isDone = !this.classList.contains('cell-done');
+
+        // Оптимистичный UI — сразу меняем вид
+        this.classList.remove('cell-done','cell-ok','cell-warn','cell-over','cell-empty');
+        this.classList.add(isDone ? 'cell-done' : 'cell-empty');
+        this.innerHTML = isDone ? '<i class="bi bi-check-lg"></i>' : '...';
+
+        try {
+            const res = await fetch('/api/reconstruction/stage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project_id: pid, stage_key: stage, is_done: isDone })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                this.classList.remove('cell-done','cell-ok','cell-warn','cell-over','cell-empty');
+                this.classList.add(data.css);
+                if (data.is_done) {
+                    this.innerHTML = '<i class="bi bi-check-lg"></i>';
+                } else {
+                    // Восстановим дату из title
+                    const title = this.getAttribute('title') || '';
+                    const dateMatch = title.match(/\d{2}\.\d{2}\.\d{4}/);
+                    this.innerHTML = dateMatch ? dateMatch[0].slice(0,5) : '—';
+                }
+            }
+        } catch (e) {
+            // Если ошибка — перезагрузим страницу
+            location.reload();
+        }
+    });
+});
+
+// ── Фильтр по менеджеру через JS (мгновенно скрывает строки) ──────
+document.getElementById('only-problems')?.addEventListener('change', function () {
+    // form.submit() уже навешен через onchange в HTML
+});
+</script>
+{% endblock %}
