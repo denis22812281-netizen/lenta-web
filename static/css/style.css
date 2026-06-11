@@ -950,3 +950,34 @@ body {
 [data-bs-theme="light"] .btn-theme-toggle { color: #f59e0b; }
 [data-bs-theme="dark"] .btn-theme-toggle { color: #94a3b8; }
 [data-bs-theme="dark"] .nav-sect-toggle { color: rgba(255,255,255,.3); }
+
+/* ── Print overrides — must be last, same specificity beats dark theme ── */
+@media print {
+    [data-bs-theme="dark"] .data-card-header,
+    [data-bs-theme] .data-card-header,
+    .data-card-header {
+        background: #f4f4f4 !important;
+        color: #111 !important;
+        border-bottom-color: #d0d0d0 !important;
+    }
+    [data-bs-theme="dark"] .table-head th,
+    [data-bs-theme] .table-head th,
+    .table-head th, thead th {
+        background: #efefef !important;
+        color: #111 !important;
+        border-bottom-color: #ccc !important;
+    }
+    [data-bs-theme="dark"] .stat-card,
+    [data-bs-theme] .stat-card,
+    .stat-card {
+        background: #fff !important;
+        color: #111 !important;
+        border-color: #d0d0d0 !important;
+    }
+    [data-bs-theme="dark"] .table > :not(caption) > * > *,
+    .table > :not(caption) > * > * {
+        background-color: #fff !important;
+        color: #111 !important;
+        border-bottom-color: #ebebeb !important;
+    }
+}
