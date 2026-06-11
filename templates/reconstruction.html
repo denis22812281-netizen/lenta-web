@@ -84,8 +84,13 @@
                   border: 1px solid rgba(255,255,255,.07); }
 .rc-table       { border-collapse: collapse; min-width: 1200px; width: 100%; }
 .rc-table th,
-.rc-table td    { padding: 6px 7px; white-space: nowrap; font-size: .77rem;
-                  border-bottom: 1px solid rgba(255,255,255,.05); vertical-align: middle; }
+.rc-table td    { padding: 7px 7px; white-space: nowrap; font-size: .77rem;
+                  border-bottom: 1px solid rgba(255,255,255,.1); vertical-align: middle; }
+.rc-table tbody tr td:first-child {
+    border-left: none;
+}
+/* Strong top border on each row for clear separation */
+.rc-table tbody tr { border-top: 1px solid rgba(255,255,255,.08); }
 .rc-table thead th { background: #1e293b; color: #64748b; font-weight: 600;
                      position: sticky; top: 0; z-index: 2; text-align: center;
                      border-bottom: 2px solid rgba(255,255,255,.1); }
