@@ -503,13 +503,27 @@ new Chart(document.getElementById('chartMonthly'), {
     /* Ссылки */
     a { color: #111 !important; text-decoration: none !important; }
 
-    /* ── Прогноз/Просрочки: скрыть колонку Менеджер (она есть в рейтинге выше) ── */
+    /* ── Прогноз/Просрочки: скрыть колонку Менеджер ── */
     #forecast-overdue-row th:nth-child(3),
     #forecast-overdue-row td:nth-child(3) { display: none !important; }
-    /* Снять max-width с адреса — пусть адаптируется сам */
-    #forecast-overdue-row td[style*="max-width"] { max-width: none !important; }
     /* Ограничить прогноз 20 строками в печати */
     #forecast-overdue-row tbody tr:nth-child(n+21) { display: none !important; }
+    /* Фиксированная раскладка — предотвращает выход за пределы страницы */
+    #forecast-overdue-row table {
+        table-layout: fixed !important;
+        width: 100% !important;
+    }
+    #forecast-overdue-row th:nth-child(1),
+    #forecast-overdue-row td:nth-child(1) { width: 56px !important; }
+    #forecast-overdue-row th:nth-child(4),
+    #forecast-overdue-row td:nth-child(4) { width: 72px !important; white-space: nowrap !important; }
+    #forecast-overdue-row th:nth-child(5),
+    #forecast-overdue-row td:nth-child(5) { width: 56px !important; text-align: center !important; }
+    #forecast-overdue-row td:nth-child(2) {
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
 
     /* ── Футер ── */
     #print-footer {
