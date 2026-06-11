@@ -264,15 +264,16 @@ def import_reconstruct_excel(content: bytes, db: Session) -> dict:
                 closure_date=clos, vpk_date=vpk, opening_date=opening,
             )
 
-            # Проверяем нет ли дубля в Констракшн (L651 ↔ 651)
+            # Если Констракшн с таким ТК уже есть — пропускаем
             if not existing:
                 norm = _norm_tk(tk_num)
-                dupes = db.query(models.Project).filter(
+                has_construction = db.query(models.Project).filter(
                     models.Project.project_type == "Констракшн",
                     models.Project.tk_number.in_([norm, f"L{norm}", tk_num]),
                 ).count()
-                if dupes:
+                if has_construction:
                     cross_type_warn += 1
+                    continue
 
             if existing:
                 if city:    existing.city    = city
@@ -473,15 +474,15 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
                 models.Project.tk_number == tk_num,
                 models.Project.project_type == "Констракшн"
             ).first()
-            # Проверяем нет ли дубля в Реконструкции (L651 ↔ 651)
-            if not existing:
-                norm = _norm_tk(tk_num)
-                dupes = db.query(models.Project).filter(
-                    models.Project.project_type == "Реконструкция",
-                    models.Project.tk_number.in_([norm, f"L{norm}", tk_num]),
-                ).count()
-                if dupes:
-                    cross_type_warn += 1
+            # Констракшн имеет приоритет: удаляем Реконструкцию с тем же ТК
+            norm = _norm_tk(tk_num)
+            recon_dupes = db.query(models.Project).filter(
+                models.Project.project_type == "Реконструкция",
+                models.Project.tk_number.in_([norm, f"L{norm}", tk_num]),
+            ).all()
+            for dup in recon_dupes:
+                db.delete(dup)
+                cross_type_warn += 1
             if existing:
                 if address:  existing.address     = address
                 if city:     existing.city        = city
