@@ -10,7 +10,7 @@
         <div class="leader-hero-avatar">
             {% set uname = user.display_name or user.username %}
             {% if current_manager_photo %}
-                <img src="/static/{{ current_manager_photo }}" alt="{{ uname }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <img src="{{ media_url(current_manager_photo) }}" alt="{{ uname }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             {% else %}
                 <img src="/static/img/raccoon.png" alt="{{ uname }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             {% endif %}
@@ -334,7 +334,7 @@
                         <div class="d-flex align-items-center gap-2">
                             <div class="leader-mgr-avatar" style="width:28px;height:28px;flex-shrink:0">
                                 {% if row.photo %}
-                                <img src="/static/{{ row.photo }}" alt="{{ row.name }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                                <img src="{{ media_url(row.photo) }}" alt="{{ row.name }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                                 {% endif %}
                                 <span class="leader-mgr-initials" style="background:{{ row.name | avatar_color }};color:#fff;{% if row.photo %}display:none{% endif %}">
                                     {{ row.name.split()[0][:1] }}{{ row.name.split()[-1][:1] if row.name.split()|length > 1 else '' }}
@@ -450,7 +450,7 @@
                 <div class="leader-mgr-row">
                     <div class="leader-mgr-avatar">
                         {% if row.photo %}
-                        <img src="/static/{{ row.photo }}" alt="{{ row.name }}"
+                        <img src="{{ media_url(row.photo) }}" alt="{{ row.name }}"
                              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                         {% endif %}
                         <span class="leader-mgr-initials" style="background:{{ row.name | avatar_color }};color:#fff;{% if row.photo %}display:none{% endif %}">
