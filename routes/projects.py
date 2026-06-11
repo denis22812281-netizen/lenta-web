@@ -118,6 +118,19 @@ async def update_project(project_id: int, request: Request, db: Session = Depend
     return RedirectResponse(f"/projects/{project_id}", status_code=303)
 
 
+@router.post("/projects/{project_id}/delete")
+async def delete_project(project_id: int, request: Request, db: Session = Depends(get_db),
+                         user: dict = Depends(require_login)):
+    if not user.get("is_admin"):
+        raise HTTPException(status_code=403)
+    p = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not p:
+        raise HTTPException(status_code=404)
+    db.delete(p)
+    db.commit()
+    return RedirectResponse("/projects", status_code=303)
+
+
 # ─── Комментарии к проекту ───────────────────────────────────────────────────
 
 @router.post("/projects/{project_id}/comments/add")

@@ -84,8 +84,10 @@ async def do_import_reconstruct(request: Request, db: Session = Depends(get_db),
             status_code=303)
     try:
         result = import_reconstruct_excel(content, db)
+        warn = result.get("cross_type_warn", 0)
+        warn_txt = f" ⚠️ Дублей с Констракшн: {warn}" if warn else ""
         return RedirectResponse(
-            f"/import-reconstruct?msg=Импорт завершён: создано {result['created']}, обновлено {result['updated']} проектов",
+            f"/import-reconstruct?msg=Импорт завершён: создано {result['created']}, обновлено {result['updated']} проектов{warn_txt}",
             status_code=303)
     except Exception as e:
         return RedirectResponse(f"/import-reconstruct?error={str(e)[:120]}", status_code=303)
@@ -116,10 +118,12 @@ async def do_import_construction(request: Request, db: Session = Depends(get_db)
             status_code=303)
     try:
         result = import_construction_excel(content, db)
+        warn = result.get("cross_type_warn", 0)
+        warn_txt = f" ⚠️ Дублей с Реконструкцией: {warn}" if warn else ""
         msg = (f"Создано:{result['created']} Обновлено:{result['updated']} "
                f"Строк:{result.get('rows_with_tk',0)} "
                f"Форматы:[{','.join(result.get('sample_formats',[]))}] "
-               f"Менеджеры:[{','.join(result.get('sample_managers',[]))}]")
+               f"Менеджеры:[{','.join(result.get('sample_managers',[]))}]{warn_txt}")
         return RedirectResponse(f"/import-construction?msg={msg}", status_code=303)
     except Exception as e:
         return RedirectResponse(f"/import-construction?error={str(e)[:120]}", status_code=303)

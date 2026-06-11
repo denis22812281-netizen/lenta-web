@@ -12,9 +12,16 @@
         <div class="data-card h-100">
             <div class="data-card-header">
                 <span><i class="bi bi-info-circle me-2"></i>Информация о проекте</span>
+                <div class="d-flex gap-2">
                 <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#editForm">
                     <i class="bi bi-pencil me-1"></i>Редактировать
                 </button>
+                {% if user.is_admin %}
+                <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete()">
+                    <i class="bi bi-trash"></i>
+                </button>
+                {% endif %}
+                </div>
             </div>
             <div class="p-3">
                 <dl class="row mb-0 small">
@@ -468,6 +475,17 @@
   // Подстраиваем высоту под количество этапов
   document.getElementById('ganttChart').style.height = (raw.length * 52 + 40) + 'px';
 })();
+</script>
+{% endif %}
+
+{% if user.is_admin %}
+<form id="deleteProjectForm" method="post" action="/projects/{{ project.id }}/delete" style="display:none"></form>
+<script>
+function confirmDelete() {
+    if (confirm('Удалить проект "{{ project.name }}"? Это действие необратимо.')) {
+        document.getElementById('deleteProjectForm').submit();
+    }
+}
 </script>
 {% endif %}
 

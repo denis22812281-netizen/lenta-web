@@ -122,11 +122,17 @@ def _cell_excel_color(ws, row: int, col: int) -> str:
     return ""
 
 
+def _norm_tk(tk: str) -> str:
+    """Нормализует номер ТК: убирает ведущий L/l для сравнения."""
+    return tk.lstrip("LlЛл").strip()
+
+
 def import_reconstruct_excel(content: bytes, db: Session) -> dict:
     wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
     managers = db.query(models.Manager).all()
     today = date.today()
     created = updated = 0
+    cross_type_warn = 0
     # Собираем (project_obj, stage_key, is_done) для синхронизации после flush
     _stage_sync: list = []
 
@@ -258,6 +264,16 @@ def import_reconstruct_excel(content: bytes, db: Session) -> dict:
                 closure_date=clos, vpk_date=vpk, opening_date=opening,
             )
 
+            # Проверяем нет ли дубля в Констракшн (L651 ↔ 651)
+            if not existing:
+                norm = _norm_tk(tk_num)
+                dupes = db.query(models.Project).filter(
+                    models.Project.project_type == "Констракшн",
+                    models.Project.tk_number.in_([norm, f"L{norm}", tk_num]),
+                ).count()
+                if dupes:
+                    cross_type_warn += 1
+
             if existing:
                 if city:    existing.city    = city
                 if address: existing.address = address
@@ -331,7 +347,7 @@ def import_reconstruct_excel(content: bytes, db: Session) -> dict:
     except Exception:
         db.rollback()
         raise
-    return {"created": created, "updated": updated}
+    return {"created": created, "updated": updated, "cross_type_warn": cross_type_warn}
 
 
 def import_construction_excel(content: bytes, db: Session) -> dict:
@@ -339,6 +355,7 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
     managers = db.query(models.Manager).all()
     today = date.today()
     created = updated = 0
+    cross_type_warn = 0
 
     target_sheets = [ws for ws in wb.worksheets
                      if ws.title.strip() in ('2026', '2027')
@@ -456,6 +473,15 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
                 models.Project.tk_number == tk_num,
                 models.Project.project_type == "Констракшн"
             ).first()
+            # Проверяем нет ли дубля в Реконструкции (L651 ↔ 651)
+            if not existing:
+                norm = _norm_tk(tk_num)
+                dupes = db.query(models.Project).filter(
+                    models.Project.project_type == "Реконструкция",
+                    models.Project.tk_number.in_([norm, f"L{norm}", tk_num]),
+                ).count()
+                if dupes:
+                    cross_type_warn += 1
             if existing:
                 if address:  existing.address     = address
                 if city:     existing.city        = city
@@ -496,6 +522,7 @@ def import_construction_excel(content: bytes, db: Session) -> dict:
         "skipped_fmt": skipped_fmt, "skipped_mgr": skipped_mgr,
         "sample_formats": sorted(sample_formats),
         "sample_managers": sorted(sample_managers),
+        "cross_type_warn": cross_type_warn,
     }
 
 
