@@ -1,4 +1,4 @@
-"""Страница реконструкций для руководителя: светофор этапов, просрочки, комментарии."""
+"""Центр управления реконструкциями: светофор этапов, риски, аналитика."""
 from datetime import date, datetime
 
 from fastapi import APIRouter, Request, Depends
@@ -13,22 +13,22 @@ from deps import templates, require_executive
 router = APIRouter()
 
 RECON_STAGES = [
-    {"key": "sid",     "label": "Сбор ИД",     "end_field": "sid_end"},
-    {"key": "zoning",  "label": "Зонирование",  "end_field": "zoning_end"},
-    {"key": "mp",      "label": "МП",           "end_field": "mp_end"},
-    {"key": "tp",      "label": "ТП",           "end_field": "tp_end"},
-    {"key": "viz",     "label": "Визуал",        "end_field": "visualization_end"},
-    {"key": "audit",   "label": "Аудит",         "end_field": "audit_end"},
-    {"key": "pjf",     "label": "PJF согл.",     "end_field": "pjf_approval_end"},
-    {"key": "ds",      "label": "ДС",            "end_field": "ds_signing_date"},
-    {"key": "tz",      "label": "ТЗ/Тендеры",   "end_field": "tz_end"},
-    {"key": "closure", "label": "Закрытие",      "end_field": "closure_date"},
-    {"key": "vpk",     "label": "ВПК1",          "end_field": "vpk_date"},
-    {"key": "opening", "label": "Открытие",      "end_field": "opening_date"},
+    {"key": "sid",     "label": "Сбор ИД",   "short": "ИД",  "end_field": "sid_end"},
+    {"key": "zoning",  "label": "Зонирование","short": "Зон", "end_field": "zoning_end"},
+    {"key": "mp",      "label": "МП",         "short": "МП",  "end_field": "mp_end"},
+    {"key": "tp",      "label": "ТП",         "short": "ТП",  "end_field": "tp_end"},
+    {"key": "viz",     "label": "Визуал",     "short": "Виз", "end_field": "visualization_end"},
+    {"key": "audit",   "label": "Аудит",      "short": "Ауд", "end_field": "audit_end"},
+    {"key": "pjf",     "label": "PJF согл.",  "short": "PJF", "end_field": "pjf_approval_end"},
+    {"key": "ds",      "label": "ДС",         "short": "ДС",  "end_field": "ds_signing_date"},
+    {"key": "tz",      "label": "ТЗ/Тендеры","short": "ТЗ",  "end_field": "tz_end"},
+    {"key": "closure", "label": "Закрытие",   "short": "Закр","end_field": "closure_date"},
+    {"key": "vpk",     "label": "ВПК1",       "short": "ВПК", "end_field": "vpk_date"},
+    {"key": "opening", "label": "Открытие",   "short": "Откр","end_field": "opening_date"},
 ]
 
 TABS = [
-    {"key": "all",          "label": "Все"},
+    {"key": "all",                             "label": "Все"},
     {"key": "Реконструкции 2026",              "label": "Реконструкции 2026"},
     {"key": "Лайт реконструкции 2026",         "label": "Лайт 2026"},
     {"key": "Рисковые объекты 2026 АЛ",        "label": "Рисковые АЛ"},
@@ -51,6 +51,11 @@ def _cell_css(end_date, is_done: bool, today: date) -> str:
     return "cell-ok"
 
 
+def _risk_score(row: dict) -> int:
+    """Чем выше — тем критичнее проект."""
+    return row["overdue_count"] * 100 + row["warn_count"] * 10
+
+
 @router.get("/reconstruction", response_class=HTMLResponse)
 async def reconstruction_page(
     request: Request,
@@ -59,6 +64,7 @@ async def reconstruction_page(
     tab: str = "all",
     manager_id: str = None,
     only_problems: str = None,
+    sort: str = "risk",
 ):
     today = date.today()
 
@@ -76,51 +82,95 @@ async def reconstruction_page(
     ).all() if project_ids else []
     done_map = {(s.project_id, s.stage_key): s for s in stage_statuses_raw}
 
-    # Считаем данные для каждого проекта
     projects_data = []
     overdue_items = []
 
     for p in projects:
         stages_info = []
         has_problem = False
+        proj_done = 0
+        proj_with_date = 0
+        proj_overdue = 0
+        proj_warn = 0
+
         for s in RECON_STAGES:
             end_val = getattr(p, s["end_field"], None)
             status_rec = done_map.get((p.id, s["key"]))
             is_done = status_rec.is_done if status_rec else False
+            done_by = status_rec.done_by if (status_rec and status_rec.is_done) else ""
+            done_at = status_rec.done_at if (status_rec and status_rec.is_done) else None
             css = _cell_css(end_val, is_done, today)
+
             if css == "cell-over":
                 has_problem = True
+                proj_overdue += 1
                 overdue_items.append({
                     "tk": p.tk_number,
                     "city": p.city or "",
                     "project_id": p.id,
                     "stage_label": s["label"],
+                    "stage_key": s["key"],
                     "days": (today - end_val).days,
                     "manager": p.manager.name if p.manager else "—",
+                    "manager_id": p.manager_id,
                     "end_date": end_val,
                 })
+            if css == "cell-warn":
+                has_problem = True
+                proj_warn += 1
+            if css == "cell-done":
+                proj_done += 1
+            if end_val:
+                proj_with_date += 1
+
             stages_info.append({
                 "key": s["key"],
                 "label": s["label"],
+                "short": s["short"],
                 "end_date": end_val,
                 "is_done": is_done,
+                "done_by": done_by,
+                "done_at": done_at,
                 "css": css,
             })
 
         if only_problems and not has_problem:
             continue
 
-        projects_data.append({"project": p, "stages": stages_info})
+        progress_pct = round(proj_done / proj_with_date * 100) if proj_with_date else 0
+        projects_data.append({
+            "project": p,
+            "stages": stages_info,
+            "has_problem": has_problem,
+            "stages_done": proj_done,
+            "stages_total": proj_with_date,
+            "overdue_count": proj_overdue,
+            "warn_count": proj_warn,
+            "progress_pct": progress_pct,
+            "mgr_name": (p.manager.name if p.manager else ""),
+        })
 
-    # Сортируем просрочки по количеству дней (самые критичные сверху)
+    # Сортировка: рисковые сначала → по дате открытия
     overdue_items.sort(key=lambda x: -x["days"])
+    if sort == "risk":
+        projects_data.sort(key=lambda r: (
+            -_risk_score(r),
+            r["project"].opening_date or date(2099, 1, 1),
+        ))
+
+    # Агрегаты для KPI-карточек
+    overdue_projects = sum(1 for r in projects_data if r["overdue_count"] > 0)
+    total_warn = sum(r["warn_count"] for r in projects_data)
+    total_done_stages = sum(r["stages_done"] for r in projects_data)
+    total_stages_with_date = sum(r["stages_total"] for r in projects_data)
 
     managers = db.query(models.Manager).filter(
         models.Manager.is_leader == False
     ).order_by(models.Manager.name).all()
 
     return templates.TemplateResponse("reconstruction.html", {
-        "request": request, "user": user,
+        "request": request,
+        "user": user,
         "projects_data": projects_data,
         "overdue_items": overdue_items,
         "stages": RECON_STAGES,
@@ -131,6 +181,11 @@ async def reconstruction_page(
         "only_problems": only_problems,
         "today": today,
         "total": len(projects_data),
+        # KPI
+        "overdue_projects": overdue_projects,
+        "total_warn": total_warn,
+        "total_done_stages": total_done_stages,
+        "total_stages_with_date": total_stages_with_date,
     })
 
 
@@ -168,7 +223,6 @@ async def toggle_stage(
         db.add(rec)
     db.commit()
 
-    # Вернём новый CSS класс чтобы фронтенд обновил ячейку без перезагрузки
     p = db.query(models.Project).filter(models.Project.id == payload.project_id).first()
     end_val = None
     for s in RECON_STAGES:
@@ -176,5 +230,13 @@ async def toggle_stage(
             end_val = getattr(p, s["end_field"], None)
             break
     css = _cell_css(end_val, payload.is_done, today)
+    done_by = user.get("display_name", "") if payload.is_done else ""
+    done_at_str = datetime.utcnow().strftime("%d.%m.%Y %H:%M") if payload.is_done else ""
 
-    return JSONResponse({"ok": True, "css": css, "is_done": payload.is_done})
+    return JSONResponse({
+        "ok": True,
+        "css": css,
+        "is_done": payload.is_done,
+        "done_by": done_by,
+        "done_at": done_at_str,
+    })

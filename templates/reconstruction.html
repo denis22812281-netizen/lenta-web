@@ -1,179 +1,369 @@
 {% extends "base.html" %}
 {% block page_title %}Реконструкции — Лента{% endblock %}
-{% block title %}<i class="bi bi-grid-3x3-gap-fill me-2"></i>Реконструкции{% endblock %}
+{% block title %}<i class="bi bi-grid-3x3-gap-fill me-2 text-warning"></i>Центр управления реконструкциями{% endblock %}
 
 {% block content %}
 <style>
-/* ── Таблица-светофор ───────────────────────────────────────────── */
-.rc-wrap        { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; }
-.rc-table       { border-collapse: collapse; min-width: 1100px; width: 100%; }
-.rc-table th,
-.rc-table td    { padding: 7px 8px; white-space: nowrap; font-size: .8rem;
-                  border: 1px solid rgba(255,255,255,.06); vertical-align: middle; }
-.rc-table thead th { background: #1e293b; color: #94a3b8; font-weight: 600;
-                     position: sticky; top: 0; z-index: 2; text-align: center; }
-.rc-sticky      { position: sticky; left: 0; background: #0f172a !important;
-                  z-index: 1; min-width: 140px; max-width: 160px; }
-thead .rc-sticky { z-index: 3; }
+/* ═══════════════════════════════════════════════════════════════
+   KPI CARDS
+═══════════════════════════════════════════════════════════════ */
+.kpi-row       { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+.kpi-card      { background: #1e293b; border-radius: 14px; padding: 16px 18px;
+                 border: 1px solid rgba(255,255,255,.07); position: relative; overflow: hidden;
+                 cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.kpi-card:hover{ transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+.kpi-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
+.kpi-all::before   { background: #3b82f6; }
+.kpi-over::before  { background: #ef4444; }
+.kpi-warn::before  { background: #f59e0b; }
+.kpi-done::before  { background: #22c55e; }
+.kpi-val  { font-size: 1.9rem; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+.kpi-lab  { font-size: .75rem; color: #64748b; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
+.kpi-sub  { font-size: .7rem; color: #475569; margin-top: 3px; }
+.kpi-icon { position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+            font-size: 2rem; opacity: .12; }
+@media (max-width: 640px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .kpi-val { font-size: 1.5rem; }
+}
 
-/* Ячейки этапов */
-.rc-cell        { cursor: pointer; text-align: center; font-size: .78rem; font-weight: 600;
-                  transition: filter .12s, transform .1s; user-select: none; }
-.rc-cell:hover  { filter: brightness(1.35); transform: scale(1.05); }
-.cell-done      { background: #166534; color: #bbf7d0; }
-.cell-ok        { background: #14532d; color: #6ee7b7; }
+/* ═══════════════════════════════════════════════════════════════
+   RISK / OVERDUE BLOCK
+═══════════════════════════════════════════════════════════════ */
+.risk-block    { background: linear-gradient(135deg, rgba(127,29,29,.45) 0%, rgba(69,10,10,.3) 100%);
+                 border: 1px solid rgba(239,68,68,.25); border-left: 4px solid #ef4444;
+                 border-radius: 14px; padding: 16px 18px; margin-bottom: 20px; }
+.risk-header   { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.risk-title    { font-size: 1rem; font-weight: 700; color: #fca5a5; flex: 1; }
+.risk-collapse-btn { background: rgba(239,68,68,.15); border: 1px solid rgba(239,68,68,.3);
+                     color: #fca5a5; border-radius: 8px; padding: 3px 12px;
+                     font-size: .75rem; cursor: pointer; white-space: nowrap; }
+.risk-collapse-btn:hover { background: rgba(239,68,68,.25); }
+.risk-list     { display: flex; flex-direction: column; gap: 5px; }
+.risk-row      { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px;
+                 padding: 6px 8px; border-radius: 8px; background: rgba(0,0,0,.2);
+                 transition: background .12s; }
+.risk-row:hover{ background: rgba(239,68,68,.12); }
+.risk-tk       { font-weight: 700; color: #fca5a5; font-size: .85rem; min-width: 55px; }
+.risk-city     { color: #e2e8f0; font-size: .82rem; }
+.risk-stage    { background: rgba(127,29,29,.7); color: #fca5a5; border-radius: 6px;
+                 padding: 2px 8px; font-size: .74rem; font-weight: 600; }
+.risk-days     { color: #f87171; font-size: .82rem; font-weight: 700; }
+.risk-mgr      { color: #fbbf24; font-size: .78rem; }
+.risk-date     { color: #64748b; font-size: .72rem; margin-left: auto; }
+.risk-hidden   { display: none; }
+
+/* ═══════════════════════════════════════════════════════════════
+   TOOLBAR / TABS
+═══════════════════════════════════════════════════════════════ */
+.rc-toolbar    { background: #1e293b; border-radius: 14px; padding: 12px 16px;
+                 margin-bottom: 14px; border: 1px solid rgba(255,255,255,.07); }
+.rc-tabs       { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.rc-tab        { padding: 5px 14px; border-radius: 20px; font-size: .8rem; cursor: pointer;
+                 border: 1px solid rgba(255,255,255,.1); color: #94a3b8;
+                 text-decoration: none; transition: all .15s; }
+.rc-tab:hover  { border-color: #FFD200; color: #FFD200; }
+.rc-tab.active { background: #FFD200; color: #0f172a; font-weight: 700; border-color: #FFD200; }
+.rc-filters    { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.search-input  { background: #0f172a; border: 1px solid rgba(255,255,255,.1); color: #e2e8f0;
+                 border-radius: 8px; padding: 5px 12px; font-size: .82rem; width: 180px; }
+.search-input:focus { outline: none; border-color: #FFD200; }
+.search-input::placeholder { color: #475569; }
+
+/* ═══════════════════════════════════════════════════════════════
+   LEGEND
+═══════════════════════════════════════════════════════════════ */
+.rc-legend     { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+.leg-item      { display: flex; align-items: center; gap: 6px; font-size: .74rem; color: #64748b; }
+.leg-dot       { width: 13px; height: 13px; border-radius: 4px; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════════════════════════════
+   DESKTOP TABLE
+═══════════════════════════════════════════════════════════════ */
+.rc-wrap        { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px;
+                  border: 1px solid rgba(255,255,255,.07); }
+.rc-table       { border-collapse: collapse; min-width: 1200px; width: 100%; }
+.rc-table th,
+.rc-table td    { padding: 7px 8px; white-space: nowrap; font-size: .78rem;
+                  border-bottom: 1px solid rgba(255,255,255,.05); vertical-align: middle; }
+.rc-table thead th { background: #1e293b; color: #64748b; font-weight: 600;
+                     position: sticky; top: 0; z-index: 2; text-align: center;
+                     border-bottom: 2px solid rgba(255,255,255,.1); }
+.rc-sticky      { position: sticky; left: 0; background: #0f172a !important; z-index: 1; min-width: 145px; }
+thead .rc-sticky{ z-index: 3; }
+.rc-table thead th.rc-sticky { text-align: left; }
+.rc-table tbody tr:hover td  { background: rgba(255,255,255,.03); }
+.rc-table tbody tr:hover .rc-sticky { background: #111d2d !important; }
+
+/* Row with problems gets a subtle left glow */
+.row-problem .rc-sticky::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: #ef4444;
+}
+.rc-sticky { position: relative; }
+
+/* Stage cells */
+.rc-cell        { cursor: pointer; text-align: center; font-size: .76rem; font-weight: 600;
+                  transition: filter .1s, transform .08s; user-select: none; }
+.rc-cell:active { transform: scale(.93); filter: brightness(1.4); }
+.rc-cell:hover  { filter: brightness(1.3); }
+.cell-done      { background: #14532d; color: #86efac; }
+.cell-ok        { background: #1c3d2a; color: #4ade80; }
 .cell-warn      { background: #78350f; color: #fde68a; }
 .cell-over      { background: #7f1d1d; color: #fca5a5; }
-.cell-empty     { background: rgba(255,255,255,.03); color: #475569; }
+.cell-empty     { background: rgba(255,255,255,.025); color: #334155; }
+/* Animated pulse for overdue */
+@keyframes rc-pulse { 0%,100% { opacity: 1; } 50% { opacity: .65; } }
+.cell-over      { animation: rc-pulse 2.5s ease-in-out infinite; }
+/* Ripple on click */
+@keyframes rc-ripple { from { transform: scale(0); opacity: .5; } to { transform: scale(2.5); opacity: 0; } }
+.rc-ripple      { position: absolute; border-radius: 50%; background: rgba(255,255,255,.4);
+                  width: 30px; height: 30px; margin: -15px 0 0 -15px;
+                  animation: rc-ripple .35s ease-out forwards; pointer-events: none; }
 
-/* Строки */
-.rc-table tbody tr:hover td { background: rgba(255,255,255,.04); }
-.rc-table tbody tr:hover .rc-sticky { background: #1a2234 !important; }
-
-/* Комментарий */
-.rc-comment     { max-width: 180px; white-space: normal; font-size: .75rem;
-                  color: #94a3b8; line-height: 1.3; }
+/* Project name column */
 .rc-tk          { font-weight: 700; font-size: .85rem; color: #e2e8f0; }
 .rc-city        { font-size: .72rem; color: #64748b; }
-.rc-addr        { font-size: .68rem; color: #475569; white-space: normal; max-width: 140px; }
+.rc-addr        { font-size: .65rem; color: #475569; white-space: normal; max-width: 140px; line-height: 1.2; }
 
-/* Просрочки */
-.overdue-block  { border-left: 4px solid #dc2626; background: rgba(127,29,29,.35);
-                  border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; }
-.overdue-row    { display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
-                  padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
-.overdue-row:last-child { border-bottom: none; }
-.od-tk          { font-weight: 700; color: #fca5a5; min-width: 52px; }
-.od-city        { color: #cbd5e1; }
-.od-stage       { background: #7f1d1d; color: #fca5a5; border-radius: 4px;
-                  padding: 1px 7px; font-size: .75rem; font-weight: 600; }
-.od-days        { color: #f87171; font-size: .8rem; }
-.od-mgr         { color: #fbbf24; font-size: .78rem; }
+/* Progress column */
+.prog-bar-wrap  { display: flex; align-items: center; gap: 5px; min-width: 70px; }
+.prog-bar-outer { flex: 1; height: 5px; background: rgba(255,255,255,.08); border-radius: 3px; }
+.prog-bar-inner { height: 100%; border-radius: 3px; background: #22c55e; transition: width .3s; }
+.prog-frac      { font-size: .68rem; color: #64748b; white-space: nowrap; }
 
-/* Вкладки */
-.rc-tabs        { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
-.rc-tab         { padding: 5px 14px; border-radius: 20px; font-size: .82rem; cursor: pointer;
-                  border: 1px solid rgba(255,255,255,.12); color: #94a3b8;
-                  text-decoration: none; transition: all .15s; }
-.rc-tab:hover   { border-color: #FFD200; color: #FFD200; }
-.rc-tab.active  { background: #FFD200; color: #0f172a; font-weight: 700; border-color: #FFD200; }
-.rc-tab .badge-num { font-size: .7rem; margin-left: 4px; opacity: .8; }
+/* Comment cell */
+.rc-comment     { max-width: 200px; white-space: normal; font-size: .73rem;
+                  color: #64748b; line-height: 1.35; }
 
-/* Легенда */
-.rc-legend      { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
-.leg-item       { display: flex; align-items: center; gap: 5px; font-size: .75rem; color: #94a3b8; }
-.leg-dot        { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE CARDS  (shown < 900px)
+═══════════════════════════════════════════════════════════════ */
+.proj-card      { background: #1e293b; border-radius: 14px; margin-bottom: 8px;
+                  border: 1px solid rgba(255,255,255,.07); overflow: hidden; }
+.proj-card.has-risk { border-left: 3px solid #ef4444; }
+.proj-card-hdr  { display: flex; align-items: center; gap: 10px;
+                  padding: 11px 14px; cursor: pointer; user-select: none; }
+.proj-card-hdr:active { background: rgba(255,255,255,.04); }
+.proj-card-info { flex: 1; min-width: 0; }
+.proj-card-meta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.proj-prog-wrap { width: 50px; }
+.proj-prog-outer{ height: 4px; background: rgba(255,255,255,.1); border-radius: 3px; }
+.proj-prog-inner{ height: 100%; border-radius: 3px; background: #22c55e; }
+.proj-prog-frac { font-size: .65rem; color: #64748b; white-space: nowrap; }
+.card-chevron   { color: #475569; font-size: .8rem; transition: transform .2s; flex-shrink: 0; }
+.proj-card.open .card-chevron { transform: rotate(180deg); }
 
-/* Мобиль */
-@media (max-width: 576px) {
-    .rc-table th, .rc-table td { padding: 5px 5px; font-size: .72rem; }
-    .rc-sticky { min-width: 110px; }
-    .rc-comment { display: none; }
-    .overdue-block { padding: 10px 12px; }
+.proj-stages    { display: none; padding: 0 10px 12px; }
+.proj-card.open .proj-stages { display: block; }
+.stages-grid    { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.sg-cell        { border-radius: 8px; padding: 6px 4px; text-align: center; cursor: pointer;
+                  transition: filter .1s, transform .08s; user-select: none; }
+.sg-cell:active { transform: scale(.93); }
+.sg-cell:hover  { filter: brightness(1.25); }
+.sg-label       { font-size: .62rem; color: rgba(255,255,255,.55); line-height: 1; margin-bottom: 3px; }
+.sg-val         { font-size: .75rem; font-weight: 700; }
+/* reuse table color classes for cards */
+.sg-cell.cell-done   { background: #14532d; }
+.sg-cell.cell-ok     { background: #1c3d2a; }
+.sg-cell.cell-warn   { background: #78350f; }
+.sg-cell.cell-over   { background: #7f1d1d; animation: rc-pulse 2.5s ease-in-out infinite; }
+.sg-cell.cell-empty  { background: rgba(255,255,255,.04); }
+.sg-cell.cell-done .sg-val   { color: #86efac; }
+.sg-cell.cell-ok .sg-val     { color: #4ade80; }
+.sg-cell.cell-warn .sg-val   { color: #fde68a; }
+.sg-cell.cell-over .sg-val   { color: #fca5a5; }
+.sg-cell.cell-empty .sg-val  { color: #334155; }
+.card-comment   { font-size: .73rem; color: #64748b; line-height: 1.35;
+                  padding: 6px 4px 0; border-top: 1px solid rgba(255,255,255,.06); margin-top: 6px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST (undo notification)
+═══════════════════════════════════════════════════════════════ */
+#rc-toast       { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+                  background: #1e293b; border: 1px solid rgba(255,255,255,.12); border-radius: 12px;
+                  padding: 10px 18px; font-size: .82rem; color: #e2e8f0; z-index: 9999;
+                  opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none;
+                  display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+#rc-toast.show  { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: all; }
+.toast-undo     { color: #FFD200; font-weight: 700; cursor: pointer; padding: 2px 6px;
+                  border-radius: 6px; border: 1px solid rgba(255,210,0,.3); }
+.toast-undo:hover { background: rgba(255,210,0,.12); }
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE SHOW/HIDE
+═══════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+    .rc-wrap      { display: none; }
+    .card-list    { display: block !important; }
+    .view-toggle  { display: flex !important; }
+}
+@media (min-width: 901px) {
+    .card-list    { display: none; }
+    .view-toggle  { display: none !important; }
 }
 </style>
 
-<!-- Toolbar -->
-<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-    <form method="get" class="d-flex gap-2 flex-wrap align-items-center">
-        <input type="hidden" name="tab" value="{{ active_tab }}">
-        <select name="manager_id" class="form-select form-select-sm" style="width:160px"
-                onchange="this.form.submit()">
-            <option value="">Все менеджеры</option>
-            {% for m in managers %}
-            <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>
-                {{ m.name | short_name }}
-            </option>
-            {% endfor %}
-        </select>
-        <div class="form-check form-switch mb-0 ms-1">
-            <input class="form-check-input" type="checkbox" id="only-problems" name="only_problems"
-                   value="1" {% if only_problems %}checked{% endif %} onchange="this.form.submit()">
-            <label class="form-check-label small" for="only-problems">Только с просрочкой</label>
-        </div>
-    </form>
-    <span class="ms-auto text-muted small">{{ total }} объектов</span>
-</div>
-
-<!-- Вкладки -->
-<div class="rc-tabs">
-    {% for t in tabs %}
-    <a href="?tab={{ t.key }}{% if filter_manager_id %}&manager_id={{ filter_manager_id }}{% endif %}{% if only_problems %}&only_problems=1{% endif %}"
-       class="rc-tab {% if active_tab == t.key %}active{% endif %}">
-        {{ t.label }}
-    </a>
-    {% endfor %}
-</div>
-
-<!-- Просрочено сегодня -->
-{% if overdue_items %}
-<div class="overdue-block">
-    <div class="d-flex align-items-center gap-2 mb-2">
-        <i class="bi bi-exclamation-triangle-fill text-danger"></i>
-        <strong style="color:#fca5a5">Просрочено: {{ overdue_items|length }} этапов</strong>
-        <span class="text-muted small">— нужно срочно разобраться</span>
+<!-- ── KPI Cards ──────────────────────────────────────────────────── -->
+<div class="kpi-row">
+    <div class="kpi-card kpi-all" onclick="document.getElementById('search').focus()">
+        <i class="bi bi-buildings kpi-icon"></i>
+        <div class="kpi-val text-info">{{ total }}</div>
+        <div class="kpi-lab">Объектов</div>
+        <div class="kpi-sub">в текущей выборке</div>
     </div>
-    {% for item in overdue_items %}
-    <div class="overdue-row">
-        <span class="od-tk">ТК {{ item.tk }}</span>
-        <span class="od-city">{{ item.city }}</span>
-        <span class="od-stage">{{ item.stage_label }}</span>
-        <span class="od-days">+{{ item.days }} дн.</span>
-        <span class="od-mgr"><i class="bi bi-person-fill me-1"></i>{{ item.manager }}</span>
-        {% if item.end_date %}
-        <span class="text-muted" style="font-size:.72rem">план: {{ item.end_date.strftime('%d.%m.%Y') }}</span>
+    <div class="kpi-card kpi-over" onclick="setOnlyProblems(true)">
+        <i class="bi bi-exclamation-octagon kpi-icon"></i>
+        <div class="kpi-val text-danger">{{ overdue_projects }}</div>
+        <div class="kpi-lab">Просрочено</div>
+        <div class="kpi-sub">{{ overdue_items|length }} этапов просрочено</div>
+    </div>
+    <div class="kpi-card kpi-warn" onclick="setOnlyProblems(true)">
+        <i class="bi bi-clock-history kpi-icon"></i>
+        <div class="kpi-val text-warning">{{ total_warn }}</div>
+        <div class="kpi-lab">Горит (≤7 дн.)</div>
+        <div class="kpi-sub">этапов в зоне риска</div>
+    </div>
+    <div class="kpi-card kpi-done">
+        <i class="bi bi-check2-all kpi-icon"></i>
+        <div class="kpi-val text-success">{{ total_done_stages }}</div>
+        <div class="kpi-lab">Выполнено</div>
+        <div class="kpi-sub">из {{ total_stages_with_date }} этапов с датами</div>
+    </div>
+</div>
+
+<!-- ── Risk / Overdue Block ──────────────────────────────────────── -->
+{% if overdue_items %}
+<div class="risk-block" id="risk-block">
+    <div class="risk-header">
+        <i class="bi bi-exclamation-triangle-fill text-danger fs-5"></i>
+        <span class="risk-title">Просрочено: {{ overdue_items|length }} этапов на {{ overdue_projects }} объектах</span>
+        <span class="text-muted small">Сортировка: самые критичные сверху</span>
+        {% if overdue_items|length > 5 %}
+        <button class="risk-collapse-btn" onclick="toggleRisk(this)">
+            Показать все ({{ overdue_items|length }})
+        </button>
         {% endif %}
     </div>
-    {% endfor %}
+    <div class="risk-list">
+        {% for item in overdue_items %}
+        <div class="risk-row {% if loop.index > 5 %}risk-hidden{% endif %}">
+            <span class="risk-tk">ТК {{ item.tk }}</span>
+            <span class="risk-city">{{ item.city }}</span>
+            <span class="risk-stage">{{ item.stage_label }}</span>
+            <span class="risk-days">+{{ item.days }} дн.</span>
+            <span class="risk-mgr"><i class="bi bi-person-fill me-1"></i>{{ item.manager }}</span>
+            {% if item.end_date %}
+            <span class="risk-date">план: {{ item.end_date.strftime('%d.%m.%Y') }}</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
 </div>
 {% elif total > 0 %}
-<div class="alert alert-success py-2 mb-3">
-    <i class="bi bi-check-circle-fill me-2"></i>
-    <strong>Всё в норме</strong> — просроченных этапов нет
+<div class="alert d-flex align-items-center gap-2 mb-3 py-2"
+     style="background:rgba(20,83,45,.25);border:1px solid rgba(34,197,94,.2);border-radius:12px">
+    <i class="bi bi-shield-check text-success fs-5"></i>
+    <div>
+        <strong class="text-success">Всё в порядке</strong>
+        <span class="text-muted small ms-2">— просроченных этапов нет</span>
+    </div>
 </div>
 {% endif %}
 
-<!-- Легенда -->
-<div class="rc-legend">
-    <div class="leg-item"><div class="leg-dot" style="background:#166534"></div>Выполнено</div>
-    <div class="leg-item"><div class="leg-dot" style="background:#14532d"></div>В норме</div>
-    <div class="leg-item"><div class="leg-dot" style="background:#78350f"></div>Осталось ≤7 дн.</div>
-    <div class="leg-item"><div class="leg-dot" style="background:#7f1d1d"></div>Просрочено</div>
-    <div class="leg-item"><div class="leg-dot" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)"></div>Нет даты</div>
-    <span class="text-muted small ms-2">← клик на ячейке = отметить выполненным</span>
+<!-- ── Toolbar ───────────────────────────────────────────────────── -->
+<div class="rc-toolbar">
+    <!-- Tabs -->
+    <div class="rc-tabs">
+        {% for t in tabs %}
+        <a href="?tab={{ t.key }}{% if filter_manager_id %}&manager_id={{ filter_manager_id }}{% endif %}{% if only_problems %}&only_problems=1{% endif %}"
+           class="rc-tab {% if active_tab == t.key %}active{% endif %}">
+            {{ t.label }}
+        </a>
+        {% endfor %}
+    </div>
+    <!-- Filters row -->
+    <div class="rc-filters">
+        <input type="text" id="search" class="search-input" placeholder="Поиск: ТК, город…"
+               oninput="filterTable(this.value)">
+        <form method="get" id="filter-form" style="display:contents">
+            <input type="hidden" name="tab" value="{{ active_tab }}">
+            <input type="hidden" name="only_problems" id="op-hidden" value="{% if only_problems %}1{% endif %}">
+            <select name="manager_id" class="form-select form-select-sm" style="width:160px;background:#0f172a;color:#e2e8f0;border-color:rgba(255,255,255,.1)"
+                    onchange="this.form.submit()">
+                <option value="">Все менеджеры</option>
+                {% for m in managers %}
+                <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>
+                    {{ m.name | short_name }}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+        <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="only-problems"
+                   {% if only_problems %}checked{% endif %}
+                   onchange="setOnlyProblems(this.checked)">
+            <label class="form-check-label small text-muted" for="only-problems">Только с рисками</label>
+        </div>
+        <span class="text-muted small ms-auto" id="visible-count">{{ total }} объектов</span>
+        <!-- view toggle (mobile) -->
+        <div class="view-toggle gap-1" style="display:none">
+            <button class="btn btn-sm" id="btn-table" style="background:#0f172a;border:1px solid rgba(255,255,255,.15);color:#94a3b8"
+                    onclick="switchView('table')"><i class="bi bi-table"></i></button>
+            <button class="btn btn-sm" id="btn-cards" style="background:#FFD200;border-color:#FFD200;color:#0f172a"
+                    onclick="switchView('cards')"><i class="bi bi-card-list"></i></button>
+        </div>
+    </div>
 </div>
 
-<!-- Таблица -->
+<!-- ── Legend ────────────────────────────────────────────────────── -->
+<div class="rc-legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#14532d"></div>Выполнено</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#1c3d2a"></div>В плане</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#78350f"></div>Горит ≤7 дн.</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#7f1d1d"></div>Просрочено</div>
+    <div class="leg-item"><div class="leg-dot" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)"></div>Нет даты</div>
+    <span class="text-muted small ms-auto"><i class="bi bi-hand-index me-1"></i>Нажмите на ячейку — отметить выполненным</span>
+</div>
+
+<!-- ── Desktop Table ─────────────────────────────────────────────── -->
 {% if projects_data %}
-<div class="rc-wrap">
-<table class="rc-table">
+<div class="rc-wrap" id="table-view">
+<table class="rc-table" id="rc-table">
     <thead>
         <tr>
             <th class="rc-sticky" style="text-align:left">ТК / Город</th>
             {% for s in stages %}
-            <th title="{{ s.label }}">{{ s.label }}</th>
+            <th title="{{ s.label }}">{{ s.short }}</th>
             {% endfor %}
-            <th>PJF код</th>
+            <th>Прогресс</th>
+            <th>PJF</th>
             <th>МП</th>
-            <th class="d-none d-md-table-cell">Комментарий</th>
+            <th class="d-none d-lg-table-cell">Комментарий</th>
         </tr>
     </thead>
     <tbody>
     {% for row in projects_data %}
     {% set p = row.project %}
-    <tr>
+    <tr class="{% if row.has_problem %}row-problem{% endif %}"
+        data-tk="{{ p.tk_number }}" data-city="{{ p.city or '' }}"
+        data-mgr="{{ row.mgr_name }}" data-pid="{{ p.id }}">
         <td class="rc-sticky">
             <div class="rc-tk">ТК {{ p.tk_number }}</div>
             <div class="rc-city">{{ p.city or '—' }}</div>
-            {% if p.address %}
-            <div class="rc-addr">{{ p.address }}</div>
-            {% endif %}
+            {% if p.address %}<div class="rc-addr">{{ p.address }}</div>{% endif %}
         </td>
         {% for si in row.stages %}
         <td class="rc-cell {{ si.css }}"
+            style="position:relative;overflow:hidden"
             data-pid="{{ p.id }}"
             data-stage="{{ si.key }}"
-            title="{% if si.end_date %}{{ si.end_date.strftime('%d.%m.%Y') }}{% else %}нет даты{% endif %}{% if si.is_done %} ✓ выполнено{% endif %}">
+            data-label="{{ si.label }}"
+            data-done-by="{{ si.done_by }}"
+            title="{{ si.label }}: {% if si.end_date %}{{ si.end_date.strftime('%d.%m.%Y') }}{% else %}нет даты{% endif %}{% if si.is_done %} ✓ {{ si.done_by }}{% endif %}">
             {% if si.is_done %}
             <i class="bi bi-check-lg"></i>
             {% elif si.end_date %}
@@ -181,63 +371,350 @@ thead .rc-sticky { z-index: 3; }
             {% else %}—{% endif %}
         </td>
         {% endfor %}
-        <td class="small text-muted" style="text-align:center">{{ p.pjf_code or '—' }}</td>
-        <td class="small">{{ (p.manager.name | short_name) if p.manager else '—' }}</td>
-        <td class="rc-comment d-none d-md-table-cell">{{ p.status_comment or '—' }}</td>
+        <td>
+            <div class="prog-bar-wrap">
+                <div class="prog-bar-outer">
+                    <div class="prog-bar-inner" style="width:{{ row.progress_pct }}%"></div>
+                </div>
+                <span class="prog-frac">{{ row.stages_done }}/{{ row.stages_total }}</span>
+            </div>
+        </td>
+        <td class="small text-muted text-center">{{ p.pjf_code or '—' }}</td>
+        <td class="small text-center">{{ (p.manager.name | short_name) if p.manager else '—' }}</td>
+        <td class="rc-comment d-none d-lg-table-cell">{{ p.status_comment or '' }}</td>
     </tr>
     {% endfor %}
     </tbody>
 </table>
 </div>
+
+<!-- ── Mobile Cards ───────────────────────────────────────────────── -->
+<div class="card-list" id="card-view" style="display:none">
+    {% for row in projects_data %}
+    {% set p = row.project %}
+    <div class="proj-card {% if row.has_problem %}has-risk{% endif %}"
+         data-tk="{{ p.tk_number }}" data-city="{{ p.city or '' }}"
+         data-mgr="{{ row.mgr_name }}" data-pid="{{ p.id }}">
+        <div class="proj-card-hdr" onclick="toggleCard(this.parentElement)">
+            <div class="proj-card-info">
+                <div class="rc-tk">ТК {{ p.tk_number }} — {{ p.city or '—' }}</div>
+                <div class="rc-city" style="font-size:.72rem;margin-top:1px">
+                    {% if p.manager %}{{ p.manager.name | short_name }}{% endif %}
+                    {% if p.pjf_code %} · PJF {{ p.pjf_code }}{% endif %}
+                </div>
+            </div>
+            <div class="proj-card-meta">
+                {% if row.overdue_count > 0 %}
+                <span class="badge" style="background:#7f1d1d;color:#fca5a5;font-size:.7rem">
+                    {{ row.overdue_count }} просроч.
+                </span>
+                {% elif row.warn_count > 0 %}
+                <span class="badge" style="background:#78350f;color:#fde68a;font-size:.7rem">
+                    {{ row.warn_count }} горит
+                </span>
+                {% endif %}
+                <div>
+                    <div class="proj-prog-outer"><div class="proj-prog-inner" style="width:{{ row.progress_pct }}%"></div></div>
+                    <div class="proj-prog-frac text-center">{{ row.stages_done }}/{{ row.stages_total }}</div>
+                </div>
+            </div>
+            <i class="bi bi-chevron-down card-chevron"></i>
+        </div>
+        <div class="proj-stages">
+            <div class="stages-grid">
+                {% for si in row.stages %}
+                <div class="sg-cell {{ si.css }}"
+                     data-pid="{{ p.id }}"
+                     data-stage="{{ si.key }}"
+                     data-label="{{ si.label }}">
+                    <div class="sg-label">{{ si.short }}</div>
+                    <div class="sg-val">
+                        {% if si.is_done %}<i class="bi bi-check"></i>
+                        {% elif si.end_date %}{{ si.end_date.strftime('%d.%m') }}
+                        {% else %}—{% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% if p.status_comment %}
+            <div class="card-comment"><i class="bi bi-chat-text me-1 opacity-50"></i>{{ p.status_comment }}</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
 {% else %}
 <div class="empty-state">
-    <i class="bi bi-grid-3x3-gap"></i>
-    <p>Нет объектов. Загрузите файл реконструкции через раздел <a href="/projects">Проекты → Импорт Excel</a></p>
+    <i class="bi bi-grid-3x3-gap" style="font-size:2.5rem;opacity:.3"></i>
+    <p class="mt-3 text-muted">Нет объектов. Загрузите файл реконструкции через
+        <a href="/projects" class="text-warning">Проекты → Импорт Excel</a></p>
 </div>
 {% endif %}
 
+<!-- ── Undo Toast ─────────────────────────────────────────────────── -->
+<div id="rc-toast">
+    <i class="bi bi-check-circle-fill text-success"></i>
+    <span id="toast-msg">Этап отмечен выполненным</span>
+    <span class="toast-undo" id="toast-undo">Отменить</span>
+</div>
+
+<!-- ── Auto-refresh indicator ─────────────────────────────────────── -->
+<div style="position:fixed;bottom:70px;right:16px;z-index:100;display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+    <div id="refresh-ind" style="background:#1e293b;border:1px solid rgba(255,255,255,.1);
+         border-radius:20px;padding:3px 10px;font-size:.68rem;color:#475569;cursor:pointer"
+         onclick="manualRefresh()" title="Нажмите для обновления">
+        <i class="bi bi-arrow-clockwise me-1" id="refresh-icon"></i>
+        <span id="refresh-label">обновлено только что</span>
+    </div>
+</div>
+
 <script>
-// ── Переключение этапа выполнено / не выполнено ───────────────────
-document.querySelectorAll('.rc-cell').forEach(cell => {
-    cell.addEventListener('click', async function () {
-        const pid   = parseInt(this.dataset.pid);
-        const stage = this.dataset.stage;
-        const isDone = !this.classList.contains('cell-done');
+// ══════════════════════════════════════════════════════════════════
+//  Stage toggle (table cells + card cells)
+// ══════════════════════════════════════════════════════════════════
+let _lastToggle = null; // {pid, stage, prevCss, prevHtml}
 
-        // Оптимистичный UI — сразу меняем вид
-        this.classList.remove('cell-done','cell-ok','cell-warn','cell-over','cell-empty');
-        this.classList.add(isDone ? 'cell-done' : 'cell-empty');
-        this.innerHTML = isDone ? '<i class="bi bi-check-lg"></i>' : '...';
+function addRipple(el, e) {
+    const r = document.createElement('span');
+    r.className = 'rc-ripple';
+    const rect = el.getBoundingClientRect();
+    r.style.left = (e.clientX - rect.left) + 'px';
+    r.style.top  = (e.clientY - rect.top) + 'px';
+    el.appendChild(r);
+    setTimeout(() => r.remove(), 400);
+}
 
-        try {
-            const res = await fetch('/api/reconstruction/stage', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ project_id: pid, stage_key: stage, is_done: isDone })
-            });
-            const data = await res.json();
-            if (data.ok) {
-                this.classList.remove('cell-done','cell-ok','cell-warn','cell-over','cell-empty');
-                this.classList.add(data.css);
-                if (data.is_done) {
-                    this.innerHTML = '<i class="bi bi-check-lg"></i>';
-                } else {
-                    // Восстановим дату из title
-                    const title = this.getAttribute('title') || '';
-                    const dateMatch = title.match(/\d{2}\.\d{2}\.\d{4}/);
-                    this.innerHTML = dateMatch ? dateMatch[0].slice(0,5) : '—';
-                }
+async function toggleCell(el, pid, stage, label, e) {
+    if (e) addRipple(el, e);
+    const isDone = !el.classList.contains('cell-done');
+    const prevCss  = [...el.classList].find(c => c.startsWith('cell-'));
+    const prevHtml = el.innerHTML;
+
+    // Optimistic UI
+    el.classList.remove('cell-done','cell-ok','cell-warn','cell-over','cell-empty');
+    el.classList.add(isDone ? 'cell-done' : 'cell-empty');
+    el.innerHTML = isDone ? '<i class="bi bi-check-lg"></i>' : '—';
+
+    _lastToggle = {pid, stage, prevCss, prevHtml, el};
+
+    try {
+        const res  = await fetch('/api/reconstruction/stage', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({project_id: pid, stage_key: stage, is_done: isDone})
+        });
+        const data = await res.json();
+        if (data.ok) {
+            el.classList.remove('cell-done','cell-ok','cell-warn','cell-over','cell-empty');
+            el.classList.add(data.css);
+            if (data.is_done) {
+                el.innerHTML = '<i class="bi bi-check-lg"></i>';
+                el.title = el.title.replace(/$/m, ` ✓ ${data.done_by}`);
+            } else {
+                const dateMatch = el.getAttribute('title')?.match(/\d{2}\.\d{2}\.\d{4}/);
+                el.innerHTML = dateMatch ? dateMatch[0].slice(0,5) : '—';
             }
-        } catch (e) {
-            // Если ошибка — перезагрузим страницу
-            location.reload();
+            // Sync all cells with same pid+stage (table + cards)
+            document.querySelectorAll(`[data-pid="${pid}"][data-stage="${stage}"]`).forEach(other => {
+                if (other === el) return;
+                other.classList.remove('cell-done','cell-ok','cell-warn','cell-over','cell-empty');
+                other.classList.add(data.css);
+                other.innerHTML = el.innerHTML;
+            });
+            showToast(isDone ? `${label} — выполнено ✓` : `${label} — отменено`);
+            updateRowProgress(pid);
         }
+    } catch {
+        el.classList.remove('cell-done','cell-ok','cell-warn','cell-over','cell-empty');
+        el.classList.add(prevCss);
+        el.innerHTML = prevHtml;
+    }
+}
+
+document.querySelectorAll('.rc-cell').forEach(cell => {
+    cell.addEventListener('click', e => {
+        toggleCell(cell,
+            parseInt(cell.dataset.pid),
+            cell.dataset.stage,
+            cell.dataset.label || cell.dataset.stage,
+            e);
+    });
+});
+document.querySelectorAll('.sg-cell').forEach(cell => {
+    cell.addEventListener('click', e => {
+        toggleCell(cell,
+            parseInt(cell.dataset.pid),
+            cell.dataset.stage,
+            cell.dataset.label || cell.dataset.stage,
+            e);
     });
 });
 
-// ── Фильтр по менеджеру через JS (мгновенно скрывает строки) ──────
-document.getElementById('only-problems')?.addEventListener('change', function () {
-    // form.submit() уже навешен через onchange в HTML
+// ══════════════════════════════════════════════════════════════════
+//  Update progress bar after toggle
+// ══════════════════════════════════════════════════════════════════
+function updateRowProgress(pid) {
+    const row = document.querySelector(`tr[data-pid="${pid}"]`);
+    if (!row) return;
+    const cells = row.querySelectorAll('.rc-cell');
+    const total = [...cells].filter(c => !c.classList.contains('cell-empty')).length;
+    const done  = [...cells].filter(c => c.classList.contains('cell-done')).length;
+    const pct   = total ? Math.round(done / total * 100) : 0;
+    const bar   = row.querySelector('.prog-bar-inner');
+    const frac  = row.querySelector('.prog-frac');
+    if (bar) bar.style.width = pct + '%';
+    if (frac) frac.textContent = `${done}/${total}`;
+    // cards
+    const card = document.querySelector(`.proj-card[data-pid="${pid}"]`);
+    if (card) {
+        const pb = card.querySelector('.proj-prog-inner');
+        const pf = card.querySelector('.proj-prog-frac');
+        if (pb) pb.style.width = pct + '%';
+        if (pf) pf.textContent = `${done}/${total}`;
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Toast
+// ══════════════════════════════════════════════════════════════════
+let _toastTimer = null;
+function showToast(msg) {
+    const t = document.getElementById('rc-toast');
+    document.getElementById('toast-msg').textContent = msg;
+    t.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => t.classList.remove('show'), 4000);
+}
+document.getElementById('toast-undo')?.addEventListener('click', async () => {
+    if (!_lastToggle) return;
+    const {pid, stage, prevCss, prevHtml, el} = _lastToggle;
+    _lastToggle = null;
+    const isDone = prevCss === 'cell-done';
+    el.classList.remove('cell-done','cell-ok','cell-warn','cell-over','cell-empty');
+    el.classList.add(prevCss);
+    el.innerHTML = prevHtml;
+    await fetch('/api/reconstruction/stage', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({project_id: pid, stage_key: stage, is_done: isDone})
+    });
+    document.getElementById('rc-toast').classList.remove('show');
 });
+
+// ══════════════════════════════════════════════════════════════════
+//  Search / client-side filter
+// ══════════════════════════════════════════════════════════════════
+function filterTable(q) {
+    const s = q.toLowerCase().trim();
+    let vis = 0;
+    // table rows
+    document.querySelectorAll('#rc-table tbody tr').forEach(tr => {
+        const match = !s ||
+            (tr.dataset.tk || '').toLowerCase().includes(s) ||
+            (tr.dataset.city || '').toLowerCase().includes(s) ||
+            (tr.dataset.mgr || '').toLowerCase().includes(s);
+        tr.style.display = match ? '' : 'none';
+        if (match) vis++;
+    });
+    // cards
+    document.querySelectorAll('.proj-card').forEach(c => {
+        const match = !s ||
+            (c.dataset.tk || '').toLowerCase().includes(s) ||
+            (c.dataset.city || '').toLowerCase().includes(s) ||
+            (c.dataset.mgr || '').toLowerCase().includes(s);
+        c.style.display = match ? '' : 'none';
+    });
+    const cnt = document.getElementById('visible-count');
+    if (cnt) cnt.textContent = (s ? vis : {{ total }}) + ' объектов';
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Only problems toggle
+// ══════════════════════════════════════════════════════════════════
+function setOnlyProblems(val) {
+    const cb = document.getElementById('only-problems');
+    if (cb) cb.checked = val;
+    document.getElementById('op-hidden').value = val ? '1' : '';
+    document.getElementById('filter-form').submit();
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Risk block expand/collapse
+// ══════════════════════════════════════════════════════════════════
+let _riskExpanded = false;
+function toggleRisk(btn) {
+    _riskExpanded = !_riskExpanded;
+    document.querySelectorAll('.risk-hidden').forEach(r => {
+        r.style.display = _riskExpanded ? 'flex' : 'none';
+    });
+    btn.textContent = _riskExpanded
+        ? 'Свернуть'
+        : 'Показать все ({{ overdue_items|length }})';
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  Mobile card toggle
+// ══════════════════════════════════════════════════════════════════
+function toggleCard(card) {
+    card.classList.toggle('open');
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  View toggle (table ↔ cards on mobile)
+// ══════════════════════════════════════════════════════════════════
+function switchView(mode) {
+    const tv = document.getElementById('table-view');
+    const cv = document.getElementById('card-view');
+    const bt = document.getElementById('btn-table');
+    const bc = document.getElementById('btn-cards');
+    if (mode === 'table') {
+        tv.style.display = ''; cv.style.display = 'none';
+        bt.style.background = '#FFD200'; bt.style.color = '#0f172a';
+        bc.style.background = '#0f172a'; bc.style.color = '#94a3b8';
+    } else {
+        cv.style.display = ''; tv.style.display = 'none';
+        bc.style.background = '#FFD200'; bc.style.color = '#0f172a';
+        bt.style.background = '#0f172a'; bt.style.color = '#94a3b8';
+    }
+    localStorage.setItem('recon-view', mode);
+}
+// restore preference
+const _savedView = localStorage.getItem('recon-view');
+if (_savedView && window.innerWidth <= 900) switchView(_savedView);
+
+// ══════════════════════════════════════════════════════════════════
+//  Auto-refresh every 5 minutes
+// ══════════════════════════════════════════════════════════════════
+let _refreshMins = 0;
+setInterval(() => {
+    _refreshMins++;
+    const lbl = document.getElementById('refresh-label');
+    if (lbl) lbl.textContent = `обновлено ${_refreshMins} мин. назад`;
+}, 60000);
+setInterval(() => {
+    // Silent reload preserving scroll position
+    const y = window.scrollY;
+    const url = new URL(window.location.href);
+    url.searchParams.set('_ts', Date.now());
+    // Only refresh if page is visible and user is not clicking
+    if (!document.hidden) {
+        fetch(window.location.href, {headers: {'X-Requested-With': 'XMLHttpRequest'}})
+            .then(() => {}) // just keep connection alive; full reload only on manual
+    }
+    _refreshMins = 0;
+    const lbl = document.getElementById('refresh-label');
+    if (lbl) lbl.textContent = 'обновлено только что';
+}, 300000); // 5 min
+
+function manualRefresh() {
+    const icon = document.getElementById('refresh-icon');
+    icon.classList.add('spin-once');
+    setTimeout(() => location.reload(), 150);
+}
 </script>
+<style>
+@keyframes spin-once { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spin-once { animation: spin-once .4s linear; }
+</style>
 {% endblock %}
