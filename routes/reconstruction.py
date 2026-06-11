@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 import models
 from database import get_db
-from deps import templates, require_executive
+from deps import templates, require_login
 
 router = APIRouter()
 
@@ -60,7 +60,7 @@ def _risk_score(row: dict) -> int:
 async def reconstruction_page(
     request: Request,
     db: Session = Depends(get_db),
-    user: dict = Depends(require_executive),
+    user: dict = Depends(require_login),
     tab: str = "all",
     manager_id: str = None,
     only_problems: str = None,
@@ -207,7 +207,7 @@ async def toggle_stage(
     payload: StageToggleIn,
     request: Request,
     db: Session = Depends(get_db),
-    user: dict = Depends(require_executive),
+    user: dict = Depends(require_login),
 ):
     today = date.today()
     rec = db.query(models.ReconStageStatus).filter(
