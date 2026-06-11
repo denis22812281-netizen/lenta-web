@@ -116,6 +116,36 @@ async def leader_dashboard(request: Request, db: Session = Depends(get_db),
         models.Project.project_type == "Констракшн"
     ).count()
 
+    # ── Констракшн: сводные KPI ──────────────────────────────────────────────
+    year_start = today.replace(month=1, day=1)
+    quarter_end = today + timedelta(days=90)
+
+    construction_opened_year = db.query(models.Project).filter(
+        models.Project.project_type == "Констракшн",
+        models.Project.opening_date >= year_start,
+        models.Project.opening_date <= today,
+    ).count()
+
+    construction_active = db.query(models.Project).filter(
+        models.Project.project_type == "Констракшн",
+        models.Project.status == "Активный",
+    ).count()
+
+    construction_forecast = db.query(models.Project).filter(
+        models.Project.project_type == "Констракшн",
+        models.Project.status == "Активный",
+        models.Project.end_date >= today,
+        models.Project.end_date <= quarter_end,
+    ).count()
+
+    construction_delayed = db.query(models.Project).filter(
+        models.Project.project_type == "Констракшн",
+        models.Project.opening_date >= year_start,
+        models.Project.opening_date <= today,
+        models.Project.end_date.isnot(None),
+        models.Project.opening_date > models.Project.end_date,
+    ).count()
+
     # ── Реконструкции: ТОП-3 критичных ──────────────────────────────────────
     recon_projects = db.query(models.Project).filter(
         models.Project.project_type == "Реконструкция",
@@ -207,4 +237,8 @@ async def leader_dashboard(request: Request, db: Session = Depends(get_db),
         "recon_top": recon_top,
         "recon_by_manager": recon_by_manager,
         "all_critical_projects": all_critical_projects,
+        "construction_opened_year": construction_opened_year,
+        "construction_active": construction_active,
+        "construction_forecast": construction_forecast,
+        "construction_delayed": construction_delayed,
     })

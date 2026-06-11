@@ -84,6 +84,41 @@
     </a>
 </div>
 
+{# ── Блок Констракшн ──────────────────────────────────────────────────── #}
+<div class="const-strip mb-4">
+    <div class="recon-strip-left">
+        <i class="bi bi-buildings-fill const-strip-icon"></i>
+        <div>
+            <div class="const-strip-title">Констракшн</div>
+            <div class="recon-strip-sub">{{ construction_active }} активных объектов</div>
+        </div>
+    </div>
+    <div class="recon-kpis">
+        <div class="recon-kpi-item">
+            <div class="recon-kpi-num" style="color:#4ade80">{{ construction_opened_year }}</div>
+            <div class="recon-kpi-lab">Открыто в {{ today.year }}</div>
+        </div>
+        <div class="recon-kpi-divider"></div>
+        <div class="recon-kpi-item">
+            <div class="recon-kpi-num" style="color:#60a5fa">{{ construction_active }}</div>
+            <div class="recon-kpi-lab">Активных</div>
+        </div>
+        <div class="recon-kpi-divider"></div>
+        <div class="recon-kpi-item">
+            <div class="recon-kpi-num" style="color:#fbbf24">{{ construction_forecast }}</div>
+            <div class="recon-kpi-lab">Прогноз 90 дн.</div>
+        </div>
+        <div class="recon-kpi-divider"></div>
+        <div class="recon-kpi-item {% if construction_delayed > 0 %}rk-danger{% endif %}">
+            <div class="recon-kpi-num">{{ construction_delayed }}</div>
+            <div class="recon-kpi-lab">Задержки</div>
+        </div>
+    </div>
+    <a href="/executive" class="btn btn-const ms-auto">
+        <i class="bi bi-graph-up-arrow me-1"></i>Аналитика
+    </a>
+</div>
+
 {# ── 4 ключевых счётчика ───────────────────────────────────────────────── #}
 <div class="row g-3 mb-4">
     <div class="col-6 col-xl-3">
@@ -806,6 +841,29 @@
     transition: background .15s;
 }
 .btn-recon:hover { background: #15803d; color: #fff; }
+
+/* ── Construction strip ──────────────────────────────────────────────── */
+.const-strip {
+    background: linear-gradient(135deg, rgba(14,36,89,.55) 0%, rgba(15,23,42,.9) 100%);
+    border: 1px solid rgba(96,165,250,.2);
+    border-left: 4px solid #3b82f6;
+    border-radius: 14px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.const-strip-icon { font-size: 1.6rem; color: #60a5fa; opacity: .85; }
+.const-strip-title { font-size: .95rem; font-weight: 700; color: #e2e8f0; line-height: 1.2; }
+.btn-const {
+    background: #1d4ed8; color: #fff; border: none;
+    border-radius: 8px; padding: 7px 16px;
+    font-size: .8rem; font-weight: 600;
+    white-space: nowrap; flex-shrink: 0;
+    transition: background .15s;
+}
+.btn-const:hover { background: #1e40af; color: #fff; }
 
 /* ── Project type badges ──────────────────────────────────────────────── */
 .proj-type-recon { background: rgba(34,197,94,.15); color: #4ade80; border: 1px solid rgba(34,197,94,.25); }

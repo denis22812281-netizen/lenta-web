@@ -97,9 +97,8 @@
         </div>
         <div class="nav-collapse-body" id="nav-analytics">
             {% if user and (user.is_admin or user.is_leader) %}
-            <a href="/executive" class="nav-item {% if '/executive' in request.url.path %}active{% endif %}" style="position:relative">
-                <i class="bi bi-briefcase-fill"></i><span>Исп. дашборд</span>
-                <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:9px;font-weight:800;background:#FFD200;color:#0D2010;border-radius:4px;padding:1px 5px;letter-spacing:.04em">ТОП</span>
+            <a href="/executive" class="nav-item {% if '/executive' in request.url.path %}active{% endif %}">
+                <i class="bi bi-graph-up-arrow"></i><span>Аналитика</span>
             </a>
             {% endif %}
             <a href="/stats" class="nav-item {% if '/stats' in request.url.path %}active{% endif %}">
