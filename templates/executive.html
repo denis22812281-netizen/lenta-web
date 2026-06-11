@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block page_title %}Исполнительный дашборд — Лента{% endblock %}
-{% block title %}<i class="bi bi-briefcase-fill me-2"></i>Исполнительный дашборд{% endblock %}
+{% block page_title %}Аналитика Констракшн — Лента{% endblock %}
+{% block title %}<i class="bi bi-buildings-fill me-2"></i>Констракшн — Аналитика{% endblock %}
 {% block topbar_actions %}<button class="btn btn-sm btn-outline-secondary btn-print" onclick="window.print()"><i class="bi bi-printer me-1"></i><span class="d-none d-sm-inline">PDF</span></button>{% endblock %}
 
 {% block content %}
 
-<!-- KPI row -->
+<!-- KPI row — 2×2 on mobile -->
 <div class="row g-3 mb-4">
-  <div class="col-12 col-sm-6 col-xl-3">
+  <div class="col-6 col-xl-3">
     <div class="stat-card stat-green">
       <div class="stat-icon-wrap"><i class="bi bi-shop stat-icon"></i></div>
       <div class="stat-body">
@@ -16,30 +16,30 @@
       </div>
     </div>
   </div>
-  <div class="col-12 col-sm-6 col-xl-3">
+  <div class="col-6 col-xl-3">
     <div class="stat-card stat-blue">
       <div class="stat-icon-wrap"><i class="bi bi-building-fill stat-icon"></i></div>
       <div class="stat-body">
         <div class="stat-num">{{ active_count }}</div>
-        <div class="stat-label">В работе сейчас</div>
+        <div class="stat-label">В работе</div>
       </div>
     </div>
   </div>
-  <div class="col-12 col-sm-6 col-xl-3">
+  <div class="col-6 col-xl-3">
     <div class="stat-card stat-red">
       <div class="stat-icon-wrap"><i class="bi bi-exclamation-triangle-fill stat-icon"></i></div>
       <div class="stat-body">
         <div class="stat-num">{{ delayed_count }}</div>
-        <div class="stat-label">Просрочено открытий</div>
+        <div class="stat-label">Просрочено</div>
       </div>
     </div>
   </div>
-  <div class="col-12 col-sm-6 col-xl-3">
+  <div class="col-6 col-xl-3">
     <div class="stat-card stat-yellow">
       <div class="stat-icon-wrap"><i class="bi bi-calendar-range-fill stat-icon"></i></div>
       <div class="stat-body">
         <div class="stat-num">{{ forecast_count }}</div>
-        <div class="stat-label">Откроется в 90 дней</div>
+        <div class="stat-label">Прогноз 90 дн.</div>
       </div>
     </div>
   </div>
@@ -50,15 +50,16 @@
   <div class="col-12 col-lg-7">
     <div class="data-card h-100">
       <div class="data-card-header">
-        <span><i class="bi bi-trophy-fill me-2 text-warning"></i>Рейтинг менеджеров — {{ year }}</span>
+        <span><i class="bi bi-trophy-fill me-2 text-warning"></i>Рейтинг — {{ year }}</span>
       </div>
-      <div class="table-responsive">
+      <!-- Desktop table -->
+      <div class="table-responsive d-none d-sm-block">
       <table class="table table-hover mb-0 align-middle">
         <thead class="table-head">
           <tr>
             <th style="width:32px">#</th>
             <th>Менеджер</th>
-            <th class="text-center d-none d-sm-table-cell">В работе</th>
+            <th class="text-center">В работе</th>
             <th class="text-center">Открыто</th>
             <th class="text-center d-none d-md-table-cell">Просрочено</th>
             <th class="text-center d-none d-md-table-cell">Задач ❗</th>
@@ -74,21 +75,17 @@
           <td style="max-width:0;min-width:110px">
             <div class="d-flex align-items-center gap-2">
               {% if m.photo %}
-              <img src="{{ media_url(m.photo) }}" class="d-none d-sm-block" style="width:32px;height:32px;border-radius:8px;object-fit:cover;flex-shrink:0">
+              <img src="{{ media_url(m.photo) }}" style="width:32px;height:32px;border-radius:8px;object-fit:cover;flex-shrink:0">
               {% elif 'Месмер' in m.name %}
-              <img src="/static/img/raccoon_mesmer.jpg" class="d-none d-sm-block" style="width:32px;height:32px;border-radius:8px;object-fit:cover;flex-shrink:0">
+              <img src="/static/img/raccoon_mesmer.jpg" style="width:32px;height:32px;border-radius:8px;object-fit:cover;flex-shrink:0">
               {% else %}
-              <img src="/static/img/raccoon.png" class="d-none d-sm-block" style="width:32px;height:32px;border-radius:8px;object-fit:contain;flex-shrink:0">
+              <img src="/static/img/raccoon.png" style="width:32px;height:32px;border-radius:8px;object-fit:contain;flex-shrink:0">
               {% endif %}
               <a href="/managers/{{ m.id }}" class="text-decoration-none fw-semibold" style="color:inherit;white-space:nowrap">{{ m.name | short_name }}</a>
             </div>
           </td>
-          <td class="text-center d-none d-sm-table-cell">
-            <span class="badge bg-primary">{{ m.active }}</span>
-          </td>
-          <td class="text-center">
-            <span class="badge bg-success">{{ m.opened_yr }}</span>
-          </td>
+          <td class="text-center"><span class="badge bg-primary">{{ m.active }}</span></td>
+          <td class="text-center"><span class="badge bg-success">{{ m.opened_yr }}</span></td>
           <td class="text-center d-none d-md-table-cell">
             {% if m.delayed > 0 %}<span class="badge bg-danger">{{ m.delayed }}</span>
             {% else %}<span class="text-success small">✓</span>{% endif %}
@@ -99,17 +96,44 @@
           </td>
           <td class="text-center">
             {% set score = m.score %}
-            <span style="font-size:15px;font-weight:800;color:{% if score > 5 %}#22c55e{% elif score >= 0 %}#FFD200{% else %}#ef4444{% endif %}">
-              {{ score }}
-            </span>
+            <span style="font-size:15px;font-weight:800;color:{% if score > 5 %}#22c55e{% elif score >= 0 %}#FFD200{% else %}#ef4444{% endif %}">{{ score }}</span>
           </td>
         </tr>
         {% endfor %}
         </tbody>
       </table>
       </div>
+      <!-- Mobile card list -->
+      <div class="d-sm-none px-3 pb-2">
+        {% for m in mgr_stats %}
+        <a href="/managers/{{ m.id }}" class="exec-mgr-card text-decoration-none">
+          <div class="exec-mgr-rank">
+            {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}<span class="text-muted fw-bold">{{ loop.index }}</span>{% endif %}
+          </div>
+          <div class="exec-mgr-avatar">
+            {% if m.photo %}<img src="{{ media_url(m.photo) }}" onerror="this.src='/static/img/raccoon.png'">
+            {% elif 'Месмер' in m.name %}<img src="/static/img/raccoon_mesmer.jpg">
+            {% else %}<img src="/static/img/raccoon.png">{% endif %}
+          </div>
+          <div class="exec-mgr-info">
+            <div class="fw-semibold" style="color:#e2e8f0">{{ m.name | short_name }}</div>
+            <div class="exec-mgr-badges">
+              <span class="badge bg-primary" title="В работе">{{ m.active }} акт.</span>
+              <span class="badge bg-success" title="Открыто">{{ m.opened_yr }} откр.</span>
+              {% if m.delayed > 0 %}<span class="badge bg-danger">{{ m.delayed }} проср.</span>{% endif %}
+              {% if m.tasks_overdue > 0 %}<span class="badge bg-warning text-dark">{{ m.tasks_overdue }} задач</span>{% endif %}
+            </div>
+          </div>
+          <div class="ms-auto text-end">
+            {% set score = m.score %}
+            <div style="font-size:1.3rem;font-weight:800;color:{% if score > 5 %}#22c55e{% elif score >= 0 %}#FFD200{% else %}#ef4444{% endif %}">{{ score }}</div>
+            <div style="font-size:.65rem;color:#64748b;text-transform:uppercase">рейтинг</div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
       <div class="px-3 pb-2 pt-1" style="font-size:11px;color:#64748b">
-        Рейтинг = открытия×3 − просрочки×5 − задачи с просрочкой×2
+        Рейтинг = открытия×3 − просрочки×5 − задачи×2
       </div>
     </div>
   </div>
@@ -118,9 +142,9 @@
   <div class="col-12 col-lg-5">
     <div class="data-card h-100">
       <div class="data-card-header">
-        <span><i class="bi bi-bar-chart-fill me-2 text-success"></i>Открытия по месяцам — {{ year }}</span>
+        <span><i class="bi bi-bar-chart-fill me-2 text-success"></i>По месяцам — {{ year }}</span>
       </div>
-      <div style="padding:16px;min-height:220px">
+      <div style="padding:16px;min-height:200px">
         <canvas id="chartMonthly" style="max-height:260px"></canvas>
       </div>
     </div>
@@ -132,16 +156,17 @@
   <div class="col-lg-6">
     <div class="data-card">
       <div class="data-card-header">
-        <span><i class="bi bi-calendar-check-fill me-2 text-primary"></i>Прогноз — ближайшие 90 дней</span>
+        <span><i class="bi bi-calendar-check-fill me-2 text-primary"></i>Прогноз 90 дней</span>
         <span class="badge bg-primary">{{ forecast_projects|length }}</span>
       </div>
       {% if forecast_projects %}
-      <div class="table-responsive">
+      <!-- Desktop -->
+      <div class="table-responsive d-none d-sm-block">
       <table class="table table-hover mb-0 align-middle small">
         <thead class="table-head">
           <tr>
             <th>ТК</th>
-            <th class="d-none d-sm-table-cell">Адрес</th>
+            <th>Адрес</th>
             <th>Менеджер</th>
             <th>Плановое</th>
             <th>Осталось</th>
@@ -152,18 +177,30 @@
         {% set days = (p.end_date - today).days %}
         <tr>
           <td class="fw-semibold"><a href="/projects/{{ p.id }}" class="text-decoration-none" style="color:inherit">{{ p.tk_number }}</a></td>
-          <td class="d-none d-sm-table-cell text-truncate text-muted" style="max-width:110px">{{ p.address or p.city or '—' }}</td>
+          <td class="text-truncate text-muted" style="max-width:110px">{{ p.address or p.city or '—' }}</td>
           <td>{{ p.manager.name.split()[0] if p.manager else '—' }}</td>
           <td class="text-nowrap">{{ p.end_date.strftime('%d.%m.%y') }}</td>
-          <td>
-            <span class="dl-badge {% if days <= 7 %}dl-crit{% elif days <= 30 %}dl-warn{% else %}dl-ok{% endif %}">
-              {{ days }} д
-            </span>
-          </td>
+          <td><span class="dl-badge {% if days <= 7 %}dl-crit{% elif days <= 30 %}dl-warn{% else %}dl-ok{% endif %}">{{ days }} д</span></td>
         </tr>
         {% endfor %}
         </tbody>
       </table>
+      </div>
+      <!-- Mobile cards -->
+      <div class="d-sm-none px-3 pb-2">
+        {% for p in forecast_projects %}
+        {% set days = (p.end_date - today).days %}
+        <a href="/projects/{{ p.id }}" class="exec-proj-card text-decoration-none">
+          <div class="exec-proj-tk">{{ p.tk_number }}</div>
+          <div class="exec-proj-info">
+            <div class="fw-semibold small" style="color:#e2e8f0">{{ p.city or p.address or '—' }}</div>
+            <div style="font-size:.72rem;color:#64748b">{{ p.manager.name.split()[0] if p.manager else '—' }} · {{ p.end_date.strftime('%d.%m.%y') }}</div>
+          </div>
+          <div class="ms-auto">
+            <span class="dl-badge {% if days <= 7 %}dl-crit{% elif days <= 30 %}dl-warn{% else %}dl-ok{% endif %}">{{ days }} д</span>
+          </div>
+        </a>
+        {% endfor %}
       </div>
       {% else %}
       <div class="empty-state"><i class="bi bi-calendar-check"></i><p>Нет плановых открытий в ближайшие 90 дней</p></div>
@@ -179,12 +216,13 @@
         <span class="badge bg-danger">{{ overdue_projects|length }}</span>
       </div>
       {% if overdue_projects %}
-      <div class="table-responsive">
+      <!-- Desktop -->
+      <div class="table-responsive d-none d-sm-block">
       <table class="table table-hover mb-0 align-middle small">
         <thead class="table-head">
           <tr>
             <th>ТК</th>
-            <th class="d-none d-sm-table-cell">Адрес</th>
+            <th>Адрес</th>
             <th>Менеджер</th>
             <th>Было открыть</th>
             <th>Просрочка</th>
@@ -195,7 +233,7 @@
         {% set overdue_days = (p.opening_date - p.end_date).days %}
         <tr>
           <td class="fw-semibold"><a href="/projects/{{ p.id }}" class="text-decoration-none" style="color:inherit">{{ p.tk_number }}</a></td>
-          <td class="d-none d-sm-table-cell text-truncate text-muted" style="max-width:110px">{{ p.address or p.city or '—' }}</td>
+          <td class="text-truncate text-muted" style="max-width:110px">{{ p.address or p.city or '—' }}</td>
           <td>{{ p.manager.name.split()[0] if p.manager else '—' }}</td>
           <td class="text-nowrap">{{ p.end_date.strftime('%d.%m.%y') }}</td>
           <td><span class="dl-badge dl-over">{{ overdue_days }} д</span></td>
@@ -203,6 +241,22 @@
         {% endfor %}
         </tbody>
       </table>
+      </div>
+      <!-- Mobile cards -->
+      <div class="d-sm-none px-3 pb-2">
+        {% for p in overdue_projects %}
+        {% set overdue_days = (p.opening_date - p.end_date).days %}
+        <a href="/projects/{{ p.id }}" class="exec-proj-card text-decoration-none">
+          <div class="exec-proj-tk" style="color:#f87171;border-color:rgba(239,68,68,.3)">{{ p.tk_number }}</div>
+          <div class="exec-proj-info">
+            <div class="fw-semibold small" style="color:#e2e8f0">{{ p.city or p.address or '—' }}</div>
+            <div style="font-size:.72rem;color:#64748b">{{ p.manager.name.split()[0] if p.manager else '—' }} · план {{ p.end_date.strftime('%d.%m.%y') }}</div>
+          </div>
+          <div class="ms-auto">
+            <span class="dl-badge dl-over">{{ overdue_days }} д</span>
+          </div>
+        </a>
+        {% endfor %}
       </div>
       {% else %}
       <div class="empty-state"><i class="bi bi-check-circle-fill text-success"></i><p style="color:#22c55e">Просроченных открытий нет</p></div>
@@ -246,5 +300,43 @@ new Chart(document.getElementById('chartMonthly'), {
 </script>
 <style>
 [data-bs-theme="dark"] .table a { color: #e2e8f0 !important; }
+
+/* ── Mobile manager card ────────────────────────────────────────── */
+.exec-mgr-card {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.exec-mgr-card:last-child { border-bottom: none; }
+.exec-mgr-rank { width: 22px; text-align: center; flex-shrink: 0; font-size: 18px; }
+.exec-mgr-avatar {
+    width: 38px; height: 38px; border-radius: 10px; overflow: hidden; flex-shrink: 0;
+    background: #1e293b; border: 1px solid rgba(255,255,255,.1);
+}
+.exec-mgr-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.exec-mgr-info { flex: 1; min-width: 0; }
+.exec-mgr-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; }
+.exec-mgr-badges .badge { font-size: .65rem; }
+
+/* ── Mobile project card ────────────────────────────────────────── */
+.exec-proj-card {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.exec-proj-card:last-child { border-bottom: none; }
+.exec-proj-tk {
+    font-size: .75rem; font-weight: 700; color: #60a5fa;
+    background: rgba(96,165,250,.1); border: 1px solid rgba(96,165,250,.2);
+    border-radius: 6px; padding: 4px 8px; flex-shrink: 0; white-space: nowrap;
+}
+.exec-proj-info { flex: 1; min-width: 0; }
+
+/* ── Stat card mobile tweak ─────────────────────────────────────── */
+@media (max-width: 576px) {
+    .stat-card { padding: 12px 14px; min-height: unset; }
+    .stat-num  { font-size: 28px; }
+    .stat-icon-wrap { width: 40px; height: 40px; }
+    .stat-icon { font-size: 18px; }
+    .stat-label { font-size: 11px; }
+}
 </style>
 {% endblock %}
