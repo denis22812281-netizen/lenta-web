@@ -98,7 +98,7 @@
         <div class="nav-collapse-body" id="nav-analytics">
             {% if user and (user.is_admin or user.is_leader) %}
             <a href="/executive" class="nav-item {% if '/executive' in request.url.path %}active{% endif %}">
-                <i class="bi bi-graph-up-arrow"></i><span>Аналитика</span>
+                <i class="bi bi-graph-up-arrow"></i><span>Отчёт директора</span>
             </a>
             {% endif %}
             <a href="/stats" class="nav-item {% if '/stats' in request.url.path %}active{% endif %}">
