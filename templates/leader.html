@@ -47,14 +47,19 @@
         </div>
     </div>
     <div class="recon-kpis">
-        <div class="recon-kpi-item {% if recon_overdue_projects > 0 %}rk-danger{% endif %}">
-            <div class="recon-kpi-num">{{ recon_overdue_projects }}</div>
-            <div class="recon-kpi-lab">Просрочено</div>
+        <div class="recon-kpi-item">
+            <div class="recon-kpi-num" style="color:#4ade80">{{ recon_opened }}</div>
+            <div class="recon-kpi-lab">Открыто</div>
         </div>
         <div class="recon-kpi-divider"></div>
         <div class="recon-kpi-item">
-            <div class="recon-kpi-num">{{ recon_total }}</div>
-            <div class="recon-kpi-lab">Всего ТК</div>
+            <div class="recon-kpi-num" style="color:#60a5fa">{{ recon_in_work }}</div>
+            <div class="recon-kpi-lab">В работе</div>
+        </div>
+        <div class="recon-kpi-divider"></div>
+        <div class="recon-kpi-item {% if recon_overdue_projects > 0 %}rk-danger{% endif %}">
+            <div class="recon-kpi-num">{{ recon_overdue_projects }}</div>
+            <div class="recon-kpi-lab">Просрочено</div>
         </div>
     </div>
     <div class="recon-strip-projects">

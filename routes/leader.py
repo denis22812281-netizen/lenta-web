@@ -147,6 +147,8 @@ async def leader_dashboard(request: Request, db: Session = Depends(get_db),
 
     recon_data.sort(key=lambda r: -(r["overdue"] * 100 + r["warn"] * 10))
     recon_overdue_projects = sum(1 for r in recon_data if r["overdue"] > 0)
+    recon_opened  = sum(1 for p in recon_projects if p.opening_date and p.opening_date <= today)
+    recon_in_work = sum(1 for p in recon_projects if not (p.opening_date and p.opening_date <= today))
     recon_top = recon_data[:4]
 
     return templates.TemplateResponse("leader.html", {
@@ -168,5 +170,7 @@ async def leader_dashboard(request: Request, db: Session = Depends(get_db),
         "current_manager_photo": current_manager_photo,
         "recon_overdue_projects": recon_overdue_projects,
         "recon_total": len(recon_projects),
+        "recon_opened": recon_opened,
+        "recon_in_work": recon_in_work,
         "recon_top": recon_top,
     })
