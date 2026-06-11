@@ -303,12 +303,12 @@
                 <a href="/projects" class="btn btn-sm btn-outline-secondary">Все проекты →</a>
             </div>
             <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle">
+            <table class="table table-hover mb-0 align-middle critical-proj-table">
                 <thead class="table-head">
                     <tr>
                         <th>Проект / ТК</th>
                         <th>Тип</th>
-                        <th>Менеджер</th>
+                        <th class="d-none d-md-table-cell">Менеджер</th>
                         <th>Дата открытия</th>
                         <th>Осталось</th>
                     </tr>
@@ -326,7 +326,7 @@
                             {% if p.project_type == 'Реконструкция' %}Рекон{% else %}Const{% endif %}
                         </span>
                     </td>
-                    <td class="text-muted small">{{ p.manager.name | short_name if p.manager else '—' }}</td>
+                    <td class="text-muted small d-none d-md-table-cell">{{ p.manager.name | short_name if p.manager else '—' }}</td>
                     <td class="small fw-semibold">{{ p.opening_date.strftime('%d.%m.%Y') }}</td>
                     <td>
                         <span class="dl-badge {% if days <= 7 %}dl-warn{% elif days <= 14 %}dl-ok{% else %}bg-secondary text-white{% endif %}" style="border-radius:6px;padding:2px 8px;font-size:.72rem">
@@ -657,6 +657,24 @@
     .leader-kpi { padding: 12px; gap: 10px; }
     .leader-kpi-icon { width: 36px; height: 36px; font-size: 18px; }
     .leader-kpi-num  { font-size: 22px; }
+    /* Construction strip — 2×2 grid for 4 KPIs */
+    .const-strip .recon-kpis {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+        width: 100%;
+        padding: 4px 0;
+        background: transparent;
+        border: none;
+    }
+    .const-strip .recon-kpi-divider { display: none; }
+    .const-strip .recon-kpi-item {
+        padding: 8px 10px;
+        border: 1px solid rgba(255,255,255,.06);
+        border-radius: 8px;
+        margin: 3px;
+        background: rgba(0,0,0,.2);
+    }
     /* Overlay — полный экран на мобилке */
     .rc-overlay { padding: 8px; }
     .rc-overlay-box { max-width: 100%; border-radius: 10px; max-height: calc(100vh - 16px); }
