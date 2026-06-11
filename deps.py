@@ -18,6 +18,20 @@ def _short_name(name: str) -> str:
 
 templates.env.filters["short_name"] = _short_name
 
+_AVATAR_COLORS = [
+    "#1d4ed8","#7c3aed","#be185d","#b45309",
+    "#065f46","#b91c1c","#0e7490","#4338ca",
+    "#0369a1","#6d28d9","#9d174d","#92400e",
+]
+
+def _avatar_color(name: str) -> str:
+    """Stable color for a name — used for manager initials avatars."""
+    if not name:
+        return _AVATAR_COLORS[0]
+    return _AVATAR_COLORS[sum(ord(c) for c in name) % len(_AVATAR_COLORS)]
+
+templates.env.filters["avatar_color"] = _avatar_color
+
 # Rate limiter (shared между роутерами)
 limiter = Limiter(key_func=get_remote_address)
 

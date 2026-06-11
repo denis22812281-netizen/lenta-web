@@ -336,7 +336,7 @@
                                 {% if row.photo %}
                                 <img src="/static/{{ row.photo }}" alt="{{ row.name }}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                                 {% endif %}
-                                <span class="leader-mgr-initials" {% if row.photo %}style="display:none"{% endif %}>
+                                <span class="leader-mgr-initials" style="background:{{ row.name | avatar_color }};color:#fff;{% if row.photo %}display:none{% endif %}">
                                     {{ row.name.split()[0][:1] }}{{ row.name.split()[-1][:1] if row.name.split()|length > 1 else '' }}
                                 </span>
                             </div>
@@ -453,7 +453,7 @@
                         <img src="/static/{{ row.photo }}" alt="{{ row.name }}"
                              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                         {% endif %}
-                        <span class="leader-mgr-initials" {% if row.photo %}style="display:none"{% endif %}>
+                        <span class="leader-mgr-initials" style="background:{{ row.name | avatar_color }};color:#fff;{% if row.photo %}display:none{% endif %}">
                             {{ row.name.split()[0][:1] }}{{ row.name.split()[-1][:1] if row.name.split()|length > 1 else '' }}
                         </span>
                     </div>
