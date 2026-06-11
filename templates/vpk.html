@@ -82,9 +82,13 @@
                 <i class="bi bi-list-check me-2"></i>Критерии ВПК-{{ vpk_num }}
                 <span class="badge bg-{{ accent }} ms-1">{{ criteria|length }}</span>
             </span>
-            <div class="d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-outline-success" onclick="checkAll(true)">Все выполнены</button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="checkAll(false)">Сбросить</button>
+            <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-sm btn-outline-success" onclick="checkAll(true)">
+                    <i class="bi bi-check-all me-1"></i><span class="d-none d-sm-inline">Все выполнены</span><span class="d-sm-none">Все ✓</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="checkAll(false)">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i><span class="d-none d-sm-inline">Сбросить</span>
+                </button>
             </div>
         </div>
         <div class="p-0">
@@ -271,6 +275,27 @@
 [data-bs-theme="dark"] [style*="background:#fef2f2"] { background:#2d0a0a !important; }
 [data-bs-theme="dark"] [style*="background:#eff6ff"] { background:#0f1e3a !important; }
 [data-bs-theme="dark"] .input-group-text { background:#1e293b !important; border-color:#334155 !important; color:#94a3b8 !important; }
+
+/* ── МОБИЛЬ ── */
+@media (max-width: 576px) {
+    /* Заголовок критериев — перенос кнопок */
+    .data-card-header { flex-wrap: wrap; gap: 8px; }
+
+    /* Строки критериев */
+    .vpk-criterion-row { padding: 10px 10px; gap: 8px; }
+    .vpk-text { font-size: .8rem; }
+    .vpk-num  { font-size: .78rem; min-width: 20px; }
+
+    /* Кнопки Да/Нет — компактнее */
+    .vpk-btn { padding: 5px 10px; font-size: .78rem; }
+
+    /* Отчёты */
+    .vpk-report-card { padding: 12px; }
+    .vpk-item-photo  { max-width: 90px; max-height: 70px; }
+
+    /* Прогресс + отправить */
+    .data-card.p-3 .btn-lg { font-size: .95rem; padding: 12px; }
+}
 </style>
 {% endblock %}
 
