@@ -448,16 +448,17 @@ new Chart(document.getElementById('chartMonthly'), {
     /* Фото менеджеров — убираем, экономим место */
     .exec-mgr-avatar, .exec-mgr-avatar + *, img[style*="32px"] { display: none !important; }
 
-    /* ── Прогноз + Просрочки рядом на новой странице ── */
+    /* ── Прогноз + Просрочки рядом, без принудительного разрыва ── */
     #forecast-overdue-row {
         display: flex !important;
         flex-wrap: nowrap !important;
         gap: 10px !important;
-        break-before: page;
     }
     #forecast-overdue-row > [class*="col"] {
         flex: 1 1 50% !important; width: 50% !important; max-width: 50% !important; padding: 0 !important;
     }
+    /* Длинные адреса — переносить, не обрезать */
+    #forecast-overdue-row td { word-break: break-word !important; white-space: normal !important; }
 
     /* ── Бейджи ── */
     .badge { font-size: 9px !important; padding: 2px 5px !important; border-radius: 4px !important; font-weight: 700 !important; }
