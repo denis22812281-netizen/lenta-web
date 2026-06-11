@@ -724,6 +724,56 @@ const _savedView = localStorage.getItem('recon-view');
 if (_savedView && window.innerWidth <= 900) switchView(_savedView);
 
 // ══════════════════════════════════════════════════════════════════
+//  Sticky thead (CSS sticky breaks inside overflow-x:auto — JS clone)
+// ══════════════════════════════════════════════════════════════════
+(function() {
+    const wrap  = document.getElementById('table-view');
+    const tbl   = document.getElementById('rc-table');
+    if (!wrap || !tbl) return;
+    const realHead = tbl.querySelector('thead tr');
+    if (!realHead) return;
+
+    // Build floating ghost header
+    const ghost = document.createElement('div');
+    ghost.style.cssText = 'position:fixed;top:0;z-index:200;overflow:hidden;'
+        + 'visibility:hidden;background:#1e293b;'
+        + 'border-bottom:2px solid rgba(255,255,255,.12);box-shadow:0 4px 16px rgba(0,0,0,.5);';
+    const ghostTbl = document.createElement('table');
+    ghostTbl.className = 'rc-table';
+    ghostTbl.style.cssText = 'border-collapse:collapse;margin:0;table-layout:fixed;';
+    const ghostHead = document.createElement('thead');
+    ghostHead.appendChild(realHead.cloneNode(true));
+    ghostTbl.appendChild(ghostHead);
+    ghost.appendChild(ghostTbl);
+    document.body.appendChild(ghost);
+
+    function sync() {
+        const wRect = wrap.getBoundingClientRect();
+        const hRect = realHead.getBoundingClientRect();
+        const show  = hRect.bottom < 0;
+
+        ghost.style.visibility = show ? 'visible' : 'hidden';
+        if (!show) return;
+
+        ghost.style.left  = wRect.left + 'px';
+        ghost.style.width = wRect.width + 'px';
+
+        // Sync column widths & horizontal scroll offset
+        const origThs  = realHead.querySelectorAll('th');
+        const ghostThs = ghostHead.querySelectorAll('th');
+        origThs.forEach((th, i) => {
+            if (ghostThs[i]) ghostThs[i].style.width = th.getBoundingClientRect().width + 'px';
+        });
+        ghostTbl.style.width       = tbl.offsetWidth + 'px';
+        ghostTbl.style.marginLeft  = -wrap.scrollLeft + 'px';
+    }
+
+    window.addEventListener('scroll', sync, { passive: true });
+    wrap.addEventListener('scroll', sync, { passive: true });
+    window.addEventListener('resize', sync, { passive: true });
+})();
+
+// ══════════════════════════════════════════════════════════════════
 //  Auto-refresh every 5 minutes
 // ══════════════════════════════════════════════════════════════════
 let _refreshMins = 0;
