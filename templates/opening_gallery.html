@@ -9,11 +9,16 @@
     const _t = localStorage.getItem('theme') || 'dark';
     document.getElementById('html-root').setAttribute('data-bs-theme', _t);
   </script>
-  <link href="/static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
   <link href="/static/vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
-  <link href="/static/css/style.css?v=20260609b" rel="stylesheet">
   <style>
-    body { background: #0D1F0F; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      display: block !important;
+      background: #0D1F0F;
+      color: #e8f5e9;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      min-height: 100vh;
+    }
 
     .hero-header {
       background: linear-gradient(135deg, #0D1F0F 0%, #1A5C22 60%, #0D1F0F 100%);
@@ -89,10 +94,13 @@
       overflow: hidden;
       cursor: pointer;
       position: relative;
-      background: #111;
+      background: #1a2e1a;
+      min-height: 80px;
+      display: block;
     }
     .photo-item img {
       width: 100%;
+      height: auto;
       display: block;
       transition: transform .3s ease;
     }
@@ -290,10 +298,11 @@ function openLightbox(url, idx) {
 }
 
 function closeLightbox(event) {
-  if (event && event.target !== document.getElementById('lightbox') &&
-      event.target !== document.querySelector('.lightbox-close') &&
-      !event.target.closest('.lightbox-close')) {
-    return;
+  if (event) {
+    const lb = document.getElementById('lightbox');
+    const isBackdrop = event.target === lb;
+    const isCloseBtn = event.target.closest('.lightbox-close');
+    if (!isBackdrop && !isCloseBtn) return;
   }
   document.getElementById('lightbox').classList.remove('active');
   document.body.style.overflow = '';
