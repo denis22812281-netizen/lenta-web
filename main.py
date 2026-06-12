@@ -233,3 +233,15 @@ async def startup():
     asyncio.create_task(auto_sync_loop())
     asyncio.create_task(smr_notification_loop())
     asyncio.create_task(leader_digest_loop())
+
+    # Автобэкап БД каждую ночь в 03:00
+    if "postgresql" in str(database.DATABASE_URL):
+        try:
+            from apscheduler.schedulers.asyncio import AsyncIOScheduler
+            from services.backup import run_pg_backup
+            _scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
+            _scheduler.add_job(run_pg_backup, "cron", hour=3, minute=0)
+            _scheduler.start()
+            logger.info("APScheduler: авто-бэкап запланирован на 03:00 МСК")
+        except ImportError:
+            logger.warning("apscheduler не установлен — авто-бэкап недоступен")
