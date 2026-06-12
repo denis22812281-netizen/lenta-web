@@ -47,7 +47,8 @@ app = FastAPI(title="Лента — Управление проектами")
 
 class CSRFMiddleware(BaseHTTPMiddleware):
     """Проверяет CSRF-токен для всех POST-форм (кроме API и логина)."""
-    _EXEMPT = ("/api/", "/login/", "/smr/confirm/", "/import-reconstruct", "/import-construction")
+    _EXEMPT = ("/api/", "/login/", "/smr/confirm/", "/import-reconstruct", "/import-construction",
+               "/vpk/precheck", "/vpk/submit")
 
     async def dispatch(self, request: Request, call_next):
         if os.getenv("TESTING") == "1":

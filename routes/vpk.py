@@ -164,6 +164,8 @@ async def precheck_submit(request: Request, background_tasks: BackgroundTasks,
         models.VpkCriterion.vpk_type == vpk_type
     ).order_by(models.VpkCriterion.order).all()
 
+    _all_keys = [k for k, v in form.multi_items() if isinstance(v, str)]
+    _vpk_logger.warning("PRECHECK all_keys(%d): %s", len(_all_keys), _all_keys[:30])
     _vpk_logger.warning("PRECHECK form: project_id=%r tk_text=%r",
                         project_id, form.get("tk_text"))
     precheck_json = str(form.get("precheck_json", "{}") or "{}")
