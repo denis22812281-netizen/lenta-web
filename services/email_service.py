@@ -656,12 +656,13 @@ def notify_opening_photos(to_email: str, tk_number: str, city: str,
         gallery_btn = f"""
         <table cellpadding="0" cellspacing="0" style="margin:20px auto 24px">
           <tr>
-            <td bgcolor="#1A5C22" style="border-radius:50px;padding:0">
+            <td bgcolor="#FFD200" style="background:#FFD200;border-radius:50px;
+                                        padding:0;mso-padding-alt:0">
               <a href="{gallery_url}"
-                 style="display:inline-block;background:#1A5C22;color:#ffffff;
-                        font-weight:800;font-size:16px;padding:16px 36px;
-                        border-radius:50px;text-decoration:none;
-                        border:2px solid #3CB34A;letter-spacing:.3px">
+                 style="display:inline-block;background:#FFD200;color:#1A5C22;
+                        font-weight:900;font-size:16px;padding:16px 36px;
+                        border-radius:50px;text-decoration:none;letter-spacing:.3px;
+                        font-family:Arial,sans-serif">
                 🎊 &nbsp;Открыть страницу открытия
               </a>
             </td>

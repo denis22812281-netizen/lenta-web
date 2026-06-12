@@ -110,7 +110,7 @@
 
           <!-- Страница открытия — главная кнопка -->
           <a href="/opening/{{ selected_proj.id }}" target="_blank"
-             style="display:block;border-radius:12px;overflow:hidden;margin-bottom:12px;
+             style="display:block;border-radius:12px;overflow:hidden;margin-bottom:10px;
                     text-decoration:none;background:linear-gradient(135deg,#0D1F0F,#1A5C22);
                     border:1px solid #3CB34A">
             <div style="padding:16px 20px">
@@ -127,13 +127,16 @@
             </div>
           </a>
 
-          <div class="text-muted small mb-3 text-center">
-            Ссылку на эту страницу можно отправить в мессенджер
-          </div>
+          <!-- Копировать ссылку -->
+          <button type="button" id="copyLinkBtn" onclick="copyGalleryLink()"
+                  class="btn btn-outline-secondary w-100 mb-3"
+                  style="border-radius:10px;font-size:13px">
+            <i class="bi bi-link-45deg me-1"></i>Скопировать ссылку
+          </button>
 
-          <form method="post" action="/opening/send-report">
+          <form method="post" action="/opening/send-report" onsubmit="handleSendReport(this)">
             <input type="hidden" name="project_id" value="{{ selected_proj.id }}">
-            <button type="submit" class="btn btn-success w-100"
+            <button type="submit" id="sendReportBtn" class="btn btn-success w-100"
                     style="border-radius:10px;font-weight:700">
               <i class="bi bi-envelope-fill me-2"></i>Отправить все фото на почту
             </button>
@@ -419,6 +422,33 @@ function handleDrop(event) {
   event.preventDefault();
   document.getElementById('dropzone').classList.remove('drag-over');
   startUpload(event.dataTransfer.files);
+}
+
+// ── Копировать ссылку на галерею ──────────────────────────────────────────────
+function copyGalleryLink() {
+  if (!PROJECT_ID) return;
+  const url = location.origin + '/opening/' + PROJECT_ID;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('copyLinkBtn');
+    btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Ссылка скопирована!';
+    btn.classList.replace('btn-outline-secondary', 'btn-outline-success');
+    setTimeout(() => {
+      btn.innerHTML = '<i class="bi bi-link-45deg me-1"></i>Скопировать ссылку';
+      btn.classList.replace('btn-outline-success', 'btn-outline-secondary');
+    }, 2500);
+  });
+}
+
+// ── Кнопка отправки — защита от двойного клика + спиннер ─────────────────────
+function handleSendReport(form) {
+  const btn = document.getElementById('sendReportBtn');
+  const photos = document.querySelectorAll('#photoGrid [id^="photoCard"]');
+  if (photos.length === 0) {
+    alert('Сначала загрузите фото');
+    return false;
+  }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Отправляю...';
 }
 </script>
 

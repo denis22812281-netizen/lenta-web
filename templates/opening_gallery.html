@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Открытие ТК {{ project.tk_number }} — Лента</title>
   <meta name="theme-color" content="#1A5C22">
-  <script>
-    const _t = localStorage.getItem('theme') || 'dark';
-    document.getElementById('html-root').setAttribute('data-bs-theme', _t);
-  </script>
   <link href="/static/vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -20,9 +16,10 @@
       min-height: 100vh;
     }
 
+    /* ─── Hero ─────────────────────────────────────────── */
     .hero-header {
-      background: linear-gradient(135deg, #0D1F0F 0%, #1A5C22 60%, #0D1F0F 100%);
-      padding: 48px 24px 40px;
+      background: linear-gradient(160deg, #0a1a0a 0%, #1A5C22 50%, #0D2B10 100%);
+      padding: 52px 24px 44px;
       text-align: center;
       position: relative;
       overflow: hidden;
@@ -30,154 +27,212 @@
     .hero-header::before {
       content: '';
       position: absolute;
-      top: -60px; left: 50%; transform: translateX(-50%);
-      width: 300px; height: 300px;
-      background: radial-gradient(circle, rgba(255,210,0,.15) 0%, transparent 70%);
+      top: -80px; left: 50%; transform: translateX(-50%);
+      width: 420px; height: 420px;
+      background: radial-gradient(circle, rgba(255,210,0,.10) 0%, transparent 65%);
       pointer-events: none;
     }
     .hero-badge {
       display: inline-flex; align-items: center; gap: 8px;
-      background: rgba(255,210,0,.15); border: 1px solid rgba(255,210,0,.4);
-      border-radius: 50px; padding: 6px 16px;
-      color: #FFD200; font-size: 13px; font-weight: 700;
-      letter-spacing: .5px; margin-bottom: 16px;
+      background: rgba(255,210,0,.14); border: 1px solid rgba(255,210,0,.45);
+      border-radius: 50px; padding: 7px 20px;
+      color: #FFD200; font-size: 12px; font-weight: 800;
+      letter-spacing: 1.5px; margin-bottom: 20px;
+      text-transform: uppercase;
     }
     .hero-tk {
-      font-size: clamp(2.5rem, 8vw, 4.5rem);
+      font-size: clamp(3rem, 10vw, 5.5rem);
       font-weight: 900;
       color: #fff;
       line-height: 1;
-      letter-spacing: -1px;
+      letter-spacing: -2px;
     }
     .hero-city {
       font-size: 1.2rem;
-      color: rgba(255,255,255,.7);
-      margin-top: 8px;
+      color: rgba(255,255,255,.6);
+      margin-top: 10px;
     }
     .hero-divider {
-      width: 80px; height: 4px;
+      width: 72px; height: 4px;
       background: linear-gradient(90deg, #3CB34A, #FFD200);
       border-radius: 2px;
-      margin: 20px auto;
+      margin: 22px auto;
     }
     .hero-stats {
-      display: flex; justify-content: center; gap: 32px; flex-wrap: wrap;
-      margin-top: 16px;
+      display: flex; justify-content: center; gap: 40px; flex-wrap: wrap;
+      margin-top: 8px;
     }
     .hero-stat {
       text-align: center;
-      color: rgba(255,255,255,.7);
-      font-size: 13px;
+      color: rgba(255,255,255,.55);
+      font-size: 11px;
+      letter-spacing: .7px;
+      text-transform: uppercase;
     }
     .hero-stat-num {
       display: block;
-      font-size: 1.8rem;
+      font-size: 2rem;
       font-weight: 900;
       color: #fff;
       line-height: 1;
+      margin-bottom: 5px;
+    }
+    .hero-manage-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      margin-top: 24px;
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
+      border-radius: 50px; padding: 9px 22px;
+      color: rgba(255,255,255,.8); font-size: 13px; font-weight: 600;
+      text-decoration: none;
+      transition: background .2s;
+    }
+    .hero-manage-btn:hover { background: rgba(255,255,255,.16); color: #fff; }
+
+    /* ─── Content wrapper ───────────────────────────────── */
+    .page-wrap {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 0 12px 40px;
     }
 
-    /* Masonry-like grid */
-    .photo-masonry {
-      columns: 2;
-      column-gap: 12px;
-      padding: 0 16px;
+    /* ─── Section header ────────────────────────────────── */
+    .section-head {
+      display: flex; align-items: center; gap: 12px;
+      padding: 28px 4px 14px;
     }
-    @media (min-width: 576px) { .photo-masonry { columns: 3; } }
-    @media (min-width: 768px) { .photo-masonry { columns: 4; } }
-    @media (min-width: 1200px) { .photo-masonry { columns: 5; } }
+    .section-icon {
+      width: 38px; height: 38px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 10px; font-size: 17px; flex-shrink: 0;
+    }
+    .section-icon.gold  { background: rgba(255,210,0,.13); }
+    .section-icon.green { background: rgba(60,179,74,.10); }
+    .section-title-wrap { flex: 1; }
+    .section-title {
+      font-size: 1.15rem; font-weight: 800; color: #e8f5e9; line-height: 1;
+    }
+    .section-sub { font-size: 11px; color: rgba(255,255,255,.38); margin-top: 3px; }
+    .section-count {
+      background: rgba(255,255,255,.07); border-radius: 50px;
+      padding: 4px 14px; font-size: 13px; font-weight: 700; color: rgba(255,255,255,.6);
+    }
+    .section-line {
+      height: 1px; background: rgba(255,255,255,.06); margin: 0 4px 16px;
+    }
+
+    /* ─── Masonry columns ───────────────────────────────── */
+    .photo-cols {
+      columns: 2;
+      column-gap: 10px;
+    }
+    @media (min-width: 480px)  { .photo-cols { columns: 3; column-gap: 12px; } }
+    @media (min-width: 700px)  { .photo-cols { columns: 3; column-gap: 14px; } }
+    @media (min-width: 900px)  { .photo-cols { columns: 4; column-gap: 14px; } }
+    @media (min-width: 1200px) { .photo-cols { columns: 4; column-gap: 16px; } }
+
+    /* Featured: max 3 cols to show bigger photos */
+    .photo-cols.featured-cols { columns: 2; column-gap: 10px; }
+    @media (min-width: 480px)  { .photo-cols.featured-cols { columns: 2; } }
+    @media (min-width: 700px)  { .photo-cols.featured-cols { columns: 3; } }
+    @media (min-width: 1100px) { .photo-cols.featured-cols { columns: 3; } }
 
     .photo-item {
       break-inside: avoid;
-      margin-bottom: 12px;
+      -webkit-column-break-inside: avoid;
+      margin-bottom: 10px;
       border-radius: 12px;
       overflow: hidden;
       cursor: pointer;
       position: relative;
-      background: #1a2e1a;
-      min-height: 80px;
+      background: #162916;
       display: block;
     }
+    @media (min-width: 700px) { .photo-item { margin-bottom: 14px; } }
+
     .photo-item img {
       width: 100%;
       height: auto;
       display: block;
       transition: transform .3s ease;
     }
-    .photo-item:hover img {
-      transform: scale(1.03);
-    }
-    .featured-badge {
-      position: absolute;
-      top: 8px; left: 8px;
-      background: rgba(255,210,0,.9);
-      color: #000;
-      font-size: 10px;
-      font-weight: 800;
-      padding: 2px 8px;
-      border-radius: 20px;
-      letter-spacing: .5px;
-    }
+    .photo-item:hover img { transform: scale(1.04); }
 
-    /* Lightbox */
+    /* Dark overlay on hover */
+    .photo-item::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,.18);
+      opacity: 0; transition: opacity .25s;
+      pointer-events: none;
+    }
+    .photo-item:hover::after { opacity: 1; }
+
+    .featured-badge {
+      position: absolute; top: 8px; left: 8px; z-index: 2;
+      background: #FFD200; color: #1A5C22;
+      font-size: 10px; font-weight: 900;
+      padding: 3px 9px; border-radius: 20px;
+      letter-spacing: .5px; text-transform: uppercase;
+    }
+    .featured-badge i { font-size: 9px; margin-right: 3px; }
+
+    /* ─── Lightbox ──────────────────────────────────────── */
     .lightbox {
       display: none;
       position: fixed; inset: 0; z-index: 9999;
-      background: rgba(0,0,0,.95);
+      background: rgba(0,0,0,.97);
       align-items: center; justify-content: center;
     }
     .lightbox.active { display: flex; }
     .lightbox img {
-      max-width: min(90vw, 1200px);
+      max-width: min(92vw, 1400px);
       max-height: 90vh;
       object-fit: contain;
-      border-radius: 8px;
+      border-radius: 6px;
+      box-shadow: 0 0 60px rgba(0,0,0,.8);
     }
-    .lightbox-close {
-      position: fixed; top: 16px; right: 20px;
-      background: rgba(255,255,255,.15);
-      border: none; color: #fff;
-      border-radius: 50%; width: 44px; height: 44px;
-      font-size: 20px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
+    .lb-close {
+      position: fixed; top: 14px; right: 14px;
+      background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18);
+      color: #fff; border-radius: 50%;
+      width: 44px; height: 44px; font-size: 17px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .2s; z-index: 2;
     }
-    .lightbox-prev, .lightbox-next {
+    .lb-close:hover { background: rgba(255,255,255,.22); }
+    .lb-counter {
+      position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,.55); border-radius: 50px;
+      padding: 5px 18px; font-size: 13px; color: rgba(255,255,255,.6);
+      pointer-events: none;
+    }
+    .lb-prev, .lb-next {
       position: fixed; top: 50%; transform: translateY(-50%);
-      background: rgba(255,255,255,.1);
-      border: none; color: #fff;
-      border-radius: 50%; width: 48px; height: 48px;
-      font-size: 22px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: background .2s;
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+      color: #fff; border-radius: 50%;
+      width: 50px; height: 50px; font-size: 20px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .2s; z-index: 2;
     }
-    .lightbox-prev:hover, .lightbox-next:hover { background: rgba(255,255,255,.25); }
-    .lightbox-prev { left: 12px; }
-    .lightbox-next { right: 12px; }
+    .lb-prev:hover, .lb-next:hover { background: rgba(255,255,255,.2); }
+    .lb-prev { left: 10px; }
+    .lb-next { right: 10px; }
 
-    .section-title {
-      font-size: 1.1rem;
-      font-weight: 800;
-      color: #e8f5e9;
-      padding: 24px 16px 12px;
-      display: flex; align-items: center; gap: 10px;
-    }
-    .section-divider {
-      height: 2px;
-      background: linear-gradient(90deg, #3CB34A22, transparent);
-      margin: 0 16px 16px;
-    }
-
+    /* ─── Footer ────────────────────────────────────────── */
     .lenta-footer {
-      text-align: center;
-      padding: 32px 16px;
-      color: rgba(255,255,255,.3);
-      font-size: 12px;
+      text-align: center; padding: 40px 16px;
+      color: rgba(255,255,255,.22); font-size: 12px;
+      border-top: 1px solid rgba(255,255,255,.05); margin-top: 12px;
     }
-    .lenta-footer .logo-text {
-      font-size: 16px;
-      font-weight: 900;
-      color: rgba(255,255,255,.6);
-      letter-spacing: 4px;
+    .lenta-footer .logo {
+      font-size: 17px; font-weight: 900;
+      color: rgba(255,255,255,.4); letter-spacing: 6px; margin-bottom: 6px;
+    }
+
+    /* ─── Scroll indicator on mobile ───────────────────── */
+    @media (max-width: 699px) {
+      .lb-prev { left: 4px; width: 40px; height: 40px; font-size: 16px; }
+      .lb-next { right: 4px; width: 40px; height: 40px; font-size: 16px; }
     }
   </style>
 </head>
@@ -185,27 +240,23 @@
 
 <!-- Лайтбокс -->
 <div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
-  <button class="lightbox-close" onclick="closeLightbox()"><i class="bi bi-x-lg"></i></button>
-  <button class="lightbox-prev" onclick="lightboxPrev(event)"><i class="bi bi-chevron-left"></i></button>
-  <img id="lightboxImg" src="" alt="">
-  <button class="lightbox-next" onclick="lightboxNext(event)"><i class="bi bi-chevron-right"></i></button>
+  <button class="lb-close" onclick="closeLightbox()"><i class="bi bi-x-lg"></i></button>
+  <button class="lb-prev"  onclick="lbPrev(event)"><i class="bi bi-chevron-left"></i></button>
+  <img id="lbImg" src="" alt="">
+  <button class="lb-next"  onclick="lbNext(event)"><i class="bi bi-chevron-right"></i></button>
+  <div class="lb-counter" id="lbCounter"></div>
 </div>
 
-<!-- Шапка -->
+<!-- Hero -->
 <div class="hero-header">
-  <div class="hero-badge">
-    <i class="bi bi-camera-fill"></i>
-    ФОТО ОТКРЫТИЯ
-  </div>
+  <div class="hero-badge"><i class="bi bi-camera-fill"></i>Фото открытия</div>
   <div class="hero-tk">ТК {{ project.tk_number }}</div>
-  {% if project.city %}
-  <div class="hero-city">{{ project.city }}</div>
-  {% endif %}
+  {% if project.city %}<div class="hero-city">{{ project.city }}</div>{% endif %}
   <div class="hero-divider"></div>
   <div class="hero-stats">
     {% if featured %}
     <div class="hero-stat">
-      <span class="hero-stat-num">{{ featured|length }}</span>
+      <span class="hero-stat-num" style="color:#FFD200">{{ featured|length }}</span>
       лучших фото
     </div>
     {% endif %}
@@ -213,118 +264,130 @@
       <span class="hero-stat-num">{{ all_photos|length }}</span>
       всего фото
     </div>
-    {% if all_photos %}
+    {% if all_photos and all_photos[0].uploaded_at %}
     <div class="hero-stat">
-      <span class="hero-stat-num" style="font-size:1.1rem;color:#FFD200">
-        {{ all_photos[0].uploaded_at.strftime('%d.%m.%Y') if all_photos[0].uploaded_at else '' }}
+      <span class="hero-stat-num" style="font-size:1.3rem;color:#3CB34A">
+        {{ all_photos[0].uploaded_at.strftime('%d.%m.%Y') }}
       </span>
       дата загрузки
     </div>
     {% endif %}
   </div>
-
   {% if user and user.is_admin %}
-  <div style="margin-top:20px">
-    <a href="/opening?project_id={{ project.id }}"
-       class="btn btn-sm" style="border-radius:20px;background:rgba(255,255,255,.1);
-              color:#fff;border:1px solid rgba(255,255,255,.2)">
-      <i class="bi bi-pencil-fill me-1"></i>Управление фото
-    </a>
-  </div>
+  <br>
+  <a href="/opening?project_id={{ project.id }}" class="hero-manage-btn">
+    <i class="bi bi-pencil-fill"></i>Управление фото
+  </a>
   {% endif %}
 </div>
 
-{% if featured %}
-<!-- Лучшие фото (featured) -->
-<div class="section-title">
-  <i class="bi bi-star-fill" style="color:#FFD200"></i>
-  Лучшие кадры
-</div>
-<div class="section-divider"></div>
-<div class="photo-masonry" id="featuredMasonry">
-  {% for photo in featured %}
-  {% set purl = media_url(photo.photo_path) %}
-  <div class="photo-item" onclick="openLightbox('{{ purl }}', {{ loop.index0 }})">
-    <img src="{{ purl }}" alt="Фото {{ loop.index }}" loading="lazy"
-         onerror="this.src='/static/img/raccoon.png'">
-    <div class="featured-badge">⭐ В ОТЧЁТ</div>
-  </div>
-  {% endfor %}
-</div>
-{% endif %}
+<div class="page-wrap">
 
-{% if rest %}
-<!-- Все остальные фото -->
-<div class="section-title" style="margin-top: {{ '32px' if featured else '0' }}">
-  <i class="bi bi-images" style="color:#3CB34A"></i>
-  {% if featured %}Все фото{% else %}Фотогалерея{% endif %}
-</div>
-<div class="section-divider"></div>
-<div class="photo-masonry" id="restMasonry">
-  {% for photo in rest %}
-  {% set purl = media_url(photo.photo_path) %}
-  <div class="photo-item"
-       onclick="openLightbox('{{ purl }}', {{ (featured|length) + loop.index0 }})">
-    <img src="{{ purl }}" alt="Фото" loading="lazy"
-         onerror="this.src='/static/img/raccoon.png'">
+  {% if featured %}
+  <div class="section-head">
+    <div class="section-icon gold">⭐</div>
+    <div class="section-title-wrap">
+      <div class="section-title">Лучшие кадры</div>
+      <div class="section-sub">Отмечены для отчёта</div>
+    </div>
+    <div class="section-count">{{ featured|length }}</div>
   </div>
-  {% endfor %}
-</div>
-{% elif not featured %}
-<div style="text-align:center;padding:80px 16px;color:rgba(255,255,255,.3)">
-  <i class="bi bi-camera" style="font-size:64px;opacity:.2"></i>
-  <div style="margin-top:16px;font-size:16px">Фото ещё не загружены</div>
-</div>
-{% endif %}
+  <div class="section-line"></div>
+  <div class="photo-cols featured-cols">
+    {% for photo in featured %}
+    {% set purl = media_url(photo.photo_path) %}
+    <div class="photo-item" onclick="openLb('{{ purl }}', {{ loop.index0 }})">
+      <img src="{{ purl }}" alt="Фото {{ loop.index }}" loading="lazy"
+           onerror="this.src='/static/img/raccoon.png'">
+      <div class="featured-badge"><i class="bi bi-star-fill"></i>В отчёт</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 
-<!-- Подвал -->
+  {% if rest %}
+  <div class="section-head" {% if featured %}style="margin-top:8px"{% endif %}>
+    <div class="section-icon green"><i class="bi bi-images" style="color:#3CB34A"></i></div>
+    <div class="section-title-wrap">
+      <div class="section-title">{% if featured %}Все фото{% else %}Фотогалерея{% endif %}</div>
+      <div class="section-sub">Полная коллекция</div>
+    </div>
+    <div class="section-count">{{ rest|length }}</div>
+  </div>
+  <div class="section-line"></div>
+  <div class="photo-cols">
+    {% for photo in rest %}
+    {% set purl = media_url(photo.photo_path) %}
+    <div class="photo-item"
+         onclick="openLb('{{ purl }}', {{ (featured|length) + loop.index0 }})">
+      <img src="{{ purl }}" alt="Фото" loading="lazy"
+           onerror="this.src='/static/img/raccoon.png'">
+    </div>
+    {% endfor %}
+  </div>
+  {% elif not featured %}
+  <div style="text-align:center;padding:100px 0;color:rgba(255,255,255,.2)">
+    <i class="bi bi-camera" style="font-size:64px;display:block;opacity:.15;margin-bottom:16px"></i>
+    Фото ещё не загружены
+  </div>
+  {% endif %}
+
+</div>
+
 <div class="lenta-footer">
-  <div class="logo-text">ЛЕНТА</div>
-  <div style="margin-top:4px">Система управления проектами · Лента.PM</div>
+  <div class="logo">ЛЕНТА</div>
+  <div>Система управления проектами · Лента.PM</div>
 </div>
 
 <script>
-// Все URL фото для лайтбокса
-const _allPhotos = [
-  {% for photo in all_photos %}"{{ media_url(photo.photo_path) }}"{% if not loop.last %},{% endif %}{% endfor %}
+const _photos = [
+  {% for p in all_photos %}"{{ media_url(p.photo_path) }}"{% if not loop.last %},{% endif %}{% endfor %}
 ];
-let _currentIdx = 0;
+let _idx = 0;
 
-function openLightbox(url, idx) {
-  _currentIdx = idx;
-  document.getElementById('lightboxImg').src = url;
+function openLb(url, idx) {
+  _idx = idx;
+  document.getElementById('lbImg').src = url;
+  document.getElementById('lbCounter').textContent = (idx + 1) + ' / ' + _photos.length;
   document.getElementById('lightbox').classList.add('active');
   document.body.style.overflow = 'hidden';
 }
 
-function closeLightbox(event) {
-  if (event) {
-    const lb = document.getElementById('lightbox');
-    const isBackdrop = event.target === lb;
-    const isCloseBtn = event.target.closest('.lightbox-close');
-    if (!isBackdrop && !isCloseBtn) return;
+function closeLightbox(e) {
+  if (e) {
+    if (e.target !== document.getElementById('lightbox') && !e.target.closest('.lb-close')) return;
   }
   document.getElementById('lightbox').classList.remove('active');
   document.body.style.overflow = '';
 }
 
-function lightboxPrev(event) {
-  event.stopPropagation();
-  _currentIdx = (_currentIdx - 1 + _allPhotos.length) % _allPhotos.length;
-  document.getElementById('lightboxImg').src = _allPhotos[_currentIdx];
+function lbPrev(e) {
+  e.stopPropagation();
+  _idx = (_idx - 1 + _photos.length) % _photos.length;
+  document.getElementById('lbImg').src = _photos[_idx];
+  document.getElementById('lbCounter').textContent = (_idx + 1) + ' / ' + _photos.length;
 }
 
-function lightboxNext(event) {
-  event.stopPropagation();
-  _currentIdx = (_currentIdx + 1) % _allPhotos.length;
-  document.getElementById('lightboxImg').src = _allPhotos[_currentIdx];
+function lbNext(e) {
+  e.stopPropagation();
+  _idx = (_idx + 1) % _photos.length;
+  document.getElementById('lbImg').src = _photos[_idx];
+  document.getElementById('lbCounter').textContent = (_idx + 1) + ' / ' + _photos.length;
 }
 
 document.addEventListener('keydown', e => {
   if (!document.getElementById('lightbox').classList.contains('active')) return;
-  if (e.key === 'Escape') closeLightbox({target: document.getElementById('lightbox')});
-  if (e.key === 'ArrowLeft') lightboxPrev(e);
-  if (e.key === 'ArrowRight') lightboxNext(e);
+  if (e.key === 'Escape')      closeLightbox({ target: document.getElementById('lightbox') });
+  if (e.key === 'ArrowLeft')   lbPrev(e);
+  if (e.key === 'ArrowRight')  lbNext(e);
+});
+
+// Swipe support for mobile
+let _tx = 0;
+document.getElementById('lightbox').addEventListener('touchstart', e => { _tx = e.touches[0].clientX; }, { passive: true });
+document.getElementById('lightbox').addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - _tx;
+  if (Math.abs(dx) > 50) dx < 0 ? lbNext(e) : lbPrev(e);
 });
 </script>
 </body>
