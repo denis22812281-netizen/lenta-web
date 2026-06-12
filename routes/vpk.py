@@ -557,3 +557,67 @@ async def opening_gallery_page(project_id: int, request: Request,
         "rest": rest,
         "all_photos": all_photos,
     })
+
+
+@router.get("/opening/{project_id}/download-zip")
+async def opening_download_zip(project_id: int, db: Session = Depends(get_db)):
+    """Скачать все фото открытия одним ZIP-архивом. Публичный доступ (как галерея)."""
+    import io
+    import zipfile
+    from concurrent.futures import ThreadPoolExecutor
+    from urllib.parse import quote
+    import httpx as _httpx
+
+    proj = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not proj:
+        raise HTTPException(status_code=404)
+
+    photos = db.query(models.OpeningPhoto).filter(
+        models.OpeningPhoto.project_id == project_id,
+    ).order_by(models.OpeningPhoto.is_featured.desc(), models.OpeningPhoto.uploaded_at).all()
+
+    if not photos:
+        raise HTTPException(status_code=404, detail="Нет фото")
+
+    def _fetch_one(args):
+        idx, photo = args
+        try:
+            path = photo.photo_path or ""
+            if path.startswith("http"):
+                r = _httpx.get(path, timeout=20, follow_redirects=True)
+                data = r.content if r.status_code == 200 else None
+                ext = ".jpg"
+            else:
+                full = Path("static") / path
+                data = full.read_bytes() if full.exists() else None
+                ext = full.suffix or ".jpg"
+            if not data:
+                return None
+            prefix = "лучшее_" if photo.is_featured else "фото_"
+            return f"{prefix}{idx:03d}{ext}", data
+        except Exception as exc:
+            _vpk_logger.warning("ZIP: ошибка загрузки фото %s: %s", photo.id, exc)
+            return None
+
+    def _build_zip() -> bytes:
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_STORED) as zf:
+            with ThreadPoolExecutor(max_workers=10) as pool:
+                results = pool.map(_fetch_one, enumerate(photos, 1))
+            for item in results:
+                if item:
+                    name, data = item
+                    zf.writestr(name, data)
+        buf.seek(0)
+        return buf.read()
+
+    zip_data = await asyncio.to_thread(_build_zip)
+    city = f"_{proj.city}" if proj.city else ""
+    fname = f"Открытие_ТК{proj.tk_number}{city}.zip"
+
+    from fastapi.responses import Response as _Resp
+    return _Resp(
+        content=zip_data,
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(fname)}"},
+    )

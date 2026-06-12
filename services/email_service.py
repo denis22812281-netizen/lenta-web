@@ -650,26 +650,53 @@ def notify_opening_photos(to_email: str, tk_number: str, city: str,
     city_line = f" · {city}" if city else ""
     gallery_url = f"{APP_URL}/opening/{project_id}" if (APP_URL and project_id) else ""
 
-    # Кнопка открыть галерею
+    # Кнопки галерея + скачать ZIP
+    zip_url = f"{APP_URL}/opening/{project_id}/download-zip" if (APP_URL and project_id) else ""
     gallery_btn = ""
-    if gallery_url:
+    if gallery_url or zip_url:
+        btn_gallery = ""
+        if gallery_url:
+            btn_gallery = f"""
+            <td style="padding-right:10px">
+              <table cellpadding="0" cellspacing="0">
+                <tr>
+                  <td bgcolor="#FFD200" style="background:#FFD200;border-radius:50px;padding:0">
+                    <a href="{gallery_url}"
+                       style="display:inline-block;background:#FFD200;color:#1A5C22;
+                              font-weight:900;font-size:15px;padding:14px 28px;
+                              border-radius:50px;text-decoration:none;
+                              font-family:Arial,sans-serif;white-space:nowrap">
+                      🎊 &nbsp;Открыть галерею
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>"""
+        btn_zip = ""
+        if zip_url:
+            btn_zip = f"""
+            <td>
+              <table cellpadding="0" cellspacing="0">
+                <tr>
+                  <td bgcolor="#1A5C22" style="background:#1A5C22;border-radius:50px;
+                                              border:2px solid #3CB34A;padding:0">
+                    <a href="{zip_url}"
+                       style="display:inline-block;background:#1A5C22;color:#ffffff;
+                              font-weight:800;font-size:15px;padding:12px 24px;
+                              border-radius:50px;text-decoration:none;
+                              font-family:Arial,sans-serif;white-space:nowrap">
+                      📥 &nbsp;Скачать все (ZIP)
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>"""
         gallery_btn = f"""
-        <table cellpadding="0" cellspacing="0" style="margin:20px auto 24px">
-          <tr>
-            <td bgcolor="#FFD200" style="background:#FFD200;border-radius:50px;
-                                        padding:0;mso-padding-alt:0">
-              <a href="{gallery_url}"
-                 style="display:inline-block;background:#FFD200;color:#1A5C22;
-                        font-weight:900;font-size:16px;padding:16px 36px;
-                        border-radius:50px;text-decoration:none;letter-spacing:.3px;
-                        font-family:Arial,sans-serif">
-                🎊 &nbsp;Открыть страницу открытия
-              </a>
-            </td>
-          </tr>
+        <table cellpadding="0" cellspacing="0" style="margin:20px auto 8px">
+          <tr>{btn_gallery}{btn_zip}</tr>
         </table>
-        <p style="text-align:center;font-size:12px;color:#9ca3af;margin-top:-16px">
-          На странице — все фото, можно сохранить каждое
+        <p style="text-align:center;font-size:12px;color:#9ca3af;margin:0 0 20px">
+          Галерея — все фото по ссылке &nbsp;·&nbsp; ZIP — скачать одним архивом
         </p>"""
 
     # Компактный список ссылок для скачивания
