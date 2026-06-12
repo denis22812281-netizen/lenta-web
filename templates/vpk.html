@@ -406,10 +406,23 @@ function preConfirmSubmit() {
     const pid = document.getElementById('preProjectId').value;
     const tk  = document.getElementById('preTkInput').value.trim();
     if (!pid && !tk) { alert('Введите номер ТК'); return false; }
-    if (!Object.values(preState).some(v => v !== 'not_checked'))
-        if (!confirm('Ни один критерий не отмечен. Отправить?')) return false;
-    // Записываем всё состояние в одно поле — это всегда доходит до сервера
-    document.getElementById('precheckJson').value = JSON.stringify(preState);
+
+    // Читаем состояние ПРЯМО ИЗ DOM по классу active на кнопках — минуя preState
+    const states = {};
+    {% for c in precheck_criteria %}
+    {
+        const y = document.getElementById('pre-btn-yes-{{ c.id }}');
+        const n = document.getElementById('pre-btn-no-{{ c.id }}');
+        states['{{ c.id }}'] = (y && y.classList.contains('active')) ? 'done'
+                              : (n && n.classList.contains('active')) ? 'not_done'
+                              : 'not_checked';
+    }
+    {% endfor %}
+
+    const anyMarked = Object.values(states).some(v => v !== 'not_checked');
+    if (!anyMarked) if (!confirm('Ни один критерий не отмечен. Отправить?')) return false;
+
+    document.getElementById('precheckJson').value = JSON.stringify(states);
     return true;
 }
 </script>
