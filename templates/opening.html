@@ -33,16 +33,34 @@
       <div class="card border-0 shadow-sm mb-4" style="border-radius:16px">
         <div class="card-body p-4">
           <h6 class="fw-bold mb-3"><i class="bi bi-building me-2 text-success"></i>Выберите ТК</h6>
-          <select id="projectSelect" class="form-select"
-                  onchange="location.href='/opening?project_id='+this.value">
-            <option value="">— выберите объект —</option>
-            {% for p in projects %}
-            <option value="{{ p.id }}"
-              {% if selected_proj and selected_proj.id == p.id %}selected{% endif %}>
-              ТК {{ p.tk_number }}{% if p.city %} · {{ p.city }}{% endif %}
-            </option>
-            {% endfor %}
-          </select>
+
+          <!-- Поиск по ТК -->
+          <div class="position-relative">
+            <input type="text" id="tkSearch" class="form-control"
+                   placeholder="Поиск по номеру ТК или городу..."
+                   autocomplete="off"
+                   value="{% if selected_proj %}ТК {{ selected_proj.tk_number }}{% if selected_proj.city %} · {{ selected_proj.city }}{% endif %}{% endif %}"
+                   oninput="filterTk(this.value)"
+                   onfocus="showTkDropdown()">
+            <div id="tkDropdown" class="position-absolute w-100 shadow-lg d-none"
+                 style="top:calc(100% + 4px);left:0;z-index:1000;background:var(--bs-body-bg);
+                        border:1px solid var(--bs-border-color);border-radius:10px;
+                        max-height:280px;overflow-y:auto">
+              {% for p in projects %}
+              <div class="tk-option px-3 py-2"
+                   style="cursor:pointer;font-size:14px;border-bottom:1px solid var(--bs-border-color-translucent)"
+                   data-id="{{ p.id }}"
+                   data-label="ТК {{ p.tk_number }}{% if p.city %} · {{ p.city }}{% endif %}"
+                   data-search="{{ p.tk_number|lower }}{% if p.city %} {{ p.city|lower }}{% endif %}"
+                   onclick="selectTk(this)"
+                   onmouseover="this.style.background='rgba(60,179,74,.12)'"
+                   onmouseout="this.style.background=''">
+                <span class="fw-semibold">ТК {{ p.tk_number }}</span>
+                {% if p.city %}<span class="text-muted ms-2 small">{{ p.city }}</span>{% endif %}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -209,6 +227,37 @@
 </div>
 
 <script>
+// ── Поиск по ТК ──────────────────────────────────────────────────────────────
+function showTkDropdown() {
+  document.getElementById('tkDropdown').classList.remove('d-none');
+}
+
+function filterTk(q) {
+  const dd = document.getElementById('tkDropdown');
+  dd.classList.remove('d-none');
+  const lower = q.toLowerCase();
+  let anyVisible = false;
+  dd.querySelectorAll('.tk-option').forEach(el => {
+    const match = el.dataset.search.includes(lower) || el.dataset.label.toLowerCase().includes(lower);
+    el.style.display = match ? '' : 'none';
+    if (match) anyVisible = true;
+  });
+}
+
+function selectTk(el) {
+  document.getElementById('tkSearch').value = el.dataset.label;
+  document.getElementById('tkDropdown').classList.add('d-none');
+  location.href = '/opening?project_id=' + el.dataset.id;
+}
+
+document.addEventListener('click', function(e) {
+  const search = document.getElementById('tkSearch');
+  const dd = document.getElementById('tkDropdown');
+  if (search && dd && !search.contains(e.target) && !dd.contains(e.target)) {
+    dd.classList.add('d-none');
+  }
+});
+
 // ── Подсчёт featured фото ─────────────────────────────────────────────────────
 function updateFeaturedCount() {
   const n = document.querySelectorAll('[id^="photoFrame"]')
