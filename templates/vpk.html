@@ -240,25 +240,22 @@
                 </div>
             </div>
             <div class="vpk-actions" style="flex-direction:column;gap:3px">
-                <input type="radio" name="precheck_{{ c.id }}" id="pre-done-{{ c.id }}"
-                       value="done" class="btn-check"
-                       onchange="onPrecheckChange({{ c.id }}, 'done')">
-                <label class="vpk-btn vpk-btn-yes" for="pre-done-{{ c.id }}" style="cursor:pointer;text-align:center">
-                    <i class="bi bi-check-lg"></i> Готово
+                <label class="vpk-btn vpk-btn-yes" style="cursor:pointer;display:flex;align-items:center;gap:6px">
+                    <input type="radio" name="precheck_{{ c.id }}" value="done"
+                           style="width:14px;height:14px;flex-shrink:0"
+                           onchange="onPrecheckChange({{ c.id }}, 'done')">
+                    ✓ Готово
                 </label>
-
-                <input type="radio" name="precheck_{{ c.id }}" id="pre-no-{{ c.id }}"
-                       value="not_done" class="btn-check"
-                       onchange="onPrecheckChange({{ c.id }}, 'not_done')">
-                <label class="vpk-btn vpk-btn-no" for="pre-no-{{ c.id }}" style="cursor:pointer;text-align:center">
-                    <i class="bi bi-x-lg"></i> Нет
+                <label class="vpk-btn vpk-btn-no" style="cursor:pointer;display:flex;align-items:center;gap:6px">
+                    <input type="radio" name="precheck_{{ c.id }}" value="not_done"
+                           style="width:14px;height:14px;flex-shrink:0"
+                           onchange="onPrecheckChange({{ c.id }}, 'not_done')">
+                    ✗ Нет
                 </label>
-
-                <input type="radio" name="precheck_{{ c.id }}" id="pre-skip-{{ c.id }}"
-                       value="not_checked" class="btn-check" checked
-                       onchange="onPrecheckChange({{ c.id }}, 'not_checked')">
-                <label class="vpk-btn" for="pre-skip-{{ c.id }}"
-                       style="cursor:pointer;text-align:center;background:#6b728020;color:#6b7280;border:1px solid #6b728040">
+                <label class="vpk-btn" style="cursor:pointer;display:flex;align-items:center;gap:6px;background:#6b728020;color:#6b7280;border:1px solid #6b728040">
+                    <input type="radio" name="precheck_{{ c.id }}" value="not_checked" checked
+                           style="width:14px;height:14px;flex-shrink:0"
+                           onchange="onPrecheckChange({{ c.id }}, 'not_checked')">
                     — Не смотрел
                 </label>
             </div>
