@@ -235,8 +235,9 @@
 <div class="section-divider"></div>
 <div class="photo-masonry" id="featuredMasonry">
   {% for photo in featured %}
-  <div class="photo-item" onclick="openLightbox('{{ photo.photo_path }}', {{ loop.index0 }})">
-    <img src="{{ photo.photo_path }}" alt="Фото {{ loop.index }}" loading="lazy"
+  {% set purl = media_url(photo.photo_path) %}
+  <div class="photo-item" onclick="openLightbox('{{ purl }}', {{ loop.index0 }})">
+    <img src="{{ purl }}" alt="Фото {{ loop.index }}" loading="lazy"
          onerror="this.src='/static/img/raccoon.png'">
     <div class="featured-badge">⭐ В ОТЧЁТ</div>
   </div>
@@ -253,9 +254,10 @@
 <div class="section-divider"></div>
 <div class="photo-masonry" id="restMasonry">
   {% for photo in rest %}
+  {% set purl = media_url(photo.photo_path) %}
   <div class="photo-item"
-       onclick="openLightbox('{{ photo.photo_path }}', {{ (featured|length) + loop.index0 }})">
-    <img src="{{ photo.photo_path }}" alt="Фото" loading="lazy"
+       onclick="openLightbox('{{ purl }}', {{ (featured|length) + loop.index0 }})">
+    <img src="{{ purl }}" alt="Фото" loading="lazy"
          onerror="this.src='/static/img/raccoon.png'">
   </div>
   {% endfor %}
@@ -276,7 +278,7 @@
 <script>
 // Все URL фото для лайтбокса
 const _allPhotos = [
-  {% for photo in all_photos %}"{{ photo.photo_path }}"{% if not loop.last %},{% endif %}{% endfor %}
+  {% for photo in all_photos %}"{{ media_url(photo.photo_path) }}"{% if not loop.last %},{% endif %}{% endfor %}
 ];
 let _currentIdx = 0;
 

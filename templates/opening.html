@@ -152,8 +152,8 @@
       {% if photos %}
       <div class="mb-3 p-3 rounded-3" style="background:var(--bs-secondary-bg);font-size:13px">
         <i class="bi bi-star-fill text-warning me-2"></i>
-        Нажмите ⭐ на фото чтобы добавить в красивый отчёт.
-        Остальные фото будут доступны по ссылке галереи.
+        Нажмите ⭐ на лучших фото — они встанут первыми на странице открытия.
+        Кнопка <b>«Отправить отчёт»</b> шлёт <b>все</b> фото на почту.
       </div>
 
       <div class="row g-3" id="photoGrid">
@@ -164,7 +164,7 @@
                box-shadow:{{ '0 0 0 3px #FFD200' if photo.is_featured else '0 2px 8px rgba(0,0,0,.3)' }};"
                id="photoFrame{{ photo.id }}">
 
-            <img src="{{ photo.photo_path }}" alt="Фото"
+            <img src="{{ media_url(photo.photo_path) }}" alt="Фото"
                  style="width:100%;height:100%;object-fit:cover;display:block"
                  loading="lazy"
                  onerror="this.src='/static/img/raccoon.png'">

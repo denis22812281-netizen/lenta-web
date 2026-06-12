@@ -1,3 +1,4 @@
+import asyncio
 import io
 import json
 import os
@@ -424,8 +425,10 @@ async def opening_upload(request: Request, background_tasks: BackgroundTasks,
         if not raw:
             continue
         ext = Path(file_obj.filename).suffix.lower() or ".jpg"
-        fname = f"open_{proj.id}_{int(datetime.utcnow().timestamp() * 1000)}_{uploaded_count}{ext}"
-        photo_path = upload_photo(raw, "opening", fname)
+        ts  = int(datetime.utcnow().timestamp() * 1000)
+        fname = f"open_{proj.id}_{ts}_{uploaded_count}{ext}"
+        # Cloudinary upload in thread pool — не блокирует event loop
+        photo_path = await asyncio.to_thread(upload_photo, raw, "opening", fname)
         db.add(models.OpeningPhoto(
             project_id=proj.id,
             photo_path=photo_path,
@@ -476,7 +479,7 @@ async def opening_delete_photo(photo_id: int, request: Request,
 async def opening_send_report(request: Request, background_tasks: BackgroundTasks,
                                db: Session = Depends(get_db),
                                user: dict = Depends(require_login)):
-    """Отправить email-отчёт с featured фото открытия."""
+    """Отправить email-отчёт: ВСЕ фото проекта (starred отмечены как лучшие в письме)."""
     form = await request.form()
     project_id = form.get("project_id")
     if not project_id:
@@ -486,18 +489,18 @@ async def opening_send_report(request: Request, background_tasks: BackgroundTask
     if not proj:
         return RedirectResponse("/opening?msg=ТК не найден", status_code=303)
 
-    featured = db.query(models.OpeningPhoto).filter(
+    # Сначала starred, потом остальные — чтобы лучшие шли первыми в письме
+    all_photos = db.query(models.OpeningPhoto).filter(
         models.OpeningPhoto.project_id == proj.id,
-        models.OpeningPhoto.is_featured == True,
-    ).order_by(models.OpeningPhoto.uploaded_at).all()
+    ).order_by(models.OpeningPhoto.is_featured.desc(), models.OpeningPhoto.uploaded_at).all()
 
-    if not featured:
+    if not all_photos:
         return RedirectResponse(
-            f"/opening?project_id={project_id}&msg=Отметьте лучшие фото звёздочкой",
+            f"/opening?project_id={project_id}&msg=Сначала загрузите фото",
             status_code=303,
         )
 
-    photo_urls = [p.photo_path for p in featured]
+    photo_urls = [p.photo_path for p in all_photos]
     city = proj.city or ""
     submitter = user.get("display_name", "")
 
@@ -507,7 +510,7 @@ async def opening_send_report(request: Request, background_tasks: BackgroundTask
             notify_opening_photos,
             to_email, proj.tk_number, city, submitter, photo_urls,
         )
-        _vpk_logger.info("Opening report: отправка %d featured фото → %s", len(photo_urls), to_email)
+        _vpk_logger.info("Opening report: отправка %d фото → %s", len(photo_urls), to_email)
         msg = f"Отчёт отправлен — {len(photo_urls)} фото"
     else:
         msg = "NOTIFY_PRECHECK_EMAIL не задан"
