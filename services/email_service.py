@@ -643,45 +643,74 @@ def notify_precheck_report(to_email: str, vpk_type: int, tk_number: str,
 
 
 def notify_opening_photos(to_email: str, tk_number: str, city: str,
-                          submitted_by: str, photo_urls: list) -> bool:
-    """Фото открытия — ссылки/превью всех фото одним письмом."""
+                          submitted_by: str, photo_urls: list,
+                          project_id: int = 0) -> bool:
+    """Фото открытия — кнопка галереи + список ссылок на скачивание."""
     count = len(photo_urls)
     city_line = f" · {city}" if city else ""
+    gallery_url = f"{APP_URL}/opening/{project_id}" if (APP_URL and project_id) else ""
 
-    # Если Cloudinary (https URL) — вставляем как img
-    photo_rows = ""
+    # Кнопка открыть галерею
+    gallery_btn = ""
+    if gallery_url:
+        gallery_btn = f"""
+        <table cellpadding="0" cellspacing="0" style="margin:20px auto 24px">
+          <tr>
+            <td bgcolor="#1A5C22" style="border-radius:50px;padding:0">
+              <a href="{gallery_url}"
+                 style="display:inline-block;background:#1A5C22;color:#ffffff;
+                        font-weight:800;font-size:16px;padding:16px 36px;
+                        border-radius:50px;text-decoration:none;
+                        border:2px solid #3CB34A;letter-spacing:.3px">
+                🎊 &nbsp;Открыть страницу открытия
+              </a>
+            </td>
+          </tr>
+        </table>
+        <p style="text-align:center;font-size:12px;color:#9ca3af;margin-top:-16px">
+          На странице — все фото, можно сохранить каждое
+        </p>"""
+
+    # Компактный список ссылок для скачивания
+    rows_html = ""
     for i, url in enumerate(photo_urls, 1):
-        if url.startswith("http"):
-            photo_rows += (
-                f'<tr><td style="padding:6px 0">'
-                f'<a href="{url}" style="display:block">'
-                f'<img src="{url}" alt="Фото {i}" width="520" '
-                f'style="max-width:100%;border-radius:8px;display:block"></a>'
-                f'<div style="font-size:11px;color:#9ca3af;margin-top:2px">Фото {i} · '
-                f'<a href="{url}" style="color:#2563eb">скачать</a></div>'
-                f'</td></tr>'
-            )
-        else:
-            full_url = f"{APP_URL}/static/{url}" if APP_URL else url
-            photo_rows += (
-                f'<tr><td style="padding:6px 0">'
-                f'<a href="{full_url}" style="color:#2563eb;font-size:13px">📎 Фото {i}</a>'
-                f'</td></tr>'
-            )
+        href = url if url.startswith("http") else (f"{APP_URL}/static/{url}" if APP_URL else url)
+        rows_html += (
+            f'<tr style="background:{"#f9fafb" if i%2==0 else "#ffffff"}">'
+            f'<td style="padding:7px 12px;color:#374151;font-size:13px">'
+            f'<a href="{href}" style="color:#1A5C22;text-decoration:none;font-weight:600">'
+            f'📷 Фото {i}</a>'
+            f'</td>'
+            f'<td style="padding:7px 12px;text-align:right">'
+            f'<a href="{href}" download style="color:#2563eb;font-size:12px">скачать</a>'
+            f'</td>'
+            f'</tr>'
+        )
 
     content = f"""
         <p style="font-size:16px;margin-bottom:4px">Добрый день.</p>
         <p><b>{submitted_by}</b> загрузил фотоотчёт с открытия:</p>
         <div style="background:#f4faf5;border-left:4px solid #3CB34A;
                     padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0">
-          <b style="font-size:18px">ТК {tk_number}{city_line}</b>
+          <b style="font-size:22px">ТК {tk_number}{city_line}</b>
         </div>
-        <p style="font-size:14px">Всего фото: <b>{count}</b></p>
-        <table width="100%" cellpadding="0" cellspacing="0">{photo_rows}</table>
+        <p style="font-size:15px">Всего фото: <b>{count}</b></p>
+
+        {gallery_btn}
+
+        <div style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-top:16px">
+          <div style="background:#1A5C22;padding:9px 14px;color:#a3d9a5;
+                      font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px">
+            Все фото ({count})
+          </div>
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
+            {rows_html}
+          </table>
+        </div>
     """
     return send_email(
         to_email,
-        f"Фото открытия — ТК {tk_number}{city_line} ({count} фото)",
+        f"🎊 Фото открытия — ТК {tk_number}{city_line} ({count} фото)",
         _base_template(content, title=f"🎊 Фото открытия · ТК {tk_number}"),
     )
 

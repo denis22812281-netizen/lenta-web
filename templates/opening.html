@@ -108,22 +108,36 @@
         <div class="card-body p-4">
           <h6 class="fw-bold mb-3"><i class="bi bi-send me-2 text-success"></i>Отчёт и галерея</h6>
 
+          <!-- Страница открытия — главная кнопка -->
+          <a href="/opening/{{ selected_proj.id }}" target="_blank"
+             style="display:block;border-radius:12px;overflow:hidden;margin-bottom:12px;
+                    text-decoration:none;background:linear-gradient(135deg,#0D1F0F,#1A5C22);
+                    border:1px solid #3CB34A">
+            <div style="padding:16px 20px">
+              <div style="color:#FFD200;font-size:11px;font-weight:800;letter-spacing:1px;
+                          text-transform:uppercase;margin-bottom:6px">
+                🎊 Страница открытия магазина
+              </div>
+              <div style="color:#fff;font-size:14px;font-weight:700">
+                ТК {{ selected_proj.tk_number }}{% if selected_proj.city %} · {{ selected_proj.city }}{% endif %}
+              </div>
+              <div style="color:#a3d9a5;font-size:12px;margin-top:4px">
+                Нажмите чтобы открыть красивую галерею →
+              </div>
+            </div>
+          </a>
+
+          <div class="text-muted small mb-3 text-center">
+            Ссылку на эту страницу можно отправить в мессенджер
+          </div>
+
           <form method="post" action="/opening/send-report">
             <input type="hidden" name="project_id" value="{{ selected_proj.id }}">
-            <button type="submit" class="btn btn-success w-100 mb-2"
+            <button type="submit" class="btn btn-success w-100"
                     style="border-radius:10px;font-weight:700">
               <i class="bi bi-envelope-fill me-2"></i>Отправить все фото на почту
             </button>
           </form>
-
-          <a href="/opening/{{ selected_proj.id }}" target="_blank"
-             class="btn btn-outline-secondary w-100"
-             style="border-radius:10px;font-weight:600">
-            <i class="bi bi-box-arrow-up-right me-2"></i>Открыть галерею
-          </a>
-          <div class="text-muted" style="font-size:11px;margin-top:6px;text-align:center">
-            Ссылку можно отправить в мессенджере
-          </div>
         </div>
       </div>
       {% endif %}
@@ -143,10 +157,10 @@
       </div>
 
       {% if photos %}
-      <div class="mb-3 p-3 rounded-3" style="background:var(--bs-secondary-bg);font-size:13px">
-        <i class="bi bi-star-fill text-warning me-2"></i>
-        Нажмите ⭐ на лучших фото — они встанут первыми на странице открытия.
-        Кнопка <b>«Отправить отчёт»</b> шлёт <b>все</b> фото на почту.
+      <div class="mb-3 p-3 rounded-3" style="background:var(--bs-secondary-bg);font-size:13px;line-height:1.6">
+        <div><i class="bi bi-star-fill text-warning me-1"></i><b>Звёздочка</b> — фото встанет вверху страницы открытия</div>
+        <div class="mt-1"><i class="bi bi-envelope-fill text-success me-1"></i><b>«Отправить на почту»</b> — все фото придут письмом</div>
+        <div class="mt-1"><i class="bi bi-box-arrow-up-right text-info me-1"></i><b>Страница открытия</b> — красивая галерея по ссылке</div>
       </div>
 
       <div class="row g-3" id="photoGrid">

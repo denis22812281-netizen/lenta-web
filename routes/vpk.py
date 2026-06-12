@@ -506,7 +506,7 @@ async def opening_send_report(request: Request, background_tasks: BackgroundTask
     if to_email:
         background_tasks.add_task(
             notify_opening_photos,
-            to_email, proj.tk_number, city, submitter, photo_urls,
+            to_email, proj.tk_number, city, submitter, photo_urls, proj.id,
         )
         _vpk_logger.info("Opening report: отправка %d фото → %s", len(photo_urls), to_email)
         msg = f"Отчёт отправлен — {len(photo_urls)} фото"
