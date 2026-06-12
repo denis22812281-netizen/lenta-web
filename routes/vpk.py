@@ -400,49 +400,47 @@ async def opening_page(request: Request, db: Session = Depends(get_db),
     })
 
 
-@router.post("/opening/upload")
-async def opening_upload(request: Request, background_tasks: BackgroundTasks,
-                         db: Session = Depends(get_db),
-                         user: dict = Depends(require_login)):
-    """Загрузка фото открытия (30-50 файлов) через multipart."""
+@router.post("/api/vpk/opening/upload-one")
+async def opening_upload_one(request: Request, db: Session = Depends(get_db)):
+    """Загрузка одного фото открытия (AJAX, один за раз). /api/ — CSRF exempt."""
+    user = get_current_user(request)
+    if not user:
+        return {"error": "Не авторизован"}
     form = await request.form()
     project_id = form.get("project_id")
     if not project_id:
-        return RedirectResponse("/opening?msg=Выберите ТК", status_code=303)
+        return {"error": "project_id required"}
 
     proj = db.query(models.Project).filter(models.Project.id == int(project_id)).first()
     if not proj:
-        return RedirectResponse("/opening?msg=ТК не найден", status_code=303)
+        return {"error": "ТК не найден"}
 
-    uploader = user.get("display_name", "")
-    uploaded_count = 0
-    for key, file_obj in form.multi_items():
-        if key != "photos":
-            continue
-        if not hasattr(file_obj, "filename") or not file_obj.filename:
-            continue
-        raw = await file_obj.read()
-        if not raw:
-            continue
-        ext = Path(file_obj.filename).suffix.lower() or ".jpg"
-        ts  = int(datetime.utcnow().timestamp() * 1000)
-        fname = f"open_{proj.id}_{ts}_{uploaded_count}{ext}"
-        # Cloudinary upload in thread pool — не блокирует event loop
-        photo_path = await asyncio.to_thread(upload_photo, raw, "opening", fname)
-        db.add(models.OpeningPhoto(
-            project_id=proj.id,
-            photo_path=photo_path,
-            uploaded_by=uploader,
-            is_featured=False,
-        ))
-        uploaded_count += 1
+    photo_file = form.get("photo")
+    if not photo_file or not hasattr(photo_file, "filename") or not photo_file.filename:
+        return {"error": "Файл не получен"}
 
-    db.commit()
-    _vpk_logger.info("Opening photos: загружено %d фото для ТК %s", uploaded_count, proj.tk_number)
-    return RedirectResponse(
-        f"/opening?project_id={project_id}&msg=Загружено {uploaded_count} фото",
-        status_code=303,
+    raw = await photo_file.read()
+    if not raw:
+        return {"error": "Пустой файл"}
+
+    ext = Path(photo_file.filename).suffix.lower() or ".jpg"
+    ts  = int(datetime.utcnow().timestamp() * 1000)
+    fname = f"open_{proj.id}_{ts}{ext}"
+    photo_path = await asyncio.to_thread(upload_photo, raw, "opening", fname)
+
+    photo = models.OpeningPhoto(
+        project_id=proj.id,
+        photo_path=photo_path,
+        uploaded_by=user.get("display_name", ""),
+        is_featured=False,
     )
+    db.add(photo)
+    db.commit()
+    db.refresh(photo)
+
+    from services.cloud_storage import media_url as _mu
+    _vpk_logger.info("Opening: загружено фото %s для ТК %s", photo.id, proj.tk_number)
+    return {"ok": True, "photo_id": photo.id, "url": _mu(photo_path)}
 
 
 @router.post("/api/vpk/opening/{photo_id}/feature")
