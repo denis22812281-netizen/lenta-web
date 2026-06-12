@@ -153,6 +153,16 @@ _POSTGRES_MIGRATIONS = [
         uploaded_at TIMESTAMP DEFAULT NOW()
     )""",
     "ALTER TABLE opening_photos ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE",
+    # Производительность: индексы часто используемых запросов
+    "CREATE INDEX IF NOT EXISTS ix_projects_tk_number      ON projects (tk_number)",
+    "CREATE INDEX IF NOT EXISTS ix_projects_manager_id     ON projects (manager_id)",
+    "CREATE INDEX IF NOT EXISTS ix_projects_project_type   ON projects (project_type)",
+    "CREATE INDEX IF NOT EXISTS ix_opening_photos_proj     ON opening_photos (project_id)",
+    "CREATE INDEX IF NOT EXISTS ix_vpk_reports_project     ON vpk_reports (project_id)",
+    "CREATE INDEX IF NOT EXISTS ix_audit_logs_created      ON audit_logs (created_at DESC)",
+    "CREATE INDEX IF NOT EXISTS ix_audit_logs_user         ON audit_logs (user_name)",
+    "CREATE INDEX IF NOT EXISTS ix_smr_tasks_schedule      ON smr_tasks (schedule_id)",
+    "CREATE INDEX IF NOT EXISTS ix_smr_tasks_end_plan      ON smr_tasks (end_plan)",
 ]
 
 _SQLITE_MIGRATIONS = [

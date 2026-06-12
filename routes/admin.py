@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, require_login, require_admin
+from deps import templates, require_login, require_admin, get_current_user
 from utils.phone import normalize_phone
 
 router = APIRouter()
@@ -96,3 +96,108 @@ async def audit_clear(request: Request, db: Session = Depends(get_db),
     db.query(models.AuditLog).delete()
     db.commit()
     return RedirectResponse("/admin/audit", status_code=303)
+
+
+# ─── VPK Criteria Admin ───────────────────────────────────────────────────────
+
+@router.get("/admin/vpk-criteria", response_class=HTMLResponse)
+async def vpk_criteria_admin(request: Request, db: Session = Depends(get_db),
+                              user: dict = Depends(require_admin)):
+    c1 = db.query(models.VpkCriterion).filter(
+        models.VpkCriterion.vpk_type == 1).order_by(models.VpkCriterion.order).all()
+    c2 = db.query(models.VpkCriterion).filter(
+        models.VpkCriterion.vpk_type == 2).order_by(models.VpkCriterion.order).all()
+    return templates.TemplateResponse("admin_vpk_criteria.html", {
+        "request": request, "user": user,
+        "criteria1": c1, "criteria2": c2,
+        "msg": request.query_params.get("msg"),
+    })
+
+
+@router.post("/admin/vpk-criteria/add")
+async def vpk_criteria_add(request: Request, db: Session = Depends(get_db),
+                            user: dict = Depends(require_admin),
+                            name: str = Form(...), vpk_type: int = Form(...)):
+    last = db.query(models.VpkCriterion).filter(
+        models.VpkCriterion.vpk_type == vpk_type
+    ).order_by(models.VpkCriterion.order.desc()).first()
+    new_order = (last.order + 1) if last else 1
+    db.add(models.VpkCriterion(name=name.strip(), vpk_type=vpk_type, order=new_order))
+    db.commit()
+    return RedirectResponse(f"/admin/vpk-criteria?msg=Критерий добавлен", status_code=303)
+
+
+@router.post("/admin/vpk-criteria/{crit_id}/edit")
+async def vpk_criteria_edit(crit_id: int, request: Request,
+                             db: Session = Depends(get_db),
+                             user: dict = Depends(require_admin),
+                             name: str = Form(...)):
+    c = db.query(models.VpkCriterion).filter(models.VpkCriterion.id == crit_id).first()
+    if c:
+        c.name = name.strip()
+        db.commit()
+    return RedirectResponse("/admin/vpk-criteria?msg=Сохранено", status_code=303)
+
+
+@router.post("/admin/vpk-criteria/{crit_id}/delete")
+async def vpk_criteria_delete(crit_id: int, request: Request,
+                               db: Session = Depends(get_db),
+                               user: dict = Depends(require_admin)):
+    c = db.query(models.VpkCriterion).filter(models.VpkCriterion.id == crit_id).first()
+    if c:
+        db.delete(c)
+        db.commit()
+    return RedirectResponse("/admin/vpk-criteria?msg=Удалено", status_code=303)
+
+
+@router.post("/api/admin/vpk-criteria/reorder")
+async def vpk_criteria_reorder(request: Request, db: Session = Depends(get_db)):
+    """AJAX: принимает [{id, order}, ...] и сохраняет порядок."""
+    user = get_current_user(request)
+    if not user or not user.get("is_admin"):
+        return {"error": "forbidden"}
+    data = await request.json()
+    for item in data:
+        c = db.query(models.VpkCriterion).filter(
+            models.VpkCriterion.id == item["id"]).first()
+        if c:
+            c.order = item["order"]
+    db.commit()
+    return {"ok": True}
+
+
+# ─── Database Backup ──────────────────────────────────────────────────────────
+
+@router.get("/admin/backup")
+async def db_backup(request: Request, db: Session = Depends(get_db),
+                    user: dict = Depends(require_admin)):
+    """Скачать дамп PostgreSQL (только для is_admin). Используется pg_dump."""
+    import subprocess, io, os
+    from fastapi.responses import Response as _Resp
+    from datetime import date
+
+    db_url = os.getenv("DATABASE_URL", "")
+    if not db_url or "postgresql" not in db_url:
+        return HTMLResponse("<h3>Backup доступен только для PostgreSQL</h3>", status_code=400)
+
+    try:
+        result = subprocess.run(
+            ["pg_dump", "--no-password", "--format=plain", db_url],
+            capture_output=True, timeout=60,
+        )
+        if result.returncode != 0:
+            return HTMLResponse(
+                f"<h3>pg_dump ошибка:</h3><pre>{result.stderr.decode()}</pre>",
+                status_code=500)
+        fname = f"lenta_backup_{date.today().isoformat()}.sql"
+        return _Resp(
+            content=result.stdout,
+            media_type="application/octet-stream",
+            headers={"Content-Disposition": f"attachment; filename={fname}"},
+        )
+    except FileNotFoundError:
+        return HTMLResponse(
+            "<h3>pg_dump не найден на сервере</h3>"
+            "<p>На Railway pg_dump доступен в buildpack-окружении. "
+            "Альтернатива: Railway Dashboard → Postgres → Backups (ручной snapshot).</p>",
+            status_code=500)

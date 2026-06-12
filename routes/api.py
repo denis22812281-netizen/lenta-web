@@ -15,6 +15,17 @@ from services.online import ONLINE_USERS, ONLINE_TIMEOUT
 router = APIRouter()
 
 
+@router.get("/health")
+async def health_check(db: Session = Depends(get_db)):
+    """Публичный health-check для UptimeRobot / Railway."""
+    try:
+        db.execute(models.User.__table__.select().limit(1))
+        db_status = "ok"
+    except Exception as e:
+        return JSONResponse({"status": "error", "db": str(e)}, status_code=503)
+    return {"status": "ok", "db": db_status}
+
+
 @router.post("/api/ping")
 async def ping(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request)

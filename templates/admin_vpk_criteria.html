@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block page_title %}Критерии ВПК — Администрирование{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-lg-4 py-4">
+
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <div style="width:48px;height:48px;background:linear-gradient(135deg,#1A5C22,#3CB34A);
+                border-radius:14px;display:flex;align-items:center;justify-content:center">
+      <i class="bi bi-list-check text-white" style="font-size:22px"></i>
+    </div>
+    <div>
+      <h1 class="h4 mb-0 fw-bold">Управление критериями ВПК</h1>
+      <div class="text-muted small">Добавляйте, редактируйте, удаляйте и сортируйте критерии</div>
+    </div>
+    <div class="ms-auto d-flex gap-2">
+      <a href="/admin/backup" class="btn btn-outline-secondary btn-sm" style="border-radius:8px">
+        <i class="bi bi-download me-1"></i>Бэкап БД
+      </a>
+      <a href="/admin/users" class="btn btn-outline-secondary btn-sm" style="border-radius:8px">
+        <i class="bi bi-people me-1"></i>Пользователи
+      </a>
+    </div>
+  </div>
+
+  {% if msg %}
+  <div class="alert alert-success d-flex align-items-center gap-2 mb-4" style="border-radius:12px">
+    <i class="bi bi-check-circle-fill"></i><span>{{ msg }}</span>
+    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+  </div>
+  {% endif %}
+
+  <div class="row g-4">
+
+    {% for vpk_type, criteria, label in [(1, criteria1, 'ВПК 1'), (2, criteria2, 'ВПК 2')] %}
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm h-100" style="border-radius:16px">
+        <div class="card-header border-0 py-3 px-4"
+             style="background:linear-gradient(135deg,#1A5C22,#2d7a3a);border-radius:16px 16px 0 0">
+          <div class="d-flex align-items-center justify-content-between">
+            <span class="fw-bold text-white fs-5">{{ label }}</span>
+            <span class="badge bg-warning text-dark">{{ criteria|length }} критериев</span>
+          </div>
+        </div>
+        <div class="card-body p-0">
+
+          <!-- Список критериев (drag & drop) -->
+          <ul class="list-group list-group-flush" id="sortable{{ vpk_type }}" style="min-height:60px">
+            {% for c in criteria %}
+            <li class="list-group-item d-flex align-items-center gap-2 px-4 py-2"
+                data-id="{{ c.id }}" style="cursor:grab">
+              <i class="bi bi-grip-vertical text-muted" style="font-size:16px;flex-shrink:0"></i>
+              <span class="flex-grow-1 small" id="cname{{ c.id }}">{{ c.name }}</span>
+              <div class="d-flex gap-1 ms-2">
+                <button class="btn btn-sm btn-outline-primary py-0 px-2"
+                        style="border-radius:6px;font-size:11px"
+                        onclick="editCrit({{ c.id }}, '{{ c.name|replace("'", "\\'") }}')">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <form method="post" action="/admin/vpk-criteria/{{ c.id }}/delete"
+                      onsubmit="return confirm('Удалить?')" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ request.session.get('csrf_token','') }}">
+                  <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2"
+                          style="border-radius:6px;font-size:11px">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </form>
+              </div>
+            </li>
+            {% else %}
+            <li class="list-group-item text-muted text-center py-4 small">Критерии не добавлены</li>
+            {% endfor %}
+          </ul>
+
+          <!-- Форма добавления -->
+          <div class="p-4 border-top">
+            <form method="post" action="/admin/vpk-criteria/add" class="d-flex gap-2">
+              <input type="hidden" name="csrf_token" value="{{ request.session.get('csrf_token','') }}">
+              <input type="hidden" name="vpk_type" value="{{ vpk_type }}">
+              <input type="text" name="name" class="form-control form-control-sm"
+                     placeholder="Название нового критерия..." required
+                     style="border-radius:8px">
+              <button type="submit" class="btn btn-success btn-sm px-3"
+                      style="border-radius:8px;white-space:nowrap">
+                <i class="bi bi-plus-lg"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+  </div>
+</div>
+
+<!-- Модальное окно редактирования -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px">
+      <div class="modal-header border-0">
+        <h5 class="modal-title fw-bold">Редактировать критерий</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="editForm" method="post">
+        <input type="hidden" name="csrf_token" value="{{ request.session.get('csrf_token','') }}">
+        <div class="modal-body">
+          <textarea name="name" id="editName" class="form-control" rows="3"
+                    style="border-radius:10px"></textarea>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-success px-4" style="border-radius:10px">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function editCrit(id, name) {
+  document.getElementById('editForm').action = '/admin/vpk-criteria/' + id + '/edit';
+  document.getElementById('editName').value = name;
+  new bootstrap.Modal(document.getElementById('editModal')).show();
+}
+
+// Drag & drop reorder (SortableJS via CDN)
+document.addEventListener('DOMContentLoaded', () => {
+  [1, 2].forEach(t => {
+    const el = document.getElementById('sortable' + t);
+    if (!el || typeof Sortable === 'undefined') return;
+    Sortable.create(el, {
+      handle: '.bi-grip-vertical',
+      animation: 150,
+      onEnd: () => {
+        const items = [...el.querySelectorAll('li[data-id]')].map((li, i) => ({
+          id: parseInt(li.dataset.id), order: i + 1
+        }));
+        fetch('/api/admin/vpk-criteria/reorder', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(items)
+        });
+      }
+    });
+  });
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+{% endblock %}
