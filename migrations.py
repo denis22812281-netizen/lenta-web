@@ -129,6 +129,29 @@ _POSTGRES_MIGRATIONS = [
         text TEXT DEFAULT '',
         created_at TIMESTAMP DEFAULT NOW()
     )""",
+    """CREATE TABLE IF NOT EXISTS pre_vpk_reports (
+        id SERIAL PRIMARY KEY,
+        project_id INTEGER REFERENCES projects(id) ON DELETE SET NULL,
+        vpk_type INTEGER DEFAULT 1,
+        submitted_by VARCHAR(100) DEFAULT '',
+        submitted_at TIMESTAMP DEFAULT NOW()
+    )""",
+    """CREATE TABLE IF NOT EXISTS pre_vpk_report_items (
+        id SERIAL PRIMARY KEY,
+        report_id INTEGER REFERENCES pre_vpk_reports(id) ON DELETE CASCADE,
+        criterion_id INTEGER REFERENCES vpk_criteria(id) ON DELETE SET NULL,
+        criterion_name VARCHAR(300) DEFAULT '',
+        status VARCHAR(20) DEFAULT 'not_checked',
+        comment TEXT DEFAULT '',
+        photo_path VARCHAR(500) DEFAULT ''
+    )""",
+    """CREATE TABLE IF NOT EXISTS opening_photos (
+        id SERIAL PRIMARY KEY,
+        project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+        photo_path VARCHAR(500) DEFAULT '',
+        uploaded_by VARCHAR(100) DEFAULT '',
+        uploaded_at TIMESTAMP DEFAULT NOW()
+    )""",
 ]
 
 _SQLITE_MIGRATIONS = [
@@ -188,6 +211,29 @@ _SQLITE_MIGRATIONS = [
         author_name VARCHAR(100) DEFAULT '',
         text TEXT DEFAULT '',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""",
+    """CREATE TABLE IF NOT EXISTS pre_vpk_reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER,
+        vpk_type INTEGER DEFAULT 1,
+        submitted_by VARCHAR(100) DEFAULT '',
+        submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""",
+    """CREATE TABLE IF NOT EXISTS pre_vpk_report_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        report_id INTEGER,
+        criterion_id INTEGER,
+        criterion_name VARCHAR(300) DEFAULT '',
+        status VARCHAR(20) DEFAULT 'not_checked',
+        comment TEXT DEFAULT '',
+        photo_path VARCHAR(500) DEFAULT ''
+    )""",
+    """CREATE TABLE IF NOT EXISTS opening_photos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER,
+        photo_path VARCHAR(500) DEFAULT '',
+        uploaded_by VARCHAR(100) DEFAULT '',
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""",
 ]
 

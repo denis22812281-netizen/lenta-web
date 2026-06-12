@@ -478,6 +478,89 @@
 </script>
 {% endif %}
 
+<!-- ─── ФОТО ОТКРЫТИЯ ──────────────────────────────────────────────────────── -->
+<div class="data-card mt-3" id="opening-photos">
+    <div class="data-card-header">
+        <span><i class="bi bi-camera-fill me-2 text-warning"></i>Фото открытия</span>
+        <span class="badge bg-secondary">{{ project.opening_photos|length }}</span>
+    </div>
+
+    <!-- Галерея -->
+    {% if project.opening_photos %}
+    <div class="p-3">
+        <div class="row g-2" id="photoGrid">
+        {% for ph in project.opening_photos %}
+        <div class="col-6 col-sm-4 col-md-3">
+            <a href="{{ ph.photo_path if ph.photo_path.startswith('http') else '/static/' + ph.photo_path }}"
+               target="_blank" class="d-block">
+                <img src="{{ ph.photo_path if ph.photo_path.startswith('http') else '/static/' + ph.photo_path }}"
+                     class="img-fluid rounded opening-thumb" alt="Фото {{ loop.index }}"
+                     style="width:100%;height:130px;object-fit:cover;border-radius:8px">
+            </a>
+            <div class="text-muted" style="font-size:.68rem;margin-top:3px">
+                {{ ph.uploaded_by }} · {{ ph.uploaded_at.strftime('%d.%m %H:%M') }}
+            </div>
+        </div>
+        {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="px-3 py-3 text-muted small"><i class="bi bi-camera me-2"></i>Фото ещё не загружены</div>
+    {% endif %}
+
+    <!-- Загрузка -->
+    <div class="px-3 pb-3 pt-2 border-top mt-2">
+        <form method="post" action="/projects/{{ project.id }}/opening-photos"
+              enctype="multipart/form-data" id="openingPhotosForm">
+            <label class="fw-semibold small mb-2 d-block">Загрузить фото открытия:</label>
+            <div class="d-flex gap-2 align-items-start flex-wrap">
+                <div>
+                    <input type="file" name="photos" id="openingFileInput"
+                           accept="image/*" multiple style="display:none"
+                           onchange="onOpeningFileChange(this)">
+                    <button type="button" class="btn btn-outline-warning"
+                            onclick="document.getElementById('openingFileInput').click()">
+                        <i class="bi bi-images me-1"></i>Выбрать фото
+                    </button>
+                </div>
+                <button type="submit" class="btn btn-warning text-dark fw-bold"
+                        id="openingUploadBtn" style="display:none"
+                        onclick="return confirmOpeningUpload()">
+                    <i class="bi bi-send-fill me-1"></i>Загрузить и отправить на почту
+                </button>
+            </div>
+            <div id="openingFileList" class="mt-2 small text-muted"></div>
+            <div class="text-muted mt-1" style="font-size:.7rem">
+                Выберите все фото сразу — они придут одним письмом
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.opening-thumb { transition:transform .15s; cursor:pointer; }
+.opening-thumb:hover { transform:scale(1.03); }
+</style>
+<script>
+function onOpeningFileChange(input) {
+    const files = Array.from(input.files);
+    const btn  = document.getElementById('openingUploadBtn');
+    const list = document.getElementById('openingFileList');
+    if (files.length) {
+        btn.style.display = '';
+        btn.innerHTML = `<i class="bi bi-send-fill me-1"></i>Загрузить ${files.length} фото и отправить`;
+        list.textContent = files.map(f => f.name).join(', ').substring(0, 120) + (files.length > 5 ? `… (${files.length} файлов)` : '');
+    } else {
+        btn.style.display = 'none';
+        list.textContent = '';
+    }
+}
+function confirmOpeningUpload() {
+    const count = document.getElementById('openingFileInput').files.length;
+    return confirm(`Загрузить ${count} фото и отправить письмо?`);
+}
+</script>
+
 {% if user.is_admin %}
 <form id="deleteProjectForm" method="post" action="/projects/{{ project.id }}/delete" style="display:none"></form>
 <script>

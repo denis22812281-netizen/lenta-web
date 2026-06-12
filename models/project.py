@@ -59,6 +59,8 @@ class Project(Base):
                           order_by="ProjectStage.order")
     comments = relationship("ProjectComment", back_populates="project", cascade="all, delete-orphan",
                             order_by="ProjectComment.created_at")
+    opening_photos = relationship("OpeningPhoto", back_populates="project", cascade="all, delete-orphan",
+                                  order_by="OpeningPhoto.uploaded_at")
     __table_args__ = (
         Index("ix_project_manager_id", "manager_id"),
         Index("ix_project_status",     "status"),
@@ -87,6 +89,17 @@ class ProjectComment(Base):
     text = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     project = relationship("Project", back_populates="comments")
+
+
+class OpeningPhoto(Base):
+    """Фото открытия магазина — загружаются менеджером в день открытия."""
+    __tablename__ = "opening_photos"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"))
+    photo_path = Column(String(500), default="")
+    uploaded_by = Column(String(100), default="")
+    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    project = relationship("Project", back_populates="opening_photos")
 
 
 class SyncConfig(Base):

@@ -18,6 +18,9 @@
     <a href="/vpk?tab=vpk2" class="btn {% if tab == 'vpk2' %}btn-primary{% else %}btn-outline-primary{% endif %} fw-bold">
         <i class="bi bi-2-circle-fill me-1"></i>ВПК 2
     </a>
+    <a href="/vpk?tab=precheck" class="btn {% if tab == 'precheck' %}btn-warning text-dark{% else %}btn-outline-warning{% endif %} fw-bold">
+        <i class="bi bi-search-heart me-1"></i>Предосмотр
+    </a>
     <a href="/vpk?tab=reports" class="btn {% if tab == 'reports' %}btn-dark{% else %}btn-outline-dark{% endif %} fw-bold ms-auto">
         <i class="bi bi-list-ul me-1"></i>Отчёты
         {% if unread > 0 %}
@@ -152,6 +155,265 @@
         </div>
     </div>
 </form>
+{% endif %}
+
+<!-- ═══ ПРЕДОСМОТР ═══ -->
+{% if tab == 'precheck' %}
+
+<!-- Переключатель ВПК 1 / ВПК 2 внутри предосмотра -->
+<div class="d-flex gap-2 mb-3">
+    <a href="/vpk?tab=precheck&vpk_t=1" class="btn btn-sm {% if vpk_t == 1 %}btn-danger{% else %}btn-outline-danger{% endif %} fw-bold">ВПК 1</a>
+    <a href="/vpk?tab=precheck&vpk_t=2" class="btn btn-sm {% if vpk_t == 2 %}btn-primary{% else %}btn-outline-primary{% endif %} fw-bold">ВПК 2</a>
+    <span class="text-muted small align-self-center ms-2">Осмотр за 1–2 дня до ВПК. Отчёт придёт на почту.</span>
+</div>
+
+<form method="post" action="/vpk/precheck" id="precheckForm" enctype="multipart/form-data">
+    <input type="hidden" name="vpk_type" value="{{ vpk_t }}">
+
+    <!-- Выбор ТК — такой же автодополнитель как в ВПК 1/2 -->
+    <div class="data-card mb-3 p-3" style="overflow:visible">
+        <div class="fw-bold mb-2 fs-6">
+            <i class="bi bi-building me-2 text-warning"></i>Выберите объект Констракшн
+        </div>
+        <input type="hidden" name="project_id" id="preProjectId">
+        <div class="position-relative mb-2">
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-123 text-muted"></i></span>
+                <input type="text" id="preTkInput" class="form-control form-control-lg fw-bold"
+                       placeholder="Введите номер ТК…"
+                       autocomplete="off" inputmode="numeric"
+                       oninput="preTkSearch(this.value)"
+                       onkeydown="preTkKeydown(event)">
+                <button type="button" class="btn btn-outline-secondary" onclick="preTkClear()" id="preTkClearBtn" style="display:none">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <ul id="preTkDropdown" class="list-group shadow position-absolute w-100 z-3"
+                style="top:100%;display:none;max-height:260px;overflow-y:auto"></ul>
+        </div>
+        <div id="preSelectedTk" class="d-none">
+            <div class="alert alert-warning d-flex align-items-center gap-2 py-2 mb-0">
+                <i class="bi bi-check-circle-fill fs-5"></i>
+                <div>
+                    <div class="fw-bold" id="preSelectedTkLabel"></div>
+                    <div class="small text-muted" id="preSelectedTkMgr"></div>
+                </div>
+            </div>
+        </div>
+        <script id="preProjectsData" type="application/json">
+        [{% for p in projects %}{"id":{{ p.id }},"tk":{{ p.tk_number|string|tojson }},"addr":{{ (p.address or p.city or '')|tojson }},"mgr":{{ (p.manager.name if p.manager else '')|tojson }},"vpk_date":{{ (p.vpk_date.strftime('%d.%m.%Y') if p.vpk_date else '')|tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]
+        </script>
+    </div>
+
+    <!-- Критерии с 3 состояниями -->
+    <div class="data-card mb-3">
+        <div class="data-card-header" style="background:#fffbeb">
+            <span class="fw-bold text-warning-emphasis">
+                <i class="bi bi-list-check me-2"></i>Критерии ВПК-{{ vpk_t }}
+                <span class="badge bg-warning text-dark ms-1">{{ precheck_criteria|length }}</span>
+            </span>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-success" onclick="preCheckAll('done')">✅ Все готово</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="preCheckAll('not_checked')">Сбросить</button>
+            </div>
+        </div>
+        <div class="p-0">
+        {% for c in precheck_criteria %}
+        <div class="vpk-criterion-row" id="pre-row-{{ c.id }}">
+            <div class="vpk-num text-warning-emphasis">{{ loop.index }}.</div>
+            <div class="vpk-body">
+                <div class="vpk-text">{{ c.name }}</div>
+                <div id="pre-cbox-{{ c.id }}" style="display:none">
+                    <textarea name="comment_{{ c.id }}" id="pre-ta-{{ c.id }}"
+                              class="form-control form-control-sm mt-2"
+                              rows="2" placeholder="Что именно не готово? Опишите нарушение."></textarea>
+                    <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+                        <input type="file" name="photo_{{ c.id }}" id="pre-photo-{{ c.id }}"
+                               accept="image/*" style="display:none"
+                               onchange="onPrePhoto({{ c.id }}, this)">
+                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                onclick="document.getElementById('pre-photo-{{ c.id }}').click()">
+                            <i class="bi bi-camera me-1"></i>Прикрепить фото
+                        </button>
+                        <span id="pre-photo-name-{{ c.id }}" class="small text-muted"></span>
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" name="precheck_{{ c.id }}" id="pre-val-{{ c.id }}" value="not_checked">
+            <div class="vpk-actions" style="flex-direction:column;gap:4px">
+                <button type="button" class="vpk-btn vpk-btn-yes" id="pre-yes-{{ c.id }}"
+                        onclick="setPrecheck({{ c.id }}, 'done')">
+                    <i class="bi bi-check-lg"></i> Готово
+                </button>
+                <button type="button" class="vpk-btn vpk-btn-no" id="pre-no-{{ c.id }}"
+                        onclick="setPrecheck({{ c.id }}, 'not_done')">
+                    <i class="bi bi-x-lg"></i> Нет
+                </button>
+                <button type="button" class="vpk-btn" id="pre-skip-{{ c.id }}"
+                        style="background:#6b728020;color:#6b7280;border:1px solid #6b728040"
+                        onclick="setPrecheck({{ c.id }}, 'not_checked')">
+                    — Не смотрел
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+        </div>
+    </div>
+
+    <!-- Итог + кнопка -->
+    <div class="data-card p-3">
+        <div class="d-flex gap-3 mb-3 flex-wrap">
+            <span class="badge bg-success fs-6" id="pre-ok-count">✅ 0</span>
+            <span class="badge bg-danger fs-6" id="pre-fail-count">❌ 0</span>
+            <span class="badge bg-secondary fs-6" id="pre-skip-count">— 0</span>
+        </div>
+        <button type="submit" class="btn btn-warning text-dark w-100 btn-lg fw-bold"
+                onclick="return preConfirmSubmit()">
+            <i class="bi bi-send-fill me-2"></i>Отправить предосмотр на почту
+        </button>
+        <div class="text-muted small text-center mt-2">
+            Письмо придёт только вам — с перечнем нарушений и фото
+        </div>
+    </div>
+</form>
+
+<!-- История предосмотров -->
+{% if pre_reports %}
+<div class="data-card mt-3">
+    <div class="data-card-header">
+        <span><i class="bi bi-clock-history me-2"></i>Последние предосмотры</span>
+        <span class="badge bg-secondary">{{ pre_reports|length }}</span>
+    </div>
+    {% for r in pre_reports %}
+    {% set fail_c = r.items|selectattr('status', 'equalto', 'not_done')|list|length %}
+    {% set ok_c   = r.items|selectattr('status', 'equalto', 'done')|list|length %}
+    <div class="px-3 py-2 border-bottom">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <span class="badge {% if r.vpk_type == 1 %}bg-danger{% else %}bg-primary{% endif %} me-2">ВПК{{ r.vpk_type }}</span>
+                <strong>ТК {{ r.project.tk_number if r.project else '—' }}</strong>
+                <span class="text-muted small ms-2">{{ r.submitted_by }}</span>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+                {% if fail_c > 0 %}<span class="badge bg-danger">{{ fail_c }} нарушений</span>{% endif %}
+                {% if ok_c > 0 %}<span class="badge bg-success">{{ ok_c }} готово</span>{% endif %}
+                <span class="text-muted small">{{ r.submitted_at.strftime('%d.%m %H:%M') }}</span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<script>
+// ── Предосмотр: TK-автодополнитель ──────────────────────────────────────────
+const preProjects = JSON.parse(document.getElementById('preProjectsData').textContent);
+let preFiltered = [], preIdx = -1;
+
+function preTkSearch(val) {
+    const q = val.trim();
+    document.getElementById('preTkClearBtn').style.display = q ? '' : 'none';
+    if (!q) { hidePre(); return; }
+    preFiltered = preProjects.filter(p => String(p.tk).includes(q));
+    renderPreDropdown();
+}
+function renderPreDropdown() {
+    const ul = document.getElementById('preTkDropdown');
+    ul.innerHTML = '';
+    preIdx = -1;
+    if (!preFiltered.length) { ul.style.display = 'none'; return; }
+    preFiltered.slice(0, 8).forEach((p, i) => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item list-group-item-action d-flex justify-content-between';
+        li.innerHTML = `<span><b>ТК ${p.tk}</b> — ${p.addr}</span><small class="text-muted">${p.mgr}</small>`;
+        li.onclick = () => selectPreProject(p);
+        ul.appendChild(li);
+    });
+    ul.style.display = '';
+}
+function preTkKeydown(e) {
+    const ul = document.getElementById('preTkDropdown');
+    const items = ul.querySelectorAll('li');
+    if (e.key === 'ArrowDown') { preIdx = Math.min(preIdx + 1, items.length - 1); highlightPre(items); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { preIdx = Math.max(preIdx - 1, 0); highlightPre(items); e.preventDefault(); }
+    else if (e.key === 'Enter' && preIdx >= 0) { items[preIdx].click(); e.preventDefault(); }
+    else if (e.key === 'Escape') { hidePre(); }
+}
+function highlightPre(items) { items.forEach((li, i) => li.classList.toggle('active', i === preIdx)); }
+function selectPreProject(p) {
+    document.getElementById('preProjectId').value = p.id;
+    document.getElementById('preTkInput').value = p.tk;
+    document.getElementById('preSelectedTkLabel').textContent = `ТК ${p.tk} — ${p.addr}`;
+    document.getElementById('preSelectedTkMgr').textContent = p.mgr + (p.vpk_date ? ` · ВПК: ${p.vpk_date}` : '');
+    document.getElementById('preSelectedTk').classList.remove('d-none');
+    hidePre();
+    document.getElementById('preTkClearBtn').style.display = '';
+}
+function hidePre() { document.getElementById('preTkDropdown').style.display = 'none'; }
+function preTkClear() {
+    document.getElementById('preTkInput').value = '';
+    document.getElementById('preProjectId').value = '';
+    document.getElementById('preSelectedTk').classList.add('d-none');
+    document.getElementById('preTkClearBtn').style.display = 'none';
+    hidePre();
+}
+document.addEventListener('click', e => {
+    if (!e.target.closest('#preTkInput') && !e.target.closest('#preTkDropdown')) hidePre();
+});
+
+// ── Предосмотр: 3-state кнопки ───────────────────────────────────────────────
+let preCounts = { done: 0, not_done: 0, not_checked: {{ precheck_criteria|length }} };
+const preStates = {};
+
+function setPrecheck(id, val) {
+    const prev = preStates[id] || 'not_checked';
+    if (prev !== 'not_checked') preCounts[prev]--;
+    preCounts[val]++;
+    preStates[id] = val;
+    document.getElementById(`pre-val-${id}`).value = val;
+
+    // Подсветка кнопок
+    const yes  = document.getElementById(`pre-yes-${id}`);
+    const no   = document.getElementById(`pre-no-${id}`);
+    const skip = document.getElementById(`pre-skip-${id}`);
+    yes.style.background  = val === 'done'        ? '#16a34a' : '';
+    yes.style.color       = val === 'done'        ? '#fff'    : '';
+    no.style.background   = val === 'not_done'    ? '#dc2626' : '';
+    no.style.color        = val === 'not_done'    ? '#fff'    : '';
+    skip.style.background = val === 'not_checked' ? '#6b7280' : '#6b728020';
+    skip.style.color      = val === 'not_checked' ? '#fff'    : '#6b7280';
+
+    // Строка: красить и показывать комментарий
+    const row = document.getElementById(`pre-row-${id}`);
+    row.style.background = val === 'not_done' ? '#fff5f5' : val === 'done' ? '#f0fdf4' : '';
+    const cbox = document.getElementById(`pre-cbox-${id}`);
+    if (cbox) cbox.style.display = val === 'not_done' ? '' : 'none';
+
+    updatePreCounters();
+}
+function updatePreCounters() {
+    document.getElementById('pre-ok-count').textContent   = `✅ ${preCounts.done}`;
+    document.getElementById('pre-fail-count').textContent = `❌ ${preCounts.not_done}`;
+    document.getElementById('pre-skip-count').textContent = `— ${preCounts.not_checked}`;
+}
+function preCheckAll(val) {
+    {% for c in precheck_criteria %}setPrecheck({{ c.id }}, val);{% endfor %}
+}
+function onPrePhoto(id, input) {
+    const span = document.getElementById(`pre-photo-name-${id}`);
+    span.textContent = input.files[0] ? input.files[0].name : '';
+}
+function preConfirmSubmit() {
+    if (!document.getElementById('preProjectId').value) {
+        alert('Выберите объект ТК');
+        return false;
+    }
+    if (preCounts.not_done === 0 && preCounts.done === 0) {
+        return confirm('Ни один критерий не проверен. Отправить пустой предосмотр?');
+    }
+    return true;
+}
+</script>
 {% endif %}
 
 <!-- ═══ ОТЧЁТЫ ═══ -->

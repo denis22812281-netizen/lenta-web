@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import templates, get_current_user, require_login
-from services.email_service import notify_vpk_report
+from services.email_service import notify_vpk_report, notify_precheck_report
 from services.cloud_storage import upload_photo
 
 import logging as _logging
@@ -31,6 +31,9 @@ for _entry in os.getenv("NOTIFY_VPK_EMAILS", "").split(","):
         _VPK_NOTIFY_EMAILS.append((_entry, _entry.split("@")[0]))
 _vpk_logger.warning("VPK: NOTIFY_VPK_EMAILS = %s", _VPK_NOTIFY_EMAILS)
 
+# Email для предосмотра — только один получатель (менеджер/куратор)
+_PRECHECK_EMAIL = os.getenv("NOTIFY_PRECHECK_EMAIL", "").strip()
+
 router = APIRouter()
 
 
@@ -47,16 +50,23 @@ async def vpk_page(request: Request, db: Session = Depends(get_db),
         models.VpkCriterion.vpk_type == 2).order_by(models.VpkCriterion.order).all()
     reports   = db.query(models.VpkReport).order_by(
         models.VpkReport.submitted_at.desc()).limit(50).all()
+    pre_reports = db.query(models.PreVpkReport).order_by(
+        models.PreVpkReport.submitted_at.desc()).limit(20).all()
     name = user.get("display_name", "")
     total_reports = db.query(models.VpkReport).count()
     read_by_me = db.query(models.VpkReportRead).filter(
         models.VpkReportRead.reader_name == name).count()
     unread = max(0, total_reports - read_by_me)
+    vpk_t = int(request.query_params.get("vpk_t", 1))
+    precheck_criteria = criteria1 if vpk_t == 1 else criteria2
     return templates.TemplateResponse("vpk.html", {
         "request": request, "user": user,
         "tab": tab, "projects": projects,
         "criteria1": criteria1, "criteria2": criteria2,
         "reports": reports, "unread": unread,
+        "pre_reports": pre_reports,
+        "vpk_t": vpk_t,
+        "precheck_criteria": precheck_criteria,
         "msg": request.query_params.get("msg"),
     })
 
@@ -132,6 +142,84 @@ async def vpk_submit(request: Request, background_tasks: BackgroundTasks,
     return RedirectResponse(
         f"/vpk?tab=reports&msg=Отчёт ВПК{vpk_type} по ТК {tk} отправлен",
         status_code=303)
+
+
+@router.post("/vpk/precheck")
+async def precheck_submit(request: Request, background_tasks: BackgroundTasks,
+                          db: Session = Depends(get_db), user: dict = Depends(require_login)):
+    form      = await request.form()
+    project_id = form.get("project_id")
+    vpk_type   = int(form.get("vpk_type", 1))
+
+    report = models.PreVpkReport(
+        project_id=int(project_id) if project_id else None,
+        vpk_type=vpk_type,
+        submitted_by=user.get("display_name", ""),
+    )
+    db.add(report)
+    db.flush()
+
+    criteria = db.query(models.VpkCriterion).filter(
+        models.VpkCriterion.vpk_type == vpk_type
+    ).order_by(models.VpkCriterion.order).all()
+
+    for c in criteria:
+        status = str(form.get(f"precheck_{c.id}", "not_checked"))
+        comment = str(form.get(f"comment_{c.id}", "") or "").strip()
+        photo_path = ""
+        if status == "not_done":
+            photo_file = form.get(f"photo_{c.id}")
+            if photo_file and hasattr(photo_file, "filename") and photo_file.filename:
+                ext = Path(photo_file.filename).suffix.lower() or ".jpg"
+                fname = f"pre_{report.id}_{c.id}{ext}"
+                photo_path = upload_photo(await photo_file.read(), "precheck", fname)
+        db.add(models.PreVpkReportItem(
+            report_id=report.id, criterion_id=c.id,
+            criterion_name=c.name, status=status,
+            comment=comment, photo_path=photo_path,
+        ))
+
+    db.commit()
+
+    proj = db.query(models.Project).filter(models.Project.id == project_id).first() if project_id else None
+    tk   = proj.tk_number if proj else "—"
+    proj_name = proj.name if proj else ""
+    vpk_date_str = proj.vpk_date.strftime("%d.%m.%Y") if (proj and proj.vpk_date) else ""
+
+    items       = db.query(models.PreVpkReportItem).filter(
+        models.PreVpkReportItem.report_id == report.id).all()
+    failed_items = [
+        {"name": i.criterion_name, "comment": i.comment or "", "photo_path": i.photo_path or ""}
+        for i in items if i.status == "not_done"
+    ]
+    ok_count   = sum(1 for i in items if i.status == "done")
+    skip_count = sum(1 for i in items if i.status == "not_checked")
+
+    # Получатель: env var → иначе email отправителя из таблицы менеджеров
+    to_email = _PRECHECK_EMAIL
+    if not to_email:
+        submitter_name = user.get("display_name", "")
+        mgr = db.query(models.Manager).filter(
+            models.Manager.name == submitter_name,
+            models.Manager.email.isnot(None),
+            models.Manager.email != "",
+        ).first()
+        if mgr:
+            to_email = mgr.email
+
+    submitter = user.get("display_name", "")
+    if to_email:
+        background_tasks.add_task(
+            notify_precheck_report, to_email, vpk_type, tk, proj_name,
+            submitter, vpk_date_str, failed_items, ok_count, skip_count,
+        )
+    else:
+        _vpk_logger.warning("Precheck: email не отправлен — NOTIFY_PRECHECK_EMAIL не задан и у менеджера нет email")
+
+    return RedirectResponse(
+        f"/vpk?tab=precheck&msg=Предосмотр ВПК{vpk_type} по ТК {tk} отправлен",
+        status_code=303,
+    )
 
 
 @router.post("/vpk/reports/{report_id}/read")

@@ -53,3 +53,30 @@ class VpkReportItem(Base):
     photo_path = Column(String(300), default="")
     report = relationship("VpkReport", back_populates="items")
     criterion = relationship("VpkCriterion")
+
+
+class PreVpkReport(Base):
+    """Предварительный осмотр объекта за 1-2 дня до ВПК."""
+    __tablename__ = "pre_vpk_reports"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
+    vpk_type = Column(Integer, default=1)
+    submitted_by = Column(String(100), default="")
+    submitted_at = Column(DateTime, default=datetime.utcnow)
+    project = relationship("Project")
+    items = relationship("PreVpkReportItem", back_populates="report",
+                         cascade="all, delete-orphan")
+    __table_args__ = (Index("ix_pre_vpk_report_submitted_at", "submitted_at"),)
+
+
+class PreVpkReportItem(Base):
+    __tablename__ = "pre_vpk_report_items"
+    id = Column(Integer, primary_key=True)
+    report_id = Column(Integer, ForeignKey("pre_vpk_reports.id", ondelete="CASCADE"))
+    criterion_id = Column(Integer, ForeignKey("vpk_criteria.id"), nullable=True)
+    criterion_name = Column(String(300), default="")
+    status = Column(String(20), default="not_checked")  # done / not_done / not_checked
+    comment = Column(Text, default="")
+    photo_path = Column(String(500), default="")
+    report = relationship("PreVpkReport", back_populates="items")
+    criterion = relationship("VpkCriterion")

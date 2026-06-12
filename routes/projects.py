@@ -2,7 +2,10 @@
 import io
 from datetime import datetime, date
 
-from fastapi import APIRouter, Request, Form, Depends, UploadFile, File, HTTPException
+import os
+from pathlib import Path
+
+from fastapi import APIRouter, BackgroundTasks, Request, Form, Depends, UploadFile, File, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from openpyxl import Workbook
@@ -13,7 +16,11 @@ from database import get_db
 from deps import templates, require_login, limiter
 from config import PROJECT_TYPES, STATUSES, STAGE_NAMES
 from services.excel_import import parse_excel_file, import_reconstruct_excel, import_construction_excel
+from services.cloud_storage import upload_photo
+from services.email_service import notify_opening_photos
 from utils.files import read_limited
+
+_OPENING_EMAIL = os.getenv("NOTIFY_PRECHECK_EMAIL", "").strip()
 
 router = APIRouter()
 
@@ -147,6 +154,63 @@ async def add_comment(project_id: int, request: Request, db: Session = Depends(g
         db.add(comment)
         db.commit()
     return RedirectResponse(f"/projects/{project_id}#comments", status_code=303)
+
+
+# ─── Фото открытия ───────────────────────────────────────────────────────────
+
+@router.post("/projects/{project_id}/opening-photos")
+async def upload_opening_photos(project_id: int, request: Request,
+                                background_tasks: BackgroundTasks,
+                                db: Session = Depends(get_db),
+                                user: dict = Depends(require_login)):
+    proj = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not proj:
+        raise HTTPException(status_code=404)
+
+    form = await request.form()
+    files = form.getlist("photos")
+
+    photo_urls = []
+    for i, photo_file in enumerate(files):
+        if not (hasattr(photo_file, "filename") and photo_file.filename):
+            continue
+        ext = Path(photo_file.filename).suffix.lower() or ".jpg"
+        fname = f"open_{project_id}_{len(proj.opening_photos) + i + 1}{ext}"
+        folder = f"opening/tk-{proj.tk_number or project_id}"
+        url = upload_photo(await photo_file.read(), folder, fname)
+        photo_urls.append(url)
+        db.add(models.OpeningPhoto(
+            project_id=project_id,
+            photo_path=url,
+            uploaded_by=user.get("display_name", ""),
+        ))
+
+    db.commit()
+
+    if photo_urls:
+        submitter = user.get("display_name", "")
+        to_email = _OPENING_EMAIL
+        if not to_email:
+            mgr = db.query(models.Manager).filter(
+                models.Manager.name == submitter,
+                models.Manager.email.isnot(None),
+                models.Manager.email != "",
+            ).first()
+            if mgr:
+                to_email = mgr.email
+        if to_email:
+            background_tasks.add_task(
+                notify_opening_photos, to_email,
+                proj.tk_number or str(project_id),
+                proj.city or proj.address or "",
+                submitter, photo_urls,
+            )
+
+    count = len(photo_urls)
+    return RedirectResponse(
+        f"/projects/{project_id}?msg=Загружено+{count}+фото+открытия#opening-photos",
+        status_code=303,
+    )
 
 
 @router.post("/projects/{project_id}/comments/{comment_id}/delete")

@@ -553,6 +553,131 @@ def send_smr_progress_report(
     )
 
 
+def notify_precheck_report(to_email: str, vpk_type: int, tk_number: str,
+                           project_name: str, submitted_by: str, vpk_date_str: str,
+                           failed_items: list, ok_count: int, skip_count: int) -> bool:
+    """Предосмотр ВПК — уходит только отправителю (менеджеру)."""
+    total = ok_count + len(failed_items) + skip_count
+    fail_count = len(failed_items)
+
+    status_color = "#16a34a" if fail_count == 0 else "#dc2626"
+    status_label = "Объект готов к ВПК" if fail_count == 0 else f"Найдено нарушений: {fail_count}"
+    vpk_date_line = (
+        f'<p style="color:#374151;font-size:13px">📅 Дата ВПК: <b>{vpk_date_str}</b></p>'
+        if vpk_date_str else ""
+    )
+
+    rows = ""
+    attachments = []
+    for idx, item in enumerate(failed_items, 1):
+        photo_note = ""
+        if item.get("photo_path"):
+            path_val = item["photo_path"]
+            if path_val.startswith("http"):
+                photo_note = f'<div style="margin-top:4px"><a href="{path_val}" style="color:#2563eb;font-size:12px">📎 Фото {idx}</a></div>'
+            else:
+                full = Path("static") / path_val
+                if full.exists():
+                    ext  = full.suffix or ".jpg"
+                    name = f"фото_{idx}{ext}"
+                    attachments.append({"name": name, "path": str(full)})
+                    photo_note = f'<div style="color:#2563eb;font-size:12px;margin-top:4px">📎 {name}</div>'
+        comment_html = (
+            f'<div style="color:#555;font-size:12px;margin-top:4px">{item["comment"]}</div>'
+            if item.get("comment") else ""
+        )
+        rows += (
+            f'<div style="padding:10px 0;border-bottom:1px solid #fee2e2">'
+            f'<span style="color:#dc2626;font-weight:900">✗</span> '
+            f'<b style="color:#dc2626;font-size:13px">{item["name"]}</b>'
+            f'{comment_html}{photo_note}</div>'
+        )
+
+    failed_block = ""
+    if rows:
+        failed_block = f"""
+        <div style="margin-top:16px">
+          <b style="color:#dc2626">Не готово ({fail_count}):</b>
+          <div style="background:#fff5f5;border:1px solid #fecaca;
+                      border-radius:8px;padding:8px 12px;margin-top:8px">{rows}</div>
+        </div>"""
+
+    content = f"""
+        <p style="font-size:16px;margin-bottom:4px">Добрый день.</p>
+        <p><b>{submitted_by}</b> провёл предварительный осмотр перед ВПК{vpk_type}:</p>
+        <div style="background:#f4faf5;border-left:4px solid #3CB34A;
+                    padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0">
+          <b style="font-size:18px">ТК {tk_number}</b>
+          {"<br><span style='color:#666;font-size:13px'>" + project_name + "</span>" if project_name else ""}
+        </div>
+        {vpk_date_line}
+        <div style="display:inline-block;background:{status_color}18;border:1px solid {status_color}40;
+                    border-radius:8px;padding:8px 16px;margin:8px 0">
+          <span style="color:{status_color};font-weight:700">{status_label}</span>
+        </div>
+        <p style="margin-top:12px;font-size:14px">
+          ✅ Выполнено: <b>{ok_count}</b> &nbsp;|&nbsp;
+          ❌ Не выполнено: <b style="color:#dc2626">{fail_count}</b> &nbsp;|&nbsp;
+          — Не проверено: <b>{skip_count}</b>
+        </p>
+        {failed_block}
+    """
+    subject = (
+        f"Предосмотр ВПК{vpk_type} — ТК {tk_number}: {fail_count} нарушений"
+        if fail_count else
+        f"Предосмотр ВПК{vpk_type} — ТК {tk_number}: объект готов ✅"
+    )
+    return send_email(
+        to_email, subject,
+        _base_template(content, title=f"🔍 Предосмотр ВПК{vpk_type} · ТК {tk_number}"),
+        attachments=attachments or None,
+    )
+
+
+def notify_opening_photos(to_email: str, tk_number: str, city: str,
+                          submitted_by: str, photo_urls: list) -> bool:
+    """Фото открытия — ссылки/превью всех фото одним письмом."""
+    count = len(photo_urls)
+    city_line = f" · {city}" if city else ""
+
+    # Если Cloudinary (https URL) — вставляем как img
+    photo_rows = ""
+    for i, url in enumerate(photo_urls, 1):
+        if url.startswith("http"):
+            photo_rows += (
+                f'<tr><td style="padding:6px 0">'
+                f'<a href="{url}" style="display:block">'
+                f'<img src="{url}" alt="Фото {i}" width="520" '
+                f'style="max-width:100%;border-radius:8px;display:block"></a>'
+                f'<div style="font-size:11px;color:#9ca3af;margin-top:2px">Фото {i} · '
+                f'<a href="{url}" style="color:#2563eb">скачать</a></div>'
+                f'</td></tr>'
+            )
+        else:
+            full_url = f"{APP_URL}/static/{url}" if APP_URL else url
+            photo_rows += (
+                f'<tr><td style="padding:6px 0">'
+                f'<a href="{full_url}" style="color:#2563eb;font-size:13px">📎 Фото {i}</a>'
+                f'</td></tr>'
+            )
+
+    content = f"""
+        <p style="font-size:16px;margin-bottom:4px">Добрый день.</p>
+        <p><b>{submitted_by}</b> загрузил фотоотчёт с открытия:</p>
+        <div style="background:#f4faf5;border-left:4px solid #3CB34A;
+                    padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0">
+          <b style="font-size:18px">ТК {tk_number}{city_line}</b>
+        </div>
+        <p style="font-size:14px">Всего фото: <b>{count}</b></p>
+        <table width="100%" cellpadding="0" cellspacing="0">{photo_rows}</table>
+    """
+    return send_email(
+        to_email,
+        f"Фото открытия — ТК {tk_number}{city_line} ({count} фото)",
+        _base_template(content, title=f"🎊 Фото открытия · ТК {tk_number}"),
+    )
+
+
 def send_smr_deadline_notification(
         to_email: str,
         task_name: str,
