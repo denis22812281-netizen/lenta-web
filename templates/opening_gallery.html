@@ -120,21 +120,34 @@
       height: 1px; background: rgba(255,255,255,.06); margin: 0 4px 16px;
     }
 
-    /* ─── Masonry columns ───────────────────────────────── */
+    /* ─── Photo grid ─────────────────────────────────── */
+
+    /* Featured — крупные, 2 колонки */
+    .featured-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    @media (min-width: 700px) { .featured-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; } }
+    @media (min-width: 1100px) { .featured-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; } }
+
+    .featured-grid .photo-item {
+      aspect-ratio: 4 / 3;
+    }
+    .featured-grid .photo-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* All photos — masonry колонки с натуральными пропорциями */
     .photo-cols {
-      columns: 2;
+      column-count: 2;
       column-gap: 10px;
     }
-    @media (min-width: 480px)  { .photo-cols { columns: 3; column-gap: 12px; } }
-    @media (min-width: 700px)  { .photo-cols { columns: 3; column-gap: 14px; } }
-    @media (min-width: 900px)  { .photo-cols { columns: 4; column-gap: 14px; } }
-    @media (min-width: 1200px) { .photo-cols { columns: 4; column-gap: 16px; } }
-
-    /* Featured: max 3 cols to show bigger photos */
-    .photo-cols.featured-cols { columns: 2; column-gap: 10px; }
-    @media (min-width: 480px)  { .photo-cols.featured-cols { columns: 2; } }
-    @media (min-width: 700px)  { .photo-cols.featured-cols { columns: 3; } }
-    @media (min-width: 1100px) { .photo-cols.featured-cols { columns: 3; } }
+    @media (min-width: 480px)  { .photo-cols { column-count: 3; column-gap: 12px; } }
+    @media (min-width: 900px)  { .photo-cols { column-count: 4; column-gap: 14px; } }
+    @media (min-width: 1200px) { .photo-cols { column-count: 4; column-gap: 16px; } }
 
     .photo-item {
       break-inside: avoid;
@@ -293,7 +306,7 @@
     <div class="section-count">{{ featured|length }}</div>
   </div>
   <div class="section-line"></div>
-  <div class="photo-cols featured-cols">
+  <div class="featured-grid">
     {% for photo in featured %}
     {% set purl = media_url(photo.photo_path) %}
     <div class="photo-item" onclick="openLb('{{ purl }}', {{ loop.index0 }})">
