@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import templates, get_current_user, require_login
-from services.email_service import notify_vpk_report, notify_precheck_report
+from services.email_service import notify_vpk_report, notify_precheck_report, notify_opening_photos
 from services.cloud_storage import upload_photo
 
 import logging as _logging
@@ -32,8 +32,9 @@ for _entry in os.getenv("NOTIFY_VPK_EMAILS", "").split(","):
         _VPK_NOTIFY_EMAILS.append((_entry, _entry.split("@")[0]))
 _vpk_logger.warning("VPK: NOTIFY_VPK_EMAILS = %s", _VPK_NOTIFY_EMAILS)
 
-# Email для предосмотра — только один получатель (менеджер/куратор)
+# Email для предосмотра и фото открытия — только один получатель
 _PRECHECK_EMAIL = os.getenv("NOTIFY_PRECHECK_EMAIL", "").strip()
+_OPENING_EMAIL  = _PRECHECK_EMAIL  # тот же env var
 
 router = APIRouter()
 
@@ -368,3 +369,190 @@ async def clear_all_reports(request: Request, db: Session = Depends(get_db),
     db.query(models.VpkReport).delete()
     db.commit()
     return RedirectResponse("/reports", status_code=303)
+
+
+# ─── Фото открытия ───────────────────────────────────────────────────────────
+
+@router.get("/opening", response_class=HTMLResponse)
+async def opening_page(request: Request, db: Session = Depends(get_db),
+                       user: dict = Depends(require_login)):
+    """Страница управления фото открытий."""
+    projects = db.query(models.Project).filter(
+        models.Project.project_type == "Констракшн"
+    ).order_by(models.Project.tk_number).all()
+    selected_id = request.query_params.get("project_id")
+    selected_proj = None
+    photos = []
+    if selected_id:
+        selected_proj = db.query(models.Project).filter(
+            models.Project.id == int(selected_id)).first()
+        if selected_proj:
+            photos = db.query(models.OpeningPhoto).filter(
+                models.OpeningPhoto.project_id == selected_proj.id,
+            ).order_by(models.OpeningPhoto.uploaded_at.desc()).all()
+    return templates.TemplateResponse("opening.html", {
+        "request": request, "user": user,
+        "projects": projects,
+        "selected_proj": selected_proj,
+        "photos": photos,
+        "msg": request.query_params.get("msg"),
+    })
+
+
+@router.post("/opening/upload")
+async def opening_upload(request: Request, background_tasks: BackgroundTasks,
+                         db: Session = Depends(get_db),
+                         user: dict = Depends(require_login)):
+    """Загрузка фото открытия (30-50 файлов) через multipart."""
+    form = await request.form()
+    project_id = form.get("project_id")
+    if not project_id:
+        return RedirectResponse("/opening?msg=Выберите ТК", status_code=303)
+
+    proj = db.query(models.Project).filter(models.Project.id == int(project_id)).first()
+    if not proj:
+        return RedirectResponse("/opening?msg=ТК не найден", status_code=303)
+
+    uploader = user.get("display_name", "")
+    uploaded_count = 0
+    for key, file_obj in form.multi_items():
+        if key != "photos":
+            continue
+        if not hasattr(file_obj, "filename") or not file_obj.filename:
+            continue
+        raw = await file_obj.read()
+        if not raw:
+            continue
+        ext = Path(file_obj.filename).suffix.lower() or ".jpg"
+        fname = f"open_{proj.id}_{int(datetime.utcnow().timestamp() * 1000)}_{uploaded_count}{ext}"
+        photo_path = upload_photo(raw, "opening", fname)
+        db.add(models.OpeningPhoto(
+            project_id=proj.id,
+            photo_path=photo_path,
+            uploaded_by=uploader,
+            is_featured=False,
+        ))
+        uploaded_count += 1
+
+    db.commit()
+    _vpk_logger.info("Opening photos: загружено %d фото для ТК %s", uploaded_count, proj.tk_number)
+    return RedirectResponse(
+        f"/opening?project_id={project_id}&msg=Загружено {uploaded_count} фото",
+        status_code=303,
+    )
+
+
+@router.post("/api/vpk/opening/{photo_id}/feature")
+async def opening_toggle_feature(photo_id: int, request: Request,
+                                  db: Session = Depends(get_db)):
+    """Toggle is_featured для фото (AJAX)."""
+    user = get_current_user(request)
+    if not user:
+        return {"error": "Не авторизован"}
+    photo = db.query(models.OpeningPhoto).filter(models.OpeningPhoto.id == photo_id).first()
+    if not photo:
+        raise HTTPException(status_code=404)
+    photo.is_featured = not photo.is_featured
+    db.commit()
+    return {"ok": True, "is_featured": photo.is_featured}
+
+
+@router.post("/api/vpk/opening/{photo_id}/delete")
+async def opening_delete_photo(photo_id: int, request: Request,
+                                db: Session = Depends(get_db)):
+    """Удалить фото."""
+    user = get_current_user(request)
+    if not user:
+        return {"error": "Не авторизован"}
+    photo = db.query(models.OpeningPhoto).filter(models.OpeningPhoto.id == photo_id).first()
+    if not photo:
+        raise HTTPException(status_code=404)
+    db.delete(photo)
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/opening/send-report")
+async def opening_send_report(request: Request, background_tasks: BackgroundTasks,
+                               db: Session = Depends(get_db),
+                               user: dict = Depends(require_login)):
+    """Отправить email-отчёт с featured фото открытия."""
+    form = await request.form()
+    project_id = form.get("project_id")
+    if not project_id:
+        return RedirectResponse("/opening?msg=Выберите ТК", status_code=303)
+
+    proj = db.query(models.Project).filter(models.Project.id == int(project_id)).first()
+    if not proj:
+        return RedirectResponse("/opening?msg=ТК не найден", status_code=303)
+
+    featured = db.query(models.OpeningPhoto).filter(
+        models.OpeningPhoto.project_id == proj.id,
+        models.OpeningPhoto.is_featured == True,
+    ).order_by(models.OpeningPhoto.uploaded_at).all()
+
+    if not featured:
+        return RedirectResponse(
+            f"/opening?project_id={project_id}&msg=Отметьте лучшие фото звёздочкой",
+            status_code=303,
+        )
+
+    photo_urls = [p.photo_path for p in featured]
+    city = proj.city or ""
+    submitter = user.get("display_name", "")
+
+    to_email = _OPENING_EMAIL
+    if to_email:
+        background_tasks.add_task(
+            notify_opening_photos,
+            to_email, proj.tk_number, city, submitter, photo_urls,
+        )
+        _vpk_logger.info("Opening report: отправка %d featured фото → %s", len(photo_urls), to_email)
+        msg = f"Отчёт отправлен — {len(photo_urls)} фото"
+    else:
+        msg = "NOTIFY_PRECHECK_EMAIL не задан"
+
+    return RedirectResponse(
+        f"/opening?project_id={project_id}&msg={msg}",
+        status_code=303,
+    )
+
+
+@router.get("/api/vpk/opening/photos")
+async def opening_photos_api(request: Request, project_id: int = 0,
+                              db: Session = Depends(get_db)):
+    """JSON список фото для проекта (для обновления галереи без перезагрузки)."""
+    user = get_current_user(request)
+    if not user:
+        return {"photos": []}
+    photos = db.query(models.OpeningPhoto).filter(
+        models.OpeningPhoto.project_id == project_id,
+    ).order_by(models.OpeningPhoto.uploaded_at.desc()).all()
+    return {"photos": [
+        {"id": p.id, "url": p.photo_path, "featured": p.is_featured,
+         "by": p.uploaded_by, "at": p.uploaded_at.strftime("%d.%m %H:%M") if p.uploaded_at else ""}
+        for p in photos
+    ]}
+
+
+@router.get("/opening/{project_id}", response_class=HTMLResponse)
+async def opening_gallery_page(project_id: int, request: Request,
+                                db: Session = Depends(get_db)):
+    """Публичная галерея всех фото открытия (доступна по ссылке без входа)."""
+    proj = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not proj:
+        raise HTTPException(status_code=404)
+    all_photos = db.query(models.OpeningPhoto).filter(
+        models.OpeningPhoto.project_id == project_id,
+    ).order_by(models.OpeningPhoto.is_featured.desc(), models.OpeningPhoto.uploaded_at).all()
+    featured = [p for p in all_photos if p.is_featured]
+    rest = [p for p in all_photos if not p.is_featured]
+    user = get_current_user(request)
+    return templates.TemplateResponse("opening_gallery.html", {
+        "request": request,
+        "user": user,
+        "project": proj,
+        "featured": featured,
+        "rest": rest,
+        "all_photos": all_photos,
+    })

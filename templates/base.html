@@ -90,6 +90,9 @@
                 <i class="bi bi-clipboard2-check-fill"></i><span>ВПК 1 / 2</span>
                 <span id="vpk-badge" class="d-none" style="position:absolute;top:6px;right:8px;background:#dc2626;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700"></span>
             </a>
+            <a href="/opening" class="nav-item {% if request.url.path.startswith('/opening') %}active{% endif %}">
+                <i class="bi bi-camera-fill"></i><span>Фото открытия</span>
+            </a>
         </div>
 
         <div class="nav-sect-toggle open" data-target="nav-analytics" onclick="toggleNavSect(this)">

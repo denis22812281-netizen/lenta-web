@@ -152,6 +152,7 @@ _POSTGRES_MIGRATIONS = [
         uploaded_by VARCHAR(100) DEFAULT '',
         uploaded_at TIMESTAMP DEFAULT NOW()
     )""",
+    "ALTER TABLE opening_photos ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT FALSE",
 ]
 
 _SQLITE_MIGRATIONS = [
@@ -235,6 +236,7 @@ _SQLITE_MIGRATIONS = [
         uploaded_by VARCHAR(100) DEFAULT '',
         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""",
+    "ALTER TABLE opening_photos ADD COLUMN is_featured INTEGER DEFAULT 0",
 ]
 
 

@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+{% block page_title %}Фото открытия — Лента.PM{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-lg-4 py-4">
+
+  <!-- Заголовок -->
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <div style="width:48px;height:48px;background:linear-gradient(135deg,#1A5C22,#3CB34A);
+                border-radius:14px;display:flex;align-items:center;justify-content:center">
+      <i class="bi bi-camera-fill text-white" style="font-size:22px"></i>
+    </div>
+    <div>
+      <h1 class="h4 mb-0 fw-bold">Фото открытия</h1>
+      <div class="text-muted small">Загрузите фото, отметьте лучшие ⭐, отправьте отчёт</div>
+    </div>
+  </div>
+
+  {% if msg %}
+  <div class="alert alert-success d-flex align-items-center gap-2 mb-4" style="border-radius:12px">
+    <i class="bi bi-check-circle-fill"></i>
+    <span>{{ msg }}</span>
+    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+  </div>
+  {% endif %}
+
+  <div class="row g-4">
+
+    <!-- Левая колонка: выбор ТК + загрузка -->
+    <div class="col-lg-4">
+
+      <!-- Выбор ТК -->
+      <div class="card border-0 shadow-sm mb-4" style="border-radius:16px">
+        <div class="card-body p-4">
+          <h6 class="fw-bold mb-3"><i class="bi bi-building me-2 text-success"></i>Выберите ТК</h6>
+          <select id="projectSelect" class="form-select"
+                  onchange="location.href='/opening?project_id='+this.value">
+            <option value="">— выберите объект —</option>
+            {% for p in projects %}
+            <option value="{{ p.id }}"
+              {% if selected_proj and selected_proj.id == p.id %}selected{% endif %}>
+              ТК {{ p.tk_number }}{% if p.city %} · {{ p.city }}{% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      {% if selected_proj %}
+      <!-- Загрузка фото -->
+      <div class="card border-0 shadow-sm mb-4" style="border-radius:16px">
+        <div class="card-body p-4">
+          <h6 class="fw-bold mb-1"><i class="bi bi-cloud-upload me-2 text-success"></i>Загрузить фото</h6>
+          <div class="text-muted small mb-3">Можно выбрать сразу 30-50 файлов</div>
+
+          <form method="post" action="/opening/upload" enctype="multipart/form-data" id="uploadForm">
+            <input type="hidden" name="project_id" value="{{ selected_proj.id }}">
+
+            <!-- Dropzone -->
+            <div id="dropzone"
+                 onclick="document.getElementById('photoInput').click()"
+                 ondragover="event.preventDefault();this.classList.add('drag-over')"
+                 ondragleave="this.classList.remove('drag-over')"
+                 ondrop="handleDrop(event)"
+                 style="border:2px dashed #3CB34A;border-radius:12px;padding:32px 16px;
+                        text-align:center;cursor:pointer;transition:background .2s;
+                        background:var(--bs-body-bg)">
+              <i class="bi bi-images text-success" style="font-size:36px"></i>
+              <div class="mt-2 fw-semibold">Нажмите или перетащите фото</div>
+              <div class="text-muted small mt-1">JPG, PNG, HEIC · до 50 файлов</div>
+            </div>
+
+            <input type="file" id="photoInput" name="photos" multiple accept="image/*"
+                   style="display:none" onchange="previewFiles(this.files)">
+
+            <!-- Превью перед загрузкой -->
+            <div id="previewGrid" class="row g-2 mt-2" style="display:none!important"></div>
+            <div id="previewCount" class="text-muted small mt-2"></div>
+
+            <button type="submit" id="uploadBtn" class="btn btn-success w-100 mt-3 d-none"
+                    style="border-radius:10px;font-weight:700">
+              <i class="bi bi-cloud-upload me-2"></i>
+              <span id="uploadBtnText">Загрузить</span>
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Действия -->
+      <div class="card border-0 shadow-sm" style="border-radius:16px">
+        <div class="card-body p-4">
+          <h6 class="fw-bold mb-3"><i class="bi bi-send me-2 text-success"></i>Отчёт и галерея</h6>
+
+          <div id="featuredCount" class="mb-3 p-3 rounded-3"
+               style="background:var(--bs-secondary-bg);font-size:14px">
+            <i class="bi bi-star-fill text-warning me-2"></i>
+            <span id="featuredNum">0</span> фото отмечено для отчёта
+          </div>
+
+          <form method="post" action="/opening/send-report">
+            <input type="hidden" name="project_id" value="{{ selected_proj.id }}">
+            <button type="submit" class="btn btn-success w-100 mb-2"
+                    style="border-radius:10px;font-weight:700">
+              <i class="bi bi-envelope-fill me-2"></i>Отправить отчёт на почту
+            </button>
+          </form>
+
+          <a href="/opening/{{ selected_proj.id }}" target="_blank"
+             class="btn btn-outline-secondary w-100"
+             style="border-radius:10px;font-weight:600">
+            <i class="bi bi-box-arrow-up-right me-2"></i>Открыть галерею
+          </a>
+          <div class="text-muted" style="font-size:11px;margin-top:6px;text-align:center">
+            Ссылку можно отправить в мессенджере
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- Правая колонка: галерея загруженных фото -->
+    <div class="col-lg-8">
+      {% if selected_proj %}
+
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="fw-bold mb-0">
+          ТК {{ selected_proj.tk_number }}
+          {% if selected_proj.city %}<span class="text-muted fw-normal small ms-2">{{ selected_proj.city }}</span>{% endif %}
+        </h5>
+        <span class="badge bg-secondary">{{ photos|length }} фото</span>
+      </div>
+
+      {% if photos %}
+      <div class="mb-3 p-3 rounded-3" style="background:var(--bs-secondary-bg);font-size:13px">
+        <i class="bi bi-star-fill text-warning me-2"></i>
+        Нажмите ⭐ на фото чтобы добавить в красивый отчёт.
+        Остальные фото будут доступны по ссылке галереи.
+      </div>
+
+      <div class="row g-3" id="photoGrid">
+        {% for photo in photos %}
+        <div class="col-6 col-md-4 col-xl-3" id="photoCard{{ photo.id }}">
+          <div class="position-relative" style="border-radius:12px;overflow:hidden;
+               aspect-ratio:1;background:#111;
+               box-shadow:{{ '0 0 0 3px #FFD200' if photo.is_featured else '0 2px 8px rgba(0,0,0,.3)' }};"
+               id="photoFrame{{ photo.id }}">
+
+            <img src="{{ photo.photo_path }}" alt="Фото"
+                 style="width:100%;height:100%;object-fit:cover;display:block"
+                 loading="lazy"
+                 onerror="this.src='/static/img/raccoon.png'">
+
+            <!-- Оверлей -->
+            <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-between p-2"
+                 style="background:linear-gradient(to bottom,rgba(0,0,0,.5) 0%,transparent 40%,transparent 60%,rgba(0,0,0,.6) 100%)">
+
+              <!-- Звезда (featured toggle) -->
+              <div class="d-flex justify-content-between align-items-start">
+                <button class="btn btn-sm rounded-circle p-1"
+                        onclick="toggleFeatured({{ photo.id }})"
+                        id="starBtn{{ photo.id }}"
+                        style="width:32px;height:32px;line-height:1;
+                               background:{{ 'rgba(255,210,0,.9)' if photo.is_featured else 'rgba(0,0,0,.5)' }};
+                               border:none;color:{{ '#000' if photo.is_featured else '#fff' }}">
+                  <i class="bi bi-star-fill" style="font-size:13px"></i>
+                </button>
+
+                <button class="btn btn-sm rounded-circle p-1"
+                        onclick="deletePhoto({{ photo.id }})"
+                        style="width:28px;height:28px;line-height:1;
+                               background:rgba(220,38,38,.8);border:none;color:#fff">
+                  <i class="bi bi-trash3" style="font-size:11px"></i>
+                </button>
+              </div>
+
+              <!-- Подпись снизу -->
+              <div style="font-size:10px;color:rgba(255,255,255,.8)">
+                {% if photo.is_featured %}
+                <span style="background:#FFD200;color:#000;border-radius:4px;padding:1px 6px;font-weight:700">
+                  В ОТЧЁТ
+                </span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-images" style="font-size:48px;opacity:.3"></i>
+        <div class="mt-3">Фото ещё не загружены</div>
+        <div class="small mt-1">Выберите файлы в форме слева</div>
+      </div>
+      {% endif %}
+
+      {% else %}
+      <div class="text-center py-5 text-muted">
+        <i class="bi bi-camera" style="font-size:56px;opacity:.2"></i>
+        <div class="mt-3 fw-semibold">Выберите ТК слева</div>
+        <div class="small mt-1">Чтобы загрузить фото открытия магазина</div>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── Подсчёт featured фото ─────────────────────────────────────────────────────
+function updateFeaturedCount() {
+  const n = document.querySelectorAll('[id^="photoFrame"]')
+    .length - document.querySelectorAll('[id^="photoFrame"]')
+    .length; // reset
+  // Считаем по классу / стилю рамки
+  let count = 0;
+  document.querySelectorAll('[id^="starBtn"]').forEach(btn => {
+    if (btn.style.background.includes('255,210,0') || btn.style.background.includes('rgba(255, 210, 0')) {
+      count++;
+    }
+  });
+  const el = document.getElementById('featuredNum');
+  if (el) el.textContent = count;
+}
+
+// ── Toggle featured ───────────────────────────────────────────────────────────
+async function toggleFeatured(photoId) {
+  const btn = document.getElementById('starBtn' + photoId);
+  const frame = document.getElementById('photoFrame' + photoId);
+  const card = document.querySelector('#photoFrame' + photoId + ' [style*="В ОТЧЁТ"]') ||
+               document.querySelector('#photoCard' + photoId + ' .bi-star-fill');
+
+  try {
+    const resp = await fetch('/api/vpk/opening/' + photoId + '/feature', {method: 'POST'});
+    const data = await resp.json();
+
+    if (data.is_featured) {
+      btn.style.background = 'rgba(255,210,0,.9)';
+      btn.style.color = '#000';
+      frame.style.boxShadow = '0 0 0 3px #FFD200';
+      // Добавляем бейдж
+      let badge = document.getElementById('badge' + photoId);
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.id = 'badge' + photoId;
+        badge.innerHTML = '<span style="background:#FFD200;color:#000;border-radius:4px;padding:1px 6px;font-weight:700;font-size:10px">В ОТЧЁТ</span>';
+        badge.style.cssText = 'position:absolute;bottom:6px;left:6px';
+        frame.appendChild(badge);
+      }
+    } else {
+      btn.style.background = 'rgba(0,0,0,.5)';
+      btn.style.color = '#fff';
+      frame.style.boxShadow = '0 2px 8px rgba(0,0,0,.3)';
+      const badge = document.getElementById('badge' + photoId);
+      if (badge) badge.remove();
+    }
+
+    updateFeaturedCount2();
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+function updateFeaturedCount2() {
+  let count = 0;
+  document.querySelectorAll('[id^="starBtn"]').forEach(btn => {
+    const bg = btn.style.background;
+    if (bg.includes('255,210,0') || bg.includes('255, 210, 0')) count++;
+  });
+  const el = document.getElementById('featuredNum');
+  if (el) el.textContent = count;
+}
+
+// ── Delete photo ──────────────────────────────────────────────────────────────
+async function deletePhoto(photoId) {
+  if (!confirm('Удалить фото?')) return;
+  try {
+    const resp = await fetch('/api/vpk/opening/' + photoId + '/delete', {method: 'POST'});
+    const data = await resp.json();
+    if (data.ok) {
+      const card = document.getElementById('photoCard' + photoId);
+      if (card) card.remove();
+      updateFeaturedCount2();
+    }
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+// ── File preview перед загрузкой ──────────────────────────────────────────────
+function previewFiles(files) {
+  const grid = document.getElementById('previewGrid');
+  const countEl = document.getElementById('previewCount');
+  const btn = document.getElementById('uploadBtn');
+  const btnText = document.getElementById('uploadBtnText');
+  if (!files || files.length === 0) return;
+
+  grid.style.display = 'flex';
+  grid.style.flexWrap = 'wrap';
+  grid.innerHTML = '';
+
+  const max = Math.min(files.length, 9);
+  for (let i = 0; i < max; i++) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const col = document.createElement('div');
+      col.className = 'col-4';
+      col.innerHTML = `<img src="${e.target.result}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px">`;
+      grid.appendChild(col);
+    };
+    reader.readAsDataURL(files[i]);
+  }
+  if (files.length > 9) {
+    const col = document.createElement('div');
+    col.className = 'col-4 d-flex align-items-center justify-content-center';
+    col.style.cssText = 'aspect-ratio:1;background:var(--bs-secondary-bg);border-radius:8px;font-weight:700;font-size:18px';
+    col.textContent = '+' + (files.length - 9);
+    grid.appendChild(col);
+  }
+
+  countEl.textContent = `Выбрано: ${files.length} файлов`;
+  btn.classList.remove('d-none');
+  btnText.textContent = `Загрузить ${files.length} фото`;
+
+  // Показываем прогресс при отправке
+  document.getElementById('uploadForm').onsubmit = () => {
+    btn.disabled = true;
+    btnText.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Загружаю...';
+  };
+}
+
+// ── Drag & Drop ───────────────────────────────────────────────────────────────
+function handleDrop(event) {
+  event.preventDefault();
+  document.getElementById('dropzone').classList.remove('drag-over');
+  const input = document.getElementById('photoInput');
+  const dt = event.dataTransfer;
+  if (dt.files.length) {
+    input.files = dt.files;
+    previewFiles(dt.files);
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  updateFeaturedCount2();
+});
+</script>
+
+<style>
+#dropzone.drag-over {
+  background: rgba(60,179,74,.08) !important;
+}
+</style>
+{% endblock %}

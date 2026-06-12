@@ -99,6 +99,7 @@ class OpeningPhoto(Base):
     photo_path = Column(String(500), default="")
     uploaded_by = Column(String(100), default="")
     uploaded_at = Column(DateTime, default=datetime.utcnow)
+    is_featured = Column(Boolean, default=False)
     project = relationship("Project", back_populates="opening_photos")
 
 
