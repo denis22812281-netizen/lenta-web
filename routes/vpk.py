@@ -164,12 +164,15 @@ async def precheck_submit(request: Request, background_tasks: BackgroundTasks,
         models.VpkCriterion.vpk_type == vpk_type
     ).order_by(models.VpkCriterion.order).all()
 
+    _vpk_logger.warning("PRECHECK form: project_id=%r tk_text=%r",
+                        project_id, form.get("tk_text"))
     precheck_json = str(form.get("precheck_json", "{}") or "{}")
     try:
         precheck_states = json.loads(precheck_json)
     except Exception:
         precheck_states = {}
-    _vpk_logger.warning("PRECHECK JSON received: %s", precheck_states)
+    _vpk_logger.warning("PRECHECK JSON received (%d keys): %s",
+                        len(precheck_states), precheck_states)
 
     for c in criteria:
         state_val = precheck_states.get(str(c.id), "not_checked")

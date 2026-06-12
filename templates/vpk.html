@@ -382,6 +382,10 @@ function setPrecheck(id, val) {
     if (btnNo)   btnNo.classList.toggle('active',   val === 'not_done');
     if (btnSkip) btnSkip.classList.toggle('active', val === 'not_checked');
 
+    // Синхронизируем скрытое поле сразу при каждом нажатии
+    const fld = document.getElementById('precheckJson');
+    if (fld) fld.value = JSON.stringify(preState);
+
     updatePreCounters();
 }
 function updatePreCounters() {
@@ -407,22 +411,10 @@ function preConfirmSubmit() {
     const tk  = document.getElementById('preTkInput').value.trim();
     if (!pid && !tk) { alert('Введите номер ТК'); return false; }
 
-    // Читаем состояние ПРЯМО ИЗ DOM по классу active на кнопках — минуя preState
-    const states = {};
-    {% for c in precheck_criteria %}
-    {
-        const y = document.getElementById('pre-btn-yes-{{ c.id }}');
-        const n = document.getElementById('pre-btn-no-{{ c.id }}');
-        states['{{ c.id }}'] = (y && y.classList.contains('active')) ? 'done'
-                              : (n && n.classList.contains('active')) ? 'not_done'
-                              : 'not_checked';
-    }
-    {% endfor %}
-
-    const anyMarked = Object.values(states).some(v => v !== 'not_checked');
+    const anyMarked = Object.values(preState).some(v => v !== 'not_checked');
     if (!anyMarked) if (!confirm('Ни один критерий не отмечен. Отправить?')) return false;
 
-    document.getElementById('precheckJson').value = JSON.stringify(states);
+    // precheckJson уже обновлён в setPrecheck при каждом нажатии
     return true;
 }
 </script>
