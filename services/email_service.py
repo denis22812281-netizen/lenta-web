@@ -622,11 +622,12 @@ def notify_precheck_report(to_email: str, vpk_type: int, tk_number: str,
         </p>
         {failed_block}
     """
-    subject = (
-        f"Предосмотр ВПК{vpk_type} — ТК {tk_number}: {fail_count} нарушений"
-        if fail_count else
-        f"Предосмотр ВПК{vpk_type} — ТК {tk_number}: объект готов ✅"
-    )
+    if fail_count:
+        subject = f"Предосмотр ВПК{vpk_type} — ТК {tk_number}: {fail_count} нарушений ❌"
+    elif ok_count > 0:
+        subject = f"Предосмотр ВПК{vpk_type} — ТК {tk_number}: объект готов ✅"
+    else:
+        subject = f"Предосмотр ВПК{vpk_type} — ТК {tk_number}: осмотр не проведён"
     return send_email(
         to_email, subject,
         _base_template(content, title=f"🔍 Предосмотр ВПК{vpk_type} · ТК {tk_number}"),

@@ -164,7 +164,9 @@ async def precheck_submit(request: Request, background_tasks: BackgroundTasks,
     ).order_by(models.VpkCriterion.order).all()
 
     for c in criteria:
-        status = str(form.get(f"precheck_{c.id}", "not_checked"))
+        is_done = form.get(f"pre_done_{c.id}") == "on"
+        is_bad  = form.get(f"pre_bad_{c.id}") == "on"
+        status  = "done" if is_done else "not_done" if is_bad else "not_checked"
         comment = str(form.get(f"comment_{c.id}", "") or "").strip()
         photo_path = ""
         if status == "not_done":

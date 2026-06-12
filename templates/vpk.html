@@ -240,24 +240,21 @@
                 </div>
             </div>
             <div class="vpk-actions" style="flex-direction:column;gap:3px">
-                <label class="vpk-btn vpk-btn-yes" style="cursor:pointer;display:flex;align-items:center;gap:6px">
-                    <input type="radio" name="precheck_{{ c.id }}" value="done"
-                           style="width:14px;height:14px;flex-shrink:0"
-                           onchange="onPrecheckChange({{ c.id }}, 'done')">
-                    ✓ Готово
-                </label>
-                <label class="vpk-btn vpk-btn-no" style="cursor:pointer;display:flex;align-items:center;gap:6px">
-                    <input type="radio" name="precheck_{{ c.id }}" value="not_done"
-                           style="width:14px;height:14px;flex-shrink:0"
-                           onchange="onPrecheckChange({{ c.id }}, 'not_done')">
-                    ✗ Нет
-                </label>
-                <label class="vpk-btn" style="cursor:pointer;display:flex;align-items:center;gap:6px;background:#6b728020;color:#6b7280;border:1px solid #6b728040">
-                    <input type="radio" name="precheck_{{ c.id }}" value="not_checked" checked
-                           style="width:14px;height:14px;flex-shrink:0"
-                           onchange="onPrecheckChange({{ c.id }}, 'not_checked')">
+                <input type="checkbox" name="pre_done_{{ c.id }}" id="predone_{{ c.id }}" style="display:none">
+                <input type="checkbox" name="pre_bad_{{ c.id }}"  id="prebad_{{ c.id }}"  style="display:none">
+                <button type="button" class="vpk-btn vpk-btn-yes" id="pre-btn-yes-{{ c.id }}"
+                        onclick="setPrecheck({{ c.id }}, 'done')">
+                    <i class="bi bi-check-lg"></i> Готово
+                </button>
+                <button type="button" class="vpk-btn vpk-btn-no" id="pre-btn-no-{{ c.id }}"
+                        onclick="setPrecheck({{ c.id }}, 'not_done')">
+                    <i class="bi bi-x-lg"></i> Нет
+                </button>
+                <button type="button" class="vpk-btn" id="pre-btn-skip-{{ c.id }}"
+                        onclick="setPrecheck({{ c.id }}, 'not_checked')"
+                        style="background:#6b728020;color:#6b7280;border:1px solid #6b728040">
                     — Не смотрел
-                </label>
+                </button>
             </div>
         </div>
         {% endfor %}
@@ -365,30 +362,41 @@ document.addEventListener('click', e => {
     if (!e.target.closest('#preTkInput') && !e.target.closest('#preTkDropdown')) hidePre();
 });
 
-// ── Предосмотр: обработка radio-кнопок ──────────────────────────────────────
-function onPrecheckChange(id, val) {
-    const row  = document.getElementById(`pre-row-${id}`);
-    const cbox = document.getElementById(`pre-cbox-${id}`);
-    if (row)  row.style.background  = val === 'not_done' ? '#fff5f5' : val === 'done' ? '#f0fdf4' : '';
-    if (cbox) cbox.style.display = val === 'not_done' ? '' : 'none';
+// ── Предосмотр: паттерн VPK1/2 — два скрытых чекбокса на критерий ──────────
+function setPrecheck(id, val) {
+    const doneCb  = document.getElementById(`predone_${id}`);
+    const badCb   = document.getElementById(`prebad_${id}`);
+    const row     = document.getElementById(`pre-row-${id}`);
+    const cbox    = document.getElementById(`pre-cbox-${id}`);
+    const btnYes  = document.getElementById(`pre-btn-yes-${id}`);
+    const btnNo   = document.getElementById(`pre-btn-no-${id}`);
+    const btnSkip = document.getElementById(`pre-btn-skip-${id}`);
+
+    if (doneCb) doneCb.checked = (val === 'done');
+    if (badCb)  badCb.checked  = (val === 'not_done');
+
+    if (row)  row.style.background = val === 'not_done' ? '#fff5f5' : val === 'done' ? '#f0fdf4' : '';
+    if (cbox) cbox.style.display   = val === 'not_done' ? '' : 'none';
+
+    if (btnYes)  btnYes.classList.toggle('active',  val === 'done');
+    if (btnNo)   btnNo.classList.toggle('active',   val === 'not_done');
+    if (btnSkip) btnSkip.classList.toggle('active', val === 'not_checked');
+
     updatePreCounters();
 }
 function updatePreCounters() {
-    let done = 0, not_done = 0, not_checked = 0;
-    document.querySelectorAll('[name^="precheck_"]:checked').forEach(el => {
-        if (el.value === 'done') done++;
-        else if (el.value === 'not_done') not_done++;
-        else not_checked++;
-    });
+    const done     = document.querySelectorAll('[name^="pre_done_"]:checked').length;
+    const not_done = document.querySelectorAll('[name^="pre_bad_"]:checked').length;
+    const total    = {{ precheck_criteria|length }};
+    const skipped  = total - done - not_done;
     document.getElementById('pre-ok-count').textContent   = `✅ ${done}`;
     document.getElementById('pre-fail-count').textContent = `❌ ${not_done}`;
-    document.getElementById('pre-skip-count').textContent = `— ${not_checked}`;
+    document.getElementById('pre-skip-count').textContent = `— ${skipped}`;
 }
 function preCheckAll(val) {
-    document.querySelectorAll('[name^="precheck_"]').forEach(el => {
-        if (el.value === val) { el.checked = true; onPrecheckChange(parseInt(el.name.replace('precheck_','')), val); }
-    });
-    updatePreCounters();
+    {% for c in precheck_criteria %}
+    setPrecheck({{ c.id }}, val);
+    {% endfor %}
 }
 function onPrePhoto(id, input) {
     const span = document.getElementById(`pre-photo-name-${id}`);
@@ -398,8 +406,8 @@ function preConfirmSubmit() {
     const pid = document.getElementById('preProjectId').value;
     const tk  = document.getElementById('preTkInput').value.trim();
     if (!pid && !tk) { alert('Введите номер ТК'); return false; }
-    const checked = document.querySelectorAll('[name^="precheck_"][value="done"]:checked, [name^="precheck_"][value="not_done"]:checked');
-    if (!checked.length) return confirm('Ни один критерий не отмечен. Отправить?');
+    const anyMarked = document.querySelectorAll('[name^="pre_done_"]:checked,[name^="pre_bad_"]:checked').length;
+    if (!anyMarked) return confirm('Ни один критерий не отмечен. Отправить?');
     return true;
 }
 </script>
