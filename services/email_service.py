@@ -560,8 +560,15 @@ def notify_precheck_report(to_email: str, vpk_type: int, tk_number: str,
     total = ok_count + len(failed_items) + skip_count
     fail_count = len(failed_items)
 
-    status_color = "#16a34a" if fail_count == 0 else "#dc2626"
-    status_label = "Объект готов к ВПК" if fail_count == 0 else f"Найдено нарушений: {fail_count}"
+    if fail_count > 0:
+        status_color = "#dc2626"
+        status_label = f"Найдено нарушений: {fail_count}"
+    elif ok_count > 0:
+        status_color = "#16a34a"
+        status_label = "Объект готов к ВПК"
+    else:
+        status_color = "#6b7280"
+        status_label = "Осмотр не проведён — критерии не отмечены"
     vpk_date_line = (
         f'<p style="color:#374151;font-size:13px">📅 Дата ВПК: <b>{vpk_date_str}</b></p>'
         if vpk_date_str else ""

@@ -1,4 +1,5 @@
 import io
+import json
 import os
 from datetime import datetime, date, timedelta
 from pathlib import Path
@@ -163,10 +164,16 @@ async def precheck_submit(request: Request, background_tasks: BackgroundTasks,
         models.VpkCriterion.vpk_type == vpk_type
     ).order_by(models.VpkCriterion.order).all()
 
+    precheck_json = str(form.get("precheck_json", "{}") or "{}")
+    try:
+        precheck_states = json.loads(precheck_json)
+    except Exception:
+        precheck_states = {}
+    _vpk_logger.warning("PRECHECK JSON received: %s", precheck_states)
+
     for c in criteria:
-        is_done = form.get(f"pre_done_{c.id}") == "on"
-        is_bad  = form.get(f"pre_bad_{c.id}") == "on"
-        status  = "done" if is_done else "not_done" if is_bad else "not_checked"
+        state_val = precheck_states.get(str(c.id), "not_checked")
+        status = state_val if state_val in ("done", "not_done", "not_checked") else "not_checked"
         comment = str(form.get(f"comment_{c.id}", "") or "").strip()
         photo_path = ""
         if status == "not_done":

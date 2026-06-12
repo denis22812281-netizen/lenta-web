@@ -169,6 +169,7 @@
 
 <form method="post" action="/vpk/precheck" id="precheckForm" enctype="multipart/form-data">
     <input type="hidden" name="vpk_type" value="{{ vpk_t }}">
+    <input type="hidden" name="precheck_json" id="precheckJson" value="{}">
 
     <!-- Выбор ТК — такой же автодополнитель как в ВПК 1/2 -->
     <div class="data-card mb-3 p-3" style="overflow:visible">
@@ -360,29 +361,12 @@ document.addEventListener('click', e => {
     if (!e.target.closest('#preTkInput') && !e.target.closest('#preTkDropdown')) hidePre();
 });
 
-// ── Предосмотр: динамические hidden-inputs (100% надёжно для всех браузеров) ─
+// ── Предосмотр: preState → JSON-поле → сервер (самый надёжный способ) ────────
 const preState = {};
 
 function setPrecheck(id, val) {
     preState[id] = val;
-    const form = document.getElementById('precheckForm');
 
-    // Удаляем старые hidden inputs для этого критерия
-    const oldD = form.querySelector(`[name="pre_done_${id}"]`);
-    const oldB = form.querySelector(`[name="pre_bad_${id}"]`);
-    if (oldD) oldD.remove();
-    if (oldB) oldB.remove();
-
-    // Создаём новый hidden input для активного состояния
-    if (val !== 'not_checked') {
-        const inp = document.createElement('input');
-        inp.type  = 'hidden';
-        inp.name  = val === 'done' ? `pre_done_${id}` : `pre_bad_${id}`;
-        inp.value = 'on';
-        form.appendChild(inp);
-    }
-
-    // Визуальные обновления
     const row     = document.getElementById(`pre-row-${id}`);
     const cbox    = document.getElementById(`pre-cbox-${id}`);
     const btnYes  = document.getElementById(`pre-btn-yes-${id}`);
@@ -401,10 +385,10 @@ function setPrecheck(id, val) {
     updatePreCounters();
 }
 function updatePreCounters() {
-    const vals    = Object.values(preState);
-    const done    = vals.filter(v => v === 'done').length;
-    const bad     = vals.filter(v => v === 'not_done').length;
-    const total   = {{ precheck_criteria|length }};
+    const vals  = Object.values(preState);
+    const done  = vals.filter(v => v === 'done').length;
+    const bad   = vals.filter(v => v === 'not_done').length;
+    const total = {{ precheck_criteria|length }};
     document.getElementById('pre-ok-count').textContent   = `✅ ${done}`;
     document.getElementById('pre-fail-count').textContent = `❌ ${bad}`;
     document.getElementById('pre-skip-count').textContent = `— ${total - done - bad}`;
@@ -423,7 +407,9 @@ function preConfirmSubmit() {
     const tk  = document.getElementById('preTkInput').value.trim();
     if (!pid && !tk) { alert('Введите номер ТК'); return false; }
     if (!Object.values(preState).some(v => v !== 'not_checked'))
-        return confirm('Ни один критерий не отмечен. Отправить?');
+        if (!confirm('Ни один критерий не отмечен. Отправить?')) return false;
+    // Записываем всё состояние в одно поле — это всегда доходит до сервера
+    document.getElementById('precheckJson').value = JSON.stringify(preState);
     return true;
 }
 </script>
