@@ -240,8 +240,6 @@
                 </div>
             </div>
             <div class="vpk-actions" style="flex-direction:column;gap:3px">
-                <input type="checkbox" name="pre_done_{{ c.id }}" id="predone_{{ c.id }}" style="display:none">
-                <input type="checkbox" name="pre_bad_{{ c.id }}"  id="prebad_{{ c.id }}"  style="display:none">
                 <button type="button" class="vpk-btn vpk-btn-yes" id="pre-btn-yes-{{ c.id }}"
                         onclick="setPrecheck({{ c.id }}, 'done')">
                     <i class="bi bi-check-lg"></i> Готово
@@ -362,22 +360,40 @@ document.addEventListener('click', e => {
     if (!e.target.closest('#preTkInput') && !e.target.closest('#preTkDropdown')) hidePre();
 });
 
-// ── Предосмотр: паттерн VPK1/2 — два скрытых чекбокса на критерий ──────────
+// ── Предосмотр: динамические hidden-inputs (100% надёжно для всех браузеров) ─
+const preState = {};
+
 function setPrecheck(id, val) {
-    const doneCb  = document.getElementById(`predone_${id}`);
-    const badCb   = document.getElementById(`prebad_${id}`);
+    preState[id] = val;
+    const form = document.getElementById('precheckForm');
+
+    // Удаляем старые hidden inputs для этого критерия
+    const oldD = form.querySelector(`[name="pre_done_${id}"]`);
+    const oldB = form.querySelector(`[name="pre_bad_${id}"]`);
+    if (oldD) oldD.remove();
+    if (oldB) oldB.remove();
+
+    // Создаём новый hidden input для активного состояния
+    if (val !== 'not_checked') {
+        const inp = document.createElement('input');
+        inp.type  = 'hidden';
+        inp.name  = val === 'done' ? `pre_done_${id}` : `pre_bad_${id}`;
+        inp.value = 'on';
+        form.appendChild(inp);
+    }
+
+    // Визуальные обновления
     const row     = document.getElementById(`pre-row-${id}`);
     const cbox    = document.getElementById(`pre-cbox-${id}`);
     const btnYes  = document.getElementById(`pre-btn-yes-${id}`);
     const btnNo   = document.getElementById(`pre-btn-no-${id}`);
     const btnSkip = document.getElementById(`pre-btn-skip-${id}`);
 
-    if (doneCb) doneCb.checked = (val === 'done');
-    if (badCb)  badCb.checked  = (val === 'not_done');
-
-    if (row)  row.style.background = val === 'not_done' ? '#fff5f5' : val === 'done' ? '#f0fdf4' : '';
-    if (cbox) cbox.style.display   = val === 'not_done' ? '' : 'none';
-
+    if (row) {
+        row.classList.toggle('done', val === 'done');
+        row.classList.toggle('no',   val === 'not_done');
+    }
+    if (cbox) cbox.style.display = val === 'not_done' ? '' : 'none';
     if (btnYes)  btnYes.classList.toggle('active',  val === 'done');
     if (btnNo)   btnNo.classList.toggle('active',   val === 'not_done');
     if (btnSkip) btnSkip.classList.toggle('active', val === 'not_checked');
@@ -385,13 +401,13 @@ function setPrecheck(id, val) {
     updatePreCounters();
 }
 function updatePreCounters() {
-    const done     = document.querySelectorAll('[name^="pre_done_"]:checked').length;
-    const not_done = document.querySelectorAll('[name^="pre_bad_"]:checked').length;
-    const total    = {{ precheck_criteria|length }};
-    const skipped  = total - done - not_done;
+    const vals    = Object.values(preState);
+    const done    = vals.filter(v => v === 'done').length;
+    const bad     = vals.filter(v => v === 'not_done').length;
+    const total   = {{ precheck_criteria|length }};
     document.getElementById('pre-ok-count').textContent   = `✅ ${done}`;
-    document.getElementById('pre-fail-count').textContent = `❌ ${not_done}`;
-    document.getElementById('pre-skip-count').textContent = `— ${skipped}`;
+    document.getElementById('pre-fail-count').textContent = `❌ ${bad}`;
+    document.getElementById('pre-skip-count').textContent = `— ${total - done - bad}`;
 }
 function preCheckAll(val) {
     {% for c in precheck_criteria %}
@@ -406,8 +422,8 @@ function preConfirmSubmit() {
     const pid = document.getElementById('preProjectId').value;
     const tk  = document.getElementById('preTkInput').value.trim();
     if (!pid && !tk) { alert('Введите номер ТК'); return false; }
-    const anyMarked = document.querySelectorAll('[name^="pre_done_"]:checked,[name^="pre_bad_"]:checked').length;
-    if (!anyMarked) return confirm('Ни один критерий не отмечен. Отправить?');
+    if (!Object.values(preState).some(v => v !== 'not_checked'))
+        return confirm('Ни один критерий не отмечен. Отправить?');
     return true;
 }
 </script>
