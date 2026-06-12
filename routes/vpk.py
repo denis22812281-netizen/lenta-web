@@ -181,7 +181,11 @@ async def precheck_submit(request: Request, background_tasks: BackgroundTasks,
 
     db.commit()
 
-    proj = db.query(models.Project).filter(models.Project.id == project_id).first() if project_id else None
+    if project_id:
+        proj = db.query(models.Project).filter(models.Project.id == int(project_id)).first()
+    else:
+        tk_text = str(form.get("tk_text", "") or "").strip()
+        proj = db.query(models.Project).filter(models.Project.tk_number == tk_text).first() if tk_text else None
     tk   = proj.tk_number if proj else "—"
     proj_name = proj.name if proj else ""
     vpk_date_str = proj.vpk_date.strftime("%d.%m.%Y") if (proj and proj.vpk_date) else ""

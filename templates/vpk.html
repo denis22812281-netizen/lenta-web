@@ -179,7 +179,7 @@
         <div class="position-relative mb-2">
             <div class="input-group">
                 <span class="input-group-text bg-white"><i class="bi bi-123 text-muted"></i></span>
-                <input type="text" id="preTkInput" class="form-control form-control-lg fw-bold"
+                <input type="text" id="preTkInput" name="tk_text" class="form-control form-control-lg fw-bold"
                        placeholder="Введите номер ТК…"
                        autocomplete="off" inputmode="numeric"
                        oninput="preTkSearch(this.value)"
@@ -224,7 +224,7 @@
             <div class="vpk-body">
                 <div class="vpk-text">{{ c.name }}</div>
                 <div id="pre-cbox-{{ c.id }}" style="display:none">
-                    <textarea name="comment_{{ c.id }}" id="pre-ta-{{ c.id }}"
+                    <textarea name="comment_{{ c.id }}"
                               class="form-control form-control-sm mt-2"
                               rows="2" placeholder="Что именно не готово? Опишите нарушение."></textarea>
                     <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
@@ -239,21 +239,28 @@
                     </div>
                 </div>
             </div>
-            <input type="hidden" name="precheck_{{ c.id }}" id="pre-val-{{ c.id }}" value="not_checked">
-            <div class="vpk-actions" style="flex-direction:column;gap:4px">
-                <button type="button" class="vpk-btn vpk-btn-yes" id="pre-yes-{{ c.id }}"
-                        onclick="setPrecheck({{ c.id }}, 'done')">
+            <div class="vpk-actions" style="flex-direction:column;gap:3px">
+                <input type="radio" name="precheck_{{ c.id }}" id="pre-done-{{ c.id }}"
+                       value="done" class="btn-check"
+                       onchange="onPrecheckChange({{ c.id }}, 'done')">
+                <label class="vpk-btn vpk-btn-yes" for="pre-done-{{ c.id }}" style="cursor:pointer;text-align:center">
                     <i class="bi bi-check-lg"></i> Готово
-                </button>
-                <button type="button" class="vpk-btn vpk-btn-no" id="pre-no-{{ c.id }}"
-                        onclick="setPrecheck({{ c.id }}, 'not_done')">
+                </label>
+
+                <input type="radio" name="precheck_{{ c.id }}" id="pre-no-{{ c.id }}"
+                       value="not_done" class="btn-check"
+                       onchange="onPrecheckChange({{ c.id }}, 'not_done')">
+                <label class="vpk-btn vpk-btn-no" for="pre-no-{{ c.id }}" style="cursor:pointer;text-align:center">
                     <i class="bi bi-x-lg"></i> Нет
-                </button>
-                <button type="button" class="vpk-btn" id="pre-skip-{{ c.id }}"
-                        style="background:#6b728020;color:#6b7280;border:1px solid #6b728040"
-                        onclick="setPrecheck({{ c.id }}, 'not_checked')">
+                </label>
+
+                <input type="radio" name="precheck_{{ c.id }}" id="pre-skip-{{ c.id }}"
+                       value="not_checked" class="btn-check" checked
+                       onchange="onPrecheckChange({{ c.id }}, 'not_checked')">
+                <label class="vpk-btn" for="pre-skip-{{ c.id }}"
+                       style="cursor:pointer;text-align:center;background:#6b728020;color:#6b7280;border:1px solid #6b728040">
                     — Не смотрел
-                </button>
+                </label>
             </div>
         </div>
         {% endfor %}
@@ -361,56 +368,41 @@ document.addEventListener('click', e => {
     if (!e.target.closest('#preTkInput') && !e.target.closest('#preTkDropdown')) hidePre();
 });
 
-// ── Предосмотр: 3-state кнопки ───────────────────────────────────────────────
-let preCounts = { done: 0, not_done: 0, not_checked: {{ precheck_criteria|length }} };
-const preStates = {};
-
-function setPrecheck(id, val) {
-    const prev = preStates[id] || 'not_checked';
-    if (prev !== 'not_checked') preCounts[prev]--;
-    preCounts[val]++;
-    preStates[id] = val;
-    document.getElementById(`pre-val-${id}`).value = val;
-
-    // Подсветка кнопок
-    const yes  = document.getElementById(`pre-yes-${id}`);
-    const no   = document.getElementById(`pre-no-${id}`);
-    const skip = document.getElementById(`pre-skip-${id}`);
-    yes.style.background  = val === 'done'        ? '#16a34a' : '';
-    yes.style.color       = val === 'done'        ? '#fff'    : '';
-    no.style.background   = val === 'not_done'    ? '#dc2626' : '';
-    no.style.color        = val === 'not_done'    ? '#fff'    : '';
-    skip.style.background = val === 'not_checked' ? '#6b7280' : '#6b728020';
-    skip.style.color      = val === 'not_checked' ? '#fff'    : '#6b7280';
-
-    // Строка: красить и показывать комментарий
-    const row = document.getElementById(`pre-row-${id}`);
-    row.style.background = val === 'not_done' ? '#fff5f5' : val === 'done' ? '#f0fdf4' : '';
+// ── Предосмотр: обработка radio-кнопок ──────────────────────────────────────
+function onPrecheckChange(id, val) {
+    const row  = document.getElementById(`pre-row-${id}`);
     const cbox = document.getElementById(`pre-cbox-${id}`);
+    if (row)  row.style.background  = val === 'not_done' ? '#fff5f5' : val === 'done' ? '#f0fdf4' : '';
     if (cbox) cbox.style.display = val === 'not_done' ? '' : 'none';
-
     updatePreCounters();
 }
 function updatePreCounters() {
-    document.getElementById('pre-ok-count').textContent   = `✅ ${preCounts.done}`;
-    document.getElementById('pre-fail-count').textContent = `❌ ${preCounts.not_done}`;
-    document.getElementById('pre-skip-count').textContent = `— ${preCounts.not_checked}`;
+    let done = 0, not_done = 0, not_checked = 0;
+    document.querySelectorAll('[name^="precheck_"]:checked').forEach(el => {
+        if (el.value === 'done') done++;
+        else if (el.value === 'not_done') not_done++;
+        else not_checked++;
+    });
+    document.getElementById('pre-ok-count').textContent   = `✅ ${done}`;
+    document.getElementById('pre-fail-count').textContent = `❌ ${not_done}`;
+    document.getElementById('pre-skip-count').textContent = `— ${not_checked}`;
 }
 function preCheckAll(val) {
-    {% for c in precheck_criteria %}setPrecheck({{ c.id }}, val);{% endfor %}
+    document.querySelectorAll('[name^="precheck_"]').forEach(el => {
+        if (el.value === val) { el.checked = true; onPrecheckChange(parseInt(el.name.replace('precheck_','')), val); }
+    });
+    updatePreCounters();
 }
 function onPrePhoto(id, input) {
     const span = document.getElementById(`pre-photo-name-${id}`);
-    span.textContent = input.files[0] ? input.files[0].name : '';
+    if (span) span.textContent = input.files[0] ? input.files[0].name : '';
 }
 function preConfirmSubmit() {
-    if (!document.getElementById('preProjectId').value) {
-        alert('Выберите объект ТК');
-        return false;
-    }
-    if (preCounts.not_done === 0 && preCounts.done === 0) {
-        return confirm('Ни один критерий не проверен. Отправить пустой предосмотр?');
-    }
+    const pid = document.getElementById('preProjectId').value;
+    const tk  = document.getElementById('preTkInput').value.trim();
+    if (!pid && !tk) { alert('Введите номер ТК'); return false; }
+    const checked = document.querySelectorAll('[name^="precheck_"][value="done"]:checked, [name^="precheck_"][value="not_done"]:checked');
+    if (!checked.length) return confirm('Ни один критерий не отмечен. Отправить?');
     return true;
 }
 </script>
