@@ -120,74 +120,73 @@
       height: 1px; background: rgba(255,255,255,.06); margin: 0 4px 16px;
     }
 
-    /* ─── Photo grid ─────────────────────────────────── */
-
-    /* Featured — крупные, 2 колонки */
-    .featured-grid {
+    /* ─── Featured photos (Grid, фиксированная пропорция) ─── */
+    .fg {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
       gap: 10px;
+      grid-template-columns: 1fr;           /* mobile: 1 колонка — крупные */
     }
-    @media (min-width: 700px) { .featured-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; } }
-    @media (min-width: 1100px) { .featured-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; } }
+    @media (min-width: 540px)  { .fg { grid-template-columns: repeat(2, 1fr); gap: 12px; } }
+    @media (min-width: 1000px) { .fg { grid-template-columns: repeat(3, 1fr); gap: 14px; } }
 
-    .featured-grid .photo-item {
-      aspect-ratio: 4 / 3;
+    /* Карточка: position:relative + padding-bottom = надёжный aspect-ratio на всех браузерах */
+    .fc {
+      position: relative;
+      padding-bottom: 66.67%;   /* 3:2 — хорошо для и портретных и пейзажных */
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      background: #162916;
     }
-    .featured-grid .photo-item img {
+    .fc img {
+      position: absolute;
+      inset: 0;
       width: 100%;
       height: 100%;
       object-fit: cover;
+      display: block;
+      transition: transform .35s ease;
     }
+    .fc:hover img { transform: scale(1.05); }
 
-    /* All photos — masonry колонки с натуральными пропорциями */
-    .photo-cols {
+    /* ─── Masonry (все фото, натуральные пропорции) ─────── */
+    .mc {
       column-count: 2;
       column-gap: 10px;
     }
-    @media (min-width: 480px)  { .photo-cols { column-count: 3; column-gap: 12px; } }
-    @media (min-width: 900px)  { .photo-cols { column-count: 4; column-gap: 14px; } }
-    @media (min-width: 1200px) { .photo-cols { column-count: 4; column-gap: 16px; } }
+    @media (min-width: 480px)  { .mc { column-count: 3; column-gap: 12px; } }
+    @media (min-width: 900px)  { .mc { column-count: 4; column-gap: 14px; } }
+    @media (min-width: 1200px) { .mc { column-count: 4; column-gap: 16px; } }
 
-    .photo-item {
+    .mi {
       break-inside: avoid;
       -webkit-column-break-inside: avoid;
+      display: block;
       margin-bottom: 10px;
       border-radius: 12px;
       overflow: hidden;
       cursor: pointer;
       position: relative;
       background: #162916;
-      display: block;
     }
-    @media (min-width: 700px) { .photo-item { margin-bottom: 14px; } }
-
-    .photo-item img {
+    @media (min-width: 700px) { .mi { margin-bottom: 14px; } }
+    .mi img {
       width: 100%;
       height: auto;
       display: block;
       transition: transform .3s ease;
     }
-    .photo-item:hover img { transform: scale(1.04); }
+    .mi:hover img { transform: scale(1.04); }
 
-    /* Dark overlay on hover */
-    .photo-item::after {
-      content: '';
-      position: absolute; inset: 0;
-      background: rgba(0,0,0,.18);
-      opacity: 0; transition: opacity .25s;
-      pointer-events: none;
-    }
-    .photo-item:hover::after { opacity: 1; }
-
-    .featured-badge {
+    /* Badge — общий для .fc и .mi */
+    .feat-badge {
       position: absolute; top: 8px; left: 8px; z-index: 2;
       background: #FFD200; color: #1A5C22;
       font-size: 10px; font-weight: 900;
-      padding: 3px 9px; border-radius: 20px;
+      padding: 3px 10px; border-radius: 20px;
       letter-spacing: .5px; text-transform: uppercase;
+      display: flex; align-items: center; gap: 4px;
     }
-    .featured-badge i { font-size: 9px; margin-right: 3px; }
 
     /* ─── Lightbox ──────────────────────────────────────── */
     .lightbox {
@@ -306,13 +305,13 @@
     <div class="section-count">{{ featured|length }}</div>
   </div>
   <div class="section-line"></div>
-  <div class="featured-grid">
+  <div class="fg">
     {% for photo in featured %}
     {% set purl = media_url(photo.photo_path) %}
-    <div class="photo-item" onclick="openLb('{{ purl }}', {{ loop.index0 }})">
+    <div class="fc" onclick="openLb('{{ purl }}', {{ loop.index0 }})">
       <img src="{{ purl }}" alt="Фото {{ loop.index }}" loading="lazy"
            onerror="this.src='/static/img/raccoon.png'">
-      <div class="featured-badge"><i class="bi bi-star-fill"></i>В отчёт</div>
+      <div class="feat-badge"><i class="bi bi-star-fill" style="font-size:9px"></i>В отчёт</div>
     </div>
     {% endfor %}
   </div>
@@ -328,11 +327,10 @@
     <div class="section-count">{{ rest|length }}</div>
   </div>
   <div class="section-line"></div>
-  <div class="photo-cols">
+  <div class="mc">
     {% for photo in rest %}
     {% set purl = media_url(photo.photo_path) %}
-    <div class="photo-item"
-         onclick="openLb('{{ purl }}', {{ (featured|length) + loop.index0 }})">
+    <div class="mi" onclick="openLb('{{ purl }}', {{ (featured|length) + loop.index0 }})">
       <img src="{{ purl }}" alt="Фото" loading="lazy"
            onerror="this.src='/static/img/raccoon.png'">
     </div>
