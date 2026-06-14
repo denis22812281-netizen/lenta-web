@@ -201,6 +201,15 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+
+@app.get("/sw.js", include_in_schema=False)
+async def service_worker():
+    """Service Worker должен отдаваться с корневого пути для скоупа /."""
+    from fastapi.responses import FileResponse
+    return FileResponse("static/sw.js", media_type="application/javascript",
+                        headers={"Service-Worker-Allowed": "/",
+                                 "Cache-Control": "no-cache"})
+
 # ─── Роутеры ─────────────────────────────────────────────────────────────────
 from routes.auth      import router as auth_router
 from routes.dashboard import router as dashboard_router

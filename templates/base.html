@@ -652,7 +652,7 @@ document.addEventListener('DOMContentLoaded', function() {
 (function() {
     if (!('serviceWorker' in navigator)) return;
 
-    navigator.serviceWorker.register('/static/sw.js').then(function(reg) {
+    navigator.serviceWorker.register('/sw.js', {scope: '/'}).then(function(reg) {
         // Проверяем поддержку Push
         if (!('PushManager' in window)) return;
 
