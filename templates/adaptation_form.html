@@ -861,8 +861,8 @@
 
     </div><!-- /step 5 -->
 
-    <!-- ══ НАВИГАЦИЯ МАСТЕРА ════════════════════════════════════════════════ -->
-    <div class="d-flex align-items-center gap-2 mt-3 mb-2">
+    <!-- ══ НАВИГАЦИЯ МАСТЕРА (только десктоп) ══════════════════════════════ -->
+    <div class="d-none d-lg-flex align-items-center gap-2 mt-3 mb-2">
         <button type="button" class="btn btn-outline-secondary px-3" id="btnPrev" onclick="stepPrev()" disabled>
             <i class="bi bi-arrow-left me-1"></i>Назад
         </button>
@@ -877,14 +877,30 @@
         </button>
     </div>
 
-    <!-- Отступ для sticky бара -->
-    <div class="d-lg-none" style="height:72px"></div>
+    <!-- Отступ под sticky save bar на мобиле -->
+    <div class="d-lg-none" style="height:130px"></div>
 
 </form>
 
 <!-- ══ STICKY SAVE BAR (мобиль) ════════════════════════════════════════════ -->
-<div class="adapt-save-bar d-flex d-lg-none" id="adaptSaveBar">
-    <button form="adaptForm" type="submit" class="btn btn-primary fw-bold flex-grow-1" id="saveBtnMobile">
+<div class="adapt-save-bar d-lg-none" id="adaptSaveBar">
+    <!-- Строка 1: Назад / Шаг N из N / Далее -->
+    <div class="d-flex align-items-center gap-2 mb-1" id="mobileNavRow">
+        <button type="button" class="btn btn-outline-secondary btn-sm px-3" id="btnPrevMob"
+                onclick="stepPrev()" disabled>
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <div class="flex-grow-1 text-center">
+            <small class="text-muted fw-semibold" id="navInfoMob">1 / 5</small>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm px-3" id="btnNextMob"
+                onclick="stepNext()">
+            <i class="bi bi-arrow-right"></i>
+        </button>
+    </div>
+    <!-- Строка 2: Сохранить + действия -->
+    <div class="d-flex gap-2">
+    <button form="adaptForm" type="submit" class="btn btn-success fw-bold flex-grow-1" id="saveBtnMobile">
         <i class="bi bi-floppy-fill me-1"></i>Сохранить
     </button>
     {% if card %}
@@ -895,6 +911,7 @@
         <i class="bi bi-file-earmark-excel-fill"></i>
     </a>
     {% endif %}
+    </div>
 </div>
 
 <!-- ══ ОБУЧАЮЩИЙ ТУР (только при первом посещении) ══════════════════════════ -->
@@ -969,7 +986,9 @@
     padding: 8px 12px;
     background: var(--bs-body-bg);
     border-top: 2px solid #3CB34A;
-    gap: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
     z-index: 1040;
     box-shadow: 0 -4px 16px rgba(0,0,0,.22);
 }
@@ -1006,12 +1025,26 @@ function updateUI() {
     document.getElementById('wizProgress').style.width = pct + '%';
     document.getElementById('wizStepLabel').textContent = `Шаг ${curStep} из ${TOTAL}`;
     document.getElementById('wizStepName').textContent = STEP_NAMES[curStep] || '';
-    document.getElementById('navInfo').textContent = `${curStep} / ${TOTAL}`;
 
-    document.getElementById('btnPrev').disabled = curStep === 1;
     const last = curStep === TOTAL;
-    document.getElementById('btnNext').classList.toggle('d-none', last);
-    document.getElementById('btnSave').classList.toggle('d-none', !last);
+
+    // Десктоп навигация
+    const ni = document.getElementById('navInfo');
+    if (ni) ni.textContent = `${curStep} / ${TOTAL}`;
+    const bp = document.getElementById('btnPrev');
+    if (bp) bp.disabled = curStep === 1;
+    const bn = document.getElementById('btnNext');
+    if (bn) bn.classList.toggle('d-none', last);
+    const bs = document.getElementById('btnSave');
+    if (bs) bs.classList.toggle('d-none', !last);
+
+    // Мобильная навигация в save bar
+    const nim = document.getElementById('navInfoMob');
+    if (nim) nim.textContent = `${curStep} / ${TOTAL}`;
+    const bpm = document.getElementById('btnPrevMob');
+    if (bpm) bpm.disabled = curStep === 1;
+    const bnm = document.getElementById('btnNextMob');
+    if (bnm) bnm.style.display = last ? 'none' : '';
 
     document.querySelectorAll('.wiz-step-btn').forEach(btn => {
         btn.classList.toggle('active', parseInt(btn.dataset.step) === curStep);
