@@ -208,6 +208,15 @@ _POSTGRES_MIGRATIONS = [
         created_at TIMESTAMP DEFAULT NOW()
     )""",
     "CREATE INDEX IF NOT EXISTS ix_push_sub_user ON push_subscriptions (user_name)",
+    """CREATE TABLE IF NOT EXISTS adaptation_photos (
+        id SERIAL PRIMARY KEY,
+        card_id INTEGER REFERENCES adaptation_cards(id) ON DELETE CASCADE,
+        photo_url VARCHAR(500) DEFAULT '',
+        original_name VARCHAR(300) DEFAULT '',
+        uploaded_by VARCHAR(100) DEFAULT '',
+        uploaded_at TIMESTAMP DEFAULT NOW()
+    )""",
+    "CREATE INDEX IF NOT EXISTS ix_adapt_photos_card ON adaptation_photos (card_id)",
 ]
 
 _SQLITE_MIGRATIONS = [
@@ -329,6 +338,14 @@ _SQLITE_MIGRATIONS = [
         p256dh TEXT DEFAULT '',
         auth_key TEXT DEFAULT '',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""",
+    """CREATE TABLE IF NOT EXISTS adaptation_photos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        card_id INTEGER REFERENCES adaptation_cards(id) ON DELETE CASCADE,
+        photo_url VARCHAR(500) DEFAULT '',
+        original_name VARCHAR(300) DEFAULT '',
+        uploaded_by VARCHAR(100) DEFAULT '',
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""",
 ]
 

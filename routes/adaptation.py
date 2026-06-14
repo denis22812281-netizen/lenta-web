@@ -95,6 +95,7 @@ async def adaptation_new(
         "card_data": {},
         "fields": FIELDS,
         "dropdown_options": DROPDOWN_OPTIONS,
+        "photos": [],
     })
 
 
@@ -117,6 +118,7 @@ async def adaptation_edit(
         "card_data": card.data or {},
         "fields": FIELDS,
         "dropdown_options": DROPDOWN_OPTIONS,
+        "photos": card.photos if card else [],
     })
 
 
@@ -239,6 +241,48 @@ async def adaptation_download(
 
 
 # ── admin: upload new template ────────────────────────────────────────────────
+
+@router.post("/adaptation/{card_id}/photos/upload")
+async def adaptation_photo_upload(
+    card_id: int, request: Request,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_login),
+):
+    card = db.query(models.AdaptationCard).filter_by(id=card_id).first()
+    if not card:
+        raise __import__('fastapi').HTTPException(status_code=404)
+    content = await file.read()
+    if len(content) > 20 * 1024 * 1024:
+        return RedirectResponse(f"/adaptation/{card_id}/edit#photos", status_code=303)
+    from services.cloud_storage import upload_photo
+    import uuid as _uuid
+    from pathlib import Path as _Path
+    ext = _Path(file.filename or "photo.jpg").suffix.lower() or ".jpg"
+    fname = f"{_uuid.uuid4().hex[:10]}{ext}"
+    url = upload_photo(content, f"adaptation/card-{card_id}", fname)
+    db.add(models.AdaptationPhoto(
+        card_id=card_id,
+        photo_url=url,
+        original_name=file.filename or fname,
+        uploaded_by=user.get("display_name", ""),
+    ))
+    db.commit()
+    return RedirectResponse(f"/adaptation/{card_id}/edit#photos", status_code=303)
+
+
+@router.post("/adaptation/{card_id}/photos/{photo_id}/delete")
+async def adaptation_photo_delete(
+    card_id: int, photo_id: int, request: Request,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_login),
+):
+    ph = db.query(models.AdaptationPhoto).filter_by(id=photo_id, card_id=card_id).first()
+    if ph and (user.get("is_admin") or ph.uploaded_by == user.get("display_name")):
+        db.delete(ph)
+        db.commit()
+    return RedirectResponse(f"/adaptation/{card_id}/edit#photos", status_code=303)
+
 
 @router.post("/admin/adaptation-template")
 async def upload_adaptation_template(

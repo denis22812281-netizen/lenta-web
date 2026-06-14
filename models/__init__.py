@@ -6,7 +6,7 @@ from models.task import Task, TaskPhoto, TaskNotification
 from models.vpk import VpkCriterion, VpkReport, VpkReportRead, VpkReportItem, PreVpkReport, PreVpkReportItem
 from models.smr import SmrContact, SmrSchedule, SmrTask, SmrConfirmation
 from models.recon import ReconStageStatus
-from models.adaptation import AdaptationCard
+from models.adaptation import AdaptationCard, AdaptationPhoto
 
 __all__ = [
     "PhoneWhitelist", "User", "WebAuthnCredential",
@@ -16,5 +16,5 @@ __all__ = [
     "VpkCriterion", "VpkReport", "VpkReportRead", "VpkReportItem", "PreVpkReport", "PreVpkReportItem",
     "SmrContact", "SmrSchedule", "SmrTask", "SmrConfirmation",
     "ReconStageStatus",
-    "AdaptationCard",
+    "AdaptationCard", "AdaptationPhoto",
 ]
