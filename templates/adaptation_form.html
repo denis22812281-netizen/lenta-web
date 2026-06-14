@@ -275,12 +275,30 @@
         ] %}
         {% set OPTS_REPLACE = ['да','нет','иное','полная замена','частичная замена'] %}
         {% for key, label in eq_it %}
-        <div class="col-12 col-sm-6 col-lg-4">
-            <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
-            <select name="{{ key }}" class="form-select form-select-sm">
-                <option value="">—</option>
-                {% for o in OPTS_REPLACE %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
-            </select>
+        <div class="col-12 mb-2">
+            <div class="border rounded p-2">
+                <div class="fw-semibold small mb-1 text-secondary">{{ label }}</div>
+                <div class="row g-1">
+                    <div class="col-7">
+                        <select name="{{ key }}" class="form-select form-select-sm">
+                            <option value="">— замена —</option>
+                            {% for o in OPTS_REPLACE %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-5">
+                        <input type="text" name="{{ key }}_size" class="form-control form-control-sm"
+                               placeholder="размер" value="{{ card_data.get(key+'_size','') }}">
+                    </div>
+                    <div class="col-5">
+                        <input type="text" name="{{ key }}_count" class="form-control form-control-sm"
+                               placeholder="кол-во" value="{{ card_data.get(key+'_count','') }}">
+                    </div>
+                    <div class="col-7">
+                        <input type="text" name="{{ key }}_type" class="form-control form-control-sm"
+                               placeholder="тип" value="{{ card_data.get(key+'_type','') }}">
+                    </div>
+                </div>
+            </div>
         </div>
         {% endfor %}
 
@@ -321,12 +339,30 @@
         ] %}
         {% set OPTS_REPLACE = ['да','нет','иное','полная замена','частичная замена'] %}
         {% for key, label in eq_bek %}
-        <div class="col-12 col-sm-6 col-lg-4">
-            <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
-            <select name="{{ key }}" class="form-select form-select-sm">
-                <option value="">—</option>
-                {% for o in OPTS_REPLACE %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
-            </select>
+        <div class="col-12 mb-2">
+            <div class="border rounded p-2">
+                <div class="fw-semibold small mb-1 text-secondary">{{ label }}</div>
+                <div class="row g-1">
+                    <div class="col-7">
+                        <select name="{{ key }}" class="form-select form-select-sm">
+                            <option value="">— замена —</option>
+                            {% for o in OPTS_REPLACE %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-5">
+                        <input type="text" name="{{ key }}_size" class="form-control form-control-sm"
+                               placeholder="размер" value="{{ card_data.get(key+'_size','') }}">
+                    </div>
+                    <div class="col-5">
+                        <input type="text" name="{{ key }}_count" class="form-control form-control-sm"
+                               placeholder="кол-во" value="{{ card_data.get(key+'_count','') }}">
+                    </div>
+                    <div class="col-7">
+                        <input type="text" name="{{ key }}_type" class="form-control form-control-sm"
+                               placeholder="тип" value="{{ card_data.get(key+'_type','') }}">
+                    </div>
+                </div>
+            </div>
         </div>
         {% endfor %}
 
@@ -358,12 +394,26 @@
         ] %}
         {% set OPTS_FULL = ['да','нет','иное','полная замена','частичная замена','полный ремонт','локальный ремонт'] %}
         {% for key, label in rooms_bek %}
-        <div class="col-12 col-sm-6 col-lg-4">
-            <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
-            <select name="{{ key }}" class="form-select form-select-sm">
-                <option value="">—</option>
-                {% for o in OPTS_FULL %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
-            </select>
+        <div class="col-12 mb-2">
+            <div class="border rounded p-2">
+                <div class="fw-semibold small mb-1 text-secondary">{{ label }}</div>
+                <div class="row g-1">
+                    <div class="col-7">
+                        <select name="{{ key }}" class="form-select form-select-sm">
+                            <option value="">— ремонт —</option>
+                            {% for o in OPTS_FULL %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-5">
+                        <input type="text" name="{{ key }}_size" class="form-control form-control-sm"
+                               placeholder="размер" value="{{ card_data.get(key+'_size','') }}">
+                    </div>
+                    <div class="col-12">
+                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm"
+                               placeholder="примечания" value="{{ card_data.get(key+'_comment','') }}">
+                    </div>
+                </div>
+            </div>
         </div>
         {% endfor %}
 
@@ -417,24 +467,48 @@
         ] %}
         {% set OPTS_FULL = ['да','нет','иное','полная замена','частичная замена','полный ремонт','локальный ремонт'] %}
         {% for key, label in rooms_tz %}
-        <div class="col-12 col-sm-6 col-lg-4">
-            <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
-            <select name="{{ key }}" class="form-select form-select-sm">
-                <option value="">—</option>
-                {% for o in OPTS_FULL %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
-            </select>
+        <div class="col-12 mb-2">
+            <div class="border rounded p-2">
+                <div class="fw-semibold small mb-1 text-secondary">{{ label }}</div>
+                <div class="row g-1">
+                    <div class="col-6">
+                        <select name="{{ key }}" class="form-select form-select-sm">
+                            <option value="">— ремонт —</option>
+                            {% for o in OPTS_FULL %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-3">
+                        <input type="text" name="{{ key }}_size" class="form-control form-control-sm"
+                               placeholder="размер" value="{{ card_data.get(key+'_size','') }}">
+                    </div>
+                    <div class="col-3">
+                        <input type="text" name="{{ key }}_count" class="form-control form-control-sm"
+                               placeholder="кол-во" value="{{ card_data.get(key+'_count','') }}">
+                    </div>
+                    <div class="col-6">
+                        <input type="text" name="{{ key }}_type" class="form-control form-control-sm"
+                               placeholder="тип" value="{{ card_data.get(key+'_type','') }}">
+                    </div>
+                    <div class="col-6">
+                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm"
+                               placeholder="комментарий" value="{{ card_data.get(key+'_comment','') }}">
+                    </div>
+                </div>
+            </div>
         </div>
         {% endfor %}
 
         <!-- Поломоечная машина/робот отдельно -->
-        <div class="col-12 col-sm-6 col-lg-4">
-            <label class="form-label form-label-sm fw-semibold">Поломоечная машина/робот</label>
-            <select name="tz_wash_robot" class="form-select form-select-sm">
-                <option value="">—</option>
-                {% for o in ['Робот','Поломоечная машина','нет'] %}
-                <option value="{{ o }}"{% if card_data.get('tz_wash_robot')==o %} selected{% endif %}>{{ o }}</option>
-                {% endfor %}
-            </select>
+        <div class="col-12 mb-2">
+            <div class="border rounded p-2">
+                <div class="fw-semibold small mb-1 text-secondary">Поломоечная машина/робот</div>
+                <select name="tz_wash_robot" class="form-select form-select-sm">
+                    <option value="">—</option>
+                    {% for o in ['Робот','Поломоечная машина','нет'] %}
+                    <option value="{{ o }}"{% if card_data.get('tz_wash_robot')==o %} selected{% endif %}>{{ o }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
 
         </div>
