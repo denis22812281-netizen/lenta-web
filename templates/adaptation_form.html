@@ -9,12 +9,12 @@
 <div class="col-12 col-sm-6 col-lg-4">
     <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
     {% if opts %}
-    <select name="{{ key }}" class="form-select form-select-sm">
+    <select name="{{ key }}" class="form-select form-select-sm wiz-field">
         <option value="">—</option>
         {% for o in opts %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
     </select>
     {% else %}
-    <input type="text" name="{{ key }}" class="form-control form-control-sm"
+    <input type="text" name="{{ key }}" class="form-control form-control-sm wiz-field"
            value="{{ card_data.get(key,'') }}">
     {% endif %}
 </div>
@@ -26,12 +26,12 @@
 {% if request.query_params.get('email_warn') %}
 <div class="alert alert-danger d-flex align-items-center gap-2 mb-3">
     <i class="bi bi-exclamation-triangle-fill fs-5"></i>
-    <div><b>Email не отправлен!</b> BREVO_API_KEY не задан в переменных Railway. Проверьте настройки сервера.</div>
+    <div><b>Email не отправлен!</b> BREVO_API_KEY не задан в переменных Railway.</div>
 </div>
 {% else %}
 <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
     <i class="bi bi-check-circle-fill fs-5"></i>
-    <div>Карточка отправлена на почту <b>denis.mesmer@lenta.com</b>. Скачать Excel можно ниже.</div>
+    <div>Карточка отправлена на <b>denis.mesmer@lenta.com</b>.</div>
 </div>
 {% endif %}
 {% elif request.query_params.get('saved') %}
@@ -42,7 +42,7 @@
 {% endif %}
 
 <!-- Верхняя панель -->
-<div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
     <a href="/adaptation" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-arrow-left me-1"></i>Список
     </a>
@@ -52,25 +52,57 @@
     </span>
     <div class="ms-auto d-flex gap-2 flex-wrap">
         <a href="/adaptation/{{ card.id }}/download" class="btn btn-outline-success btn-sm">
-            <i class="bi bi-file-earmark-excel-fill me-1"></i>Скачать Excel
+            <i class="bi bi-file-earmark-excel-fill me-1"></i>Excel
         </a>
         <form method="post" action="/adaptation/{{ card.id }}/send" class="d-inline" id="sendForm">
             <input type="hidden" name="csrf_token" value="{{ request.session.get('csrf_token','') }}">
             <button type="button" class="btn btn-warning btn-sm fw-bold" onclick="confirmSend()">
-                <i class="bi bi-send-fill me-1"></i>Отправить на почту
+                <i class="bi bi-send-fill me-1"></i>Отправить
             </button>
         </form>
     </div>
     {% endif %}
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
+<!-- ══ ПРОГРЕСС-БАР МАСТЕРА ══════════════════════════════════════════════════ -->
+<div class="wiz-header mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="text-muted small" id="wizStepLabel">Шаг 1 из 5</span>
+        <span class="fw-semibold small" id="wizStepName">Общая информация</span>
+    </div>
+    <div class="progress mb-3" style="height:8px;border-radius:6px">
+        <div class="progress-bar bg-success" id="wizProgress" style="width:20%;transition:width .4s ease"></div>
+    </div>
+    <!-- Кружки-шаги -->
+    <div class="d-flex justify-content-between gap-1">
+        {% for snum, sname, sicon in [
+            (1,'Основное','bi-info-circle-fill'),
+            (2,'Кухня','bi-egg-fried'),
+            (3,'ИТ/БЭК','bi-pc-display-horizontal'),
+            (4,'Помещения','bi-building-fill'),
+            (5,'Прочее','bi-megaphone-fill'),
+        ] %}
+        <button type="button"
+                class="wiz-step-btn flex-fill d-flex flex-column align-items-center py-2 px-1 rounded border-0"
+                data-step="{{ snum }}" onclick="goStep({{ snum }})">
+            <div class="wiz-circle rounded-circle d-flex align-items-center justify-content-center mb-1">
+                <i class="bi {{ sicon }}"></i>
+            </div>
+            <span class="d-none d-sm-inline" style="font-size:.7rem">{{ sname }}</span>
+            <span class="badge bg-secondary mt-1 wiz-badge" data-step-badge="{{ snum }}" style="font-size:.62rem">0</span>
+        </button>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
      ФОРМА
-══════════════════════════════════════════════════════════════ -->
+════════════════════════════════════════════════════════════════════════════ -->
 <form method="post" action="/adaptation/save" id="adaptForm">
     {% if card %}<input type="hidden" name="card_id" value="{{ card.id }}">{% endif %}
 
-    <!-- РАЗДЕЛ 1: ОБЩАЯ ИНФОРМАЦИЯ -->
+    <!-- ══ ШАГ 1: ОБЩАЯ ИНФОРМАЦИЯ ══════════════════════════════════════════ -->
+    <div class="wizard-step" data-step="1">
     <div class="card mb-3 shadow-sm">
         <div class="card-header bg-primary text-white fw-bold d-flex align-items-center"
              role="button" data-bs-toggle="collapse" data-bs-target="#sec1">
@@ -83,7 +115,7 @@
 
             <div class="col-12 col-md-6">
                 <label class="form-label fw-semibold">Номер ТК <span class="text-danger">*</span></label>
-                <input type="text" name="tk_number" class="form-control"
+                <input type="text" name="tk_number" class="form-control wiz-field"
                        value="{{ card_data.get('tk_number','') }}" placeholder="Например: 610" required>
             </div>
 
@@ -116,15 +148,19 @@
         </div>
         </div>
     </div>
+    </div><!-- /step 1 -->
+
+    <!-- ══ ШАГ 2: КУХНЯ + ОБОРУДОВАНИЕ ТЗ ══════════════════════════════════ -->
+    <div class="wizard-step" data-step="2" style="display:none">
 
     <!-- РАЗДЕЛ 2: ПРОИЗВОДСТВО / КУХНЯ -->
     <div class="card mb-3 shadow-sm">
         <div class="card-header bg-warning text-dark fw-bold d-flex align-items-center"
              role="button" data-bs-toggle="collapse" data-bs-target="#sec2">
-            <i class="bi bi-egg-fried me-2"></i>2. Производство / Кухня (ГО + размер)
+            <i class="bi bi-egg-fried me-2"></i>2. Производство / Кухня
             <i class="bi bi-chevron-down ms-auto"></i>
         </div>
-        <div class="collapse" id="sec2">
+        <div class="collapse show" id="sec2">
         <div class="card-body">
         <div class="row g-2">
 
@@ -147,25 +183,25 @@
         ] %}
         {% for key, label in kitchen_items %}
         <div class="col-12 mb-2">
-            <div class="border rounded p-2">
+            <div class="border rounded p-2 item-card">
                 <div class="fw-semibold small mb-1 text-secondary">{{ label }}</div>
                 <div class="row g-1">
                     <div class="col-5">
-                        <select name="{{ key }}" class="form-select form-select-sm">
+                        <select name="{{ key }}" class="form-select form-select-sm wiz-field">
                             <option value="">— ГО —</option>
                             {% for o in ['да','нет','иное'] %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="col-7">
-                        <input type="text" name="{{ key }}_size" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_size" class="form-control form-control-sm wiz-field"
                                placeholder="размер" value="{{ card_data.get(key+'_size','') }}">
                     </div>
                     <div class="col-6">
-                        <input type="text" name="{{ key }}_type" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_type" class="form-control form-control-sm wiz-field"
                                placeholder="тип витрины" value="{{ card_data.get(key+'_type','') }}">
                     </div>
                     <div class="col-6">
-                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm wiz-field"
                                placeholder="комментарий" value="{{ card_data.get(key+'_comment','') }}">
                     </div>
                 </div>
@@ -185,7 +221,7 @@
             <i class="bi bi-archive-fill me-2"></i>3. Оборудование ТЗ
             <i class="bi bi-chevron-down ms-auto"></i>
         </div>
-        <div class="collapse" id="sec3">
+        <div class="collapse show" id="sec3">
         <div class="card-body">
         <div class="text-muted mb-2" style="font-size:.8rem">
             <i class="bi bi-info-circle me-1"></i>Для каждой позиции: решение + кол-во/комментарий
@@ -223,32 +259,31 @@
         <div class="col-12 col-sm-6 col-lg-4">
             <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
             <div class="input-group input-group-sm mb-1">
-                <select name="{{ key }}" class="form-select" style="flex:0 0 55%">
+                <select name="{{ key }}" class="form-select wiz-field" style="flex:0 0 55%">
                     <option value="">—</option>
                     {% for o in OPTS_REPLACE %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
                 </select>
-                <input type="text" name="{{ cnt_key }}" class="form-control"
+                <input type="text" name="{{ cnt_key }}" class="form-control wiz-field"
                        placeholder="кол-во" value="{{ card_data.get(cnt_key,'') }}">
             </div>
             <div class="input-group input-group-sm">
-                <input type="text" name="{{ type_key }}" class="form-control"
+                <input type="text" name="{{ type_key }}" class="form-control wiz-field"
                        placeholder="тип" value="{{ card_data.get(type_key,'') }}">
-                <input type="text" name="{{ comment_key }}" class="form-control"
+                <input type="text" name="{{ comment_key }}" class="form-control wiz-field"
                        placeholder="комментарий" value="{{ card_data.get(comment_key,'') }}">
             </div>
         </div>
         {% endfor %}
 
-        <!-- Замена ценникодержателей и пересчёт — без кол-во -->
         <div class="col-12 col-sm-6 col-lg-4">
             <label class="form-label form-label-sm fw-semibold">Замена ценникодержателей</label>
-            <select name="price_holders" class="form-select form-select-sm">
+            <select name="price_holders" class="form-select form-select-sm wiz-field">
                 <option value="да" selected>да</option>
             </select>
         </div>
         <div class="col-12 col-sm-6 col-lg-4">
             <label class="form-label form-label-sm fw-semibold">Пересчёт стеллажного оборудования (БУ)</label>
-            <select name="shelving_recount" class="form-select form-select-sm">
+            <select name="shelving_recount" class="form-select form-select-sm wiz-field">
                 <option value="">—</option>
                 {% for o in ['да','нет'] %}<option value="{{ o }}"{% if card_data.get('shelving_recount')==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
             </select>
@@ -259,6 +294,11 @@
         </div>
     </div>
 
+    </div><!-- /step 2 -->
+
+    <!-- ══ ШАГ 3: ОБОРУДОВАНИЕ ИТ + БЭКОФИС ════════════════════════════════ -->
+    <div class="wizard-step" data-step="3" style="display:none">
+
     <!-- РАЗДЕЛ 4: ОБОРУДОВАНИЕ ИТ -->
     <div class="card mb-3 shadow-sm">
         <div class="card-header bg-secondary text-white fw-bold d-flex align-items-center"
@@ -266,7 +306,7 @@
             <i class="bi bi-pc-display-horizontal me-2"></i>4. Оборудование ИТ
             <i class="bi bi-chevron-down ms-auto"></i>
         </div>
-        <div class="collapse" id="sec4">
+        <div class="collapse show" id="sec4">
         <div class="card-body">
         <div class="row g-2">
 
@@ -286,29 +326,29 @@
         {% set OPTS_REPLACE = ['да','нет','иное','полная замена','частичная замена'] %}
         {% for key, label in eq_it %}
         <div class="col-12 mb-2">
-            <div class="border rounded p-2">
+            <div class="border rounded p-2 item-card">
                 <div class="fw-semibold small mb-1 text-secondary">{{ label }}</div>
                 <div class="row g-1">
                     <div class="col-6">
-                        <select name="{{ key }}" class="form-select form-select-sm">
+                        <select name="{{ key }}" class="form-select form-select-sm wiz-field">
                             <option value="">— замена —</option>
                             {% for o in OPTS_REPLACE %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="col-3">
-                        <input type="text" name="{{ key }}_size" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_size" class="form-control form-control-sm wiz-field"
                                placeholder="размер" value="{{ card_data.get(key+'_size','') }}">
                     </div>
                     <div class="col-3">
-                        <input type="text" name="{{ key }}_count" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_count" class="form-control form-control-sm wiz-field"
                                placeholder="кол-во" value="{{ card_data.get(key+'_count','') }}">
                     </div>
                     <div class="col-6">
-                        <input type="text" name="{{ key }}_type" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_type" class="form-control form-control-sm wiz-field"
                                placeholder="тип" value="{{ card_data.get(key+'_type','') }}">
                     </div>
                     <div class="col-6">
-                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm wiz-field"
                                placeholder="комментарий" value="{{ card_data.get(key+'_comment','') }}">
                     </div>
                 </div>
@@ -328,7 +368,7 @@
             <i class="bi bi-box-seam-fill me-2"></i>5. Оборудование Бэкофиса
             <i class="bi bi-chevron-down ms-auto"></i>
         </div>
-        <div class="collapse" id="sec5">
+        <div class="collapse show" id="sec5">
         <div class="card-body">
         <div class="row g-2">
 
@@ -354,29 +394,29 @@
         {% set OPTS_REPLACE = ['да','нет','иное','полная замена','частичная замена'] %}
         {% for key, label in eq_bek %}
         <div class="col-12 mb-2">
-            <div class="border rounded p-2">
+            <div class="border rounded p-2 item-card">
                 <div class="fw-semibold small mb-1 text-secondary">{{ label }}</div>
                 <div class="row g-1">
                     <div class="col-6">
-                        <select name="{{ key }}" class="form-select form-select-sm">
+                        <select name="{{ key }}" class="form-select form-select-sm wiz-field">
                             <option value="">— замена —</option>
                             {% for o in OPTS_REPLACE %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="col-3">
-                        <input type="text" name="{{ key }}_size" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_size" class="form-control form-control-sm wiz-field"
                                placeholder="размер" value="{{ card_data.get(key+'_size','') }}">
                     </div>
                     <div class="col-3">
-                        <input type="text" name="{{ key }}_count" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_count" class="form-control form-control-sm wiz-field"
                                placeholder="кол-во" value="{{ card_data.get(key+'_count','') }}">
                     </div>
                     <div class="col-6">
-                        <input type="text" name="{{ key }}_type" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_type" class="form-control form-control-sm wiz-field"
                                placeholder="тип" value="{{ card_data.get(key+'_type','') }}">
                     </div>
                     <div class="col-6">
-                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm wiz-field"
                                placeholder="комментарий" value="{{ card_data.get(key+'_comment','') }}">
                     </div>
                 </div>
@@ -389,6 +429,11 @@
         </div>
     </div>
 
+    </div><!-- /step 3 -->
+
+    <!-- ══ ШАГ 4: ПОМЕЩЕНИЯ ══════════════════════════════════════════════════ -->
+    <div class="wizard-step" data-step="4" style="display:none">
+
     <!-- РАЗДЕЛ 6: ПОМЕЩЕНИЯ БЭКОФИСА -->
     <div class="card mb-3 shadow-sm">
         <div class="card-header bg-danger text-white fw-bold d-flex align-items-center"
@@ -396,7 +441,7 @@
             <i class="bi bi-door-open-fill me-2"></i>6. Помещения Бэкофиса
             <i class="bi bi-chevron-down ms-auto"></i>
         </div>
-        <div class="collapse" id="sec6">
+        <div class="collapse show" id="sec6">
         <div class="card-body">
         <div class="row g-2">
 
@@ -413,21 +458,21 @@
         {% set OPTS_FULL = ['да','нет','иное','полная замена','частичная замена','полный ремонт','локальный ремонт'] %}
         {% for key, label in rooms_bek %}
         <div class="col-12 mb-2">
-            <div class="border rounded p-2">
+            <div class="border rounded p-2 item-card">
                 <div class="fw-semibold small mb-1 text-secondary">{{ label }}</div>
                 <div class="row g-1">
                     <div class="col-7">
-                        <select name="{{ key }}" class="form-select form-select-sm">
+                        <select name="{{ key }}" class="form-select form-select-sm wiz-field">
                             <option value="">— ремонт —</option>
                             {% for o in OPTS_FULL %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="col-5">
-                        <input type="text" name="{{ key }}_size" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_size" class="form-control form-control-sm wiz-field"
                                placeholder="размер" value="{{ card_data.get(key+'_size','') }}">
                     </div>
                     <div class="col-12">
-                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm wiz-field"
                                placeholder="примечания" value="{{ card_data.get(key+'_comment','') }}">
                     </div>
                 </div>
@@ -448,7 +493,7 @@
             <i class="bi bi-building-fill me-2"></i>7. Помещение ТЗ
             <i class="bi bi-chevron-down ms-auto"></i>
         </div>
-        <div class="collapse" id="sec7">
+        <div class="collapse show" id="sec7">
         <div class="card-body">
         <div class="row g-2">
 
@@ -486,29 +531,29 @@
         {% set OPTS_FULL = ['да','нет','иное','полная замена','частичная замена','полный ремонт','локальный ремонт'] %}
         {% for key, label in rooms_tz %}
         <div class="col-12 mb-2">
-            <div class="border rounded p-2">
+            <div class="border rounded p-2 item-card">
                 <div class="fw-semibold small mb-1 text-secondary">{{ label }}</div>
                 <div class="row g-1">
                     <div class="col-6">
-                        <select name="{{ key }}" class="form-select form-select-sm">
+                        <select name="{{ key }}" class="form-select form-select-sm wiz-field">
                             <option value="">— ремонт —</option>
                             {% for o in OPTS_FULL %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="col-3">
-                        <input type="text" name="{{ key }}_size" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_size" class="form-control form-control-sm wiz-field"
                                placeholder="размер" value="{{ card_data.get(key+'_size','') }}">
                     </div>
                     <div class="col-3">
-                        <input type="text" name="{{ key }}_count" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_count" class="form-control form-control-sm wiz-field"
                                placeholder="кол-во" value="{{ card_data.get(key+'_count','') }}">
                     </div>
                     <div class="col-6">
-                        <input type="text" name="{{ key }}_type" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_type" class="form-control form-control-sm wiz-field"
                                placeholder="тип" value="{{ card_data.get(key+'_type','') }}">
                     </div>
                     <div class="col-6">
-                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm wiz-field"
                                placeholder="комментарий" value="{{ card_data.get(key+'_comment','') }}">
                     </div>
                 </div>
@@ -516,11 +561,10 @@
         </div>
         {% endfor %}
 
-        <!-- Поломоечная машина/робот отдельно -->
         <div class="col-12 mb-2">
-            <div class="border rounded p-2">
+            <div class="border rounded p-2 item-card">
                 <div class="fw-semibold small mb-1 text-secondary">Поломоечная машина/робот</div>
-                <select name="tz_wash_robot" class="form-select form-select-sm">
+                <select name="tz_wash_robot" class="form-select form-select-sm wiz-field">
                     <option value="">—</option>
                     {% for o in ['Робот','Поломоечная машина','нет'] %}
                     <option value="{{ o }}"{% if card_data.get('tz_wash_robot')==o %} selected{% endif %}>{{ o }}</option>
@@ -534,6 +578,11 @@
         </div>
     </div>
 
+    </div><!-- /step 4 -->
+
+    <!-- ══ ШАГ 5: МАРКЕТИНГ + ИНАЯ ИНФОРМАЦИЯ ══════════════════════════════ -->
+    <div class="wizard-step" data-step="5" style="display:none">
+
     <!-- РАЗДЕЛ 8: МАРКЕТИНГ -->
     <div class="card mb-3 shadow-sm">
         <div class="card-header fw-bold d-flex align-items-center text-white"
@@ -542,7 +591,7 @@
             <i class="bi bi-megaphone-fill me-2"></i>8. Маркетинг
             <i class="bi bi-chevron-down ms-auto"></i>
         </div>
-        <div class="collapse" id="sec8">
+        <div class="collapse show" id="sec8">
         <div class="card-body">
         <div class="row g-2">
 
@@ -558,7 +607,7 @@
         {% for key, label in mkt_items %}
         <div class="col-12 col-sm-6 col-lg-4">
             <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
-            <select name="{{ key }}" class="form-select form-select-sm">
+            <select name="{{ key }}" class="form-select form-select-sm wiz-field">
                 <option value="">—</option>
                 {% for o in ['да','нет'] %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
             </select>
@@ -581,22 +630,19 @@
         <div class="collapse show" id="sec9">
         <div class="card-body">
 
-        <!-- Фиксированные поля строк 159-177 -->
         <div class="row g-2 mb-3">
 
-        {# Текстовые поля — без комментария #}
         {% for key, label in [
             ('who_demolition','Кто проводит демонтаж, особенности по стройке'),
             ('work_restrictions','Ограничения по работам (жилой дом и т.д.)'),
         ] %}
         <div class="col-12 col-sm-6">
             <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
-            <textarea name="{{ key }}" class="form-control form-control-sm" rows="2"
+            <textarea name="{{ key }}" class="form-control form-control-sm wiz-field" rows="2"
                       style="resize:vertical">{{ card_data.get(key,'') }}</textarea>
         </div>
         {% endfor %}
 
-        {# Дропдауны с комментарием #}
         {% set info_dropdown = [
             ('lenta_online','Лента Онлайн'),
             ('cctv','Система видеонаблюдения'),
@@ -617,17 +663,17 @@
         ] %}
         {% for key, label in info_dropdown %}
         <div class="col-12 mb-2">
-            <div class="border rounded p-2">
+            <div class="border rounded p-2 item-card">
                 <div class="fw-semibold small mb-1 text-secondary">{{ label }}</div>
                 <div class="row g-1">
                     <div class="col-5">
-                        <select name="{{ key }}" class="form-select form-select-sm">
+                        <select name="{{ key }}" class="form-select form-select-sm wiz-field">
                             <option value="">—</option>
                             {% for o in ['да','нет','иное'] %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
                         </select>
                     </div>
                     <div class="col-7">
-                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm"
+                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm wiz-field"
                                placeholder="комментарий" value="{{ card_data.get(key+'_comment','') }}">
                     </div>
                 </div>
@@ -637,13 +683,12 @@
 
         <div class="col-12">
             <label class="form-label form-label-sm fw-semibold">Доп. вводы для субаренды (ХВС/ГВС/водоотведение/электроэнергия)</label>
-            <textarea name="subrent_utilities" class="form-control form-control-sm" rows="2"
+            <textarea name="subrent_utilities" class="form-control form-control-sm wiz-field" rows="2"
                       style="resize:vertical">{{ card_data.get('subrent_utilities','') }}</textarea>
         </div>
 
         </div>
 
-        <!-- Свободные текстовые блоки с жёлтыми заголовками -->
         {% set free_sections = [
             ('notes_main',   'Иная важная информация'),
             ('notes_fasad',  'Фасад'),
@@ -656,10 +701,8 @@
         {% for key, label in free_sections %}
         <div class="mb-3">
             <div class="fw-bold text-dark px-2 py-1 mb-1 rounded-1"
-                 style="background:#FFD200;font-size:.9rem">
-                {{ label }}
-            </div>
-            <textarea name="{{ key }}" class="form-control form-control-sm"
+                 style="background:#FFD200;font-size:.9rem">{{ label }}</div>
+            <textarea name="{{ key }}" class="form-control form-control-sm wiz-field"
                       rows="3" style="resize:vertical;font-size:.88rem"
                       placeholder="Введите заметки (каждая строка → отдельная строка в Excel)">{{ card_data.get(key,'') }}</textarea>
             <div class="text-muted" style="font-size:0.75rem">Каждая строка — отдельная запись в Excel</div>
@@ -671,25 +714,30 @@
         </div>
     </div>
 
-    <!-- Кнопки — только десктоп (на мобиле используется sticky-бар) -->
-    <div class="d-none d-lg-flex gap-3 flex-wrap my-4">
-        <button type="submit" class="btn btn-primary px-4" id="saveBtn">
-            <i class="bi bi-floppy-fill me-1"></i>Сохранить черновик
+    </div><!-- /step 5 -->
+
+    <!-- ══ НАВИГАЦИЯ МАСТЕРА ════════════════════════════════════════════════ -->
+    <div class="d-flex align-items-center gap-2 mt-3 mb-2">
+        <button type="button" class="btn btn-outline-secondary px-3" id="btnPrev" onclick="stepPrev()" disabled>
+            <i class="bi bi-arrow-left me-1"></i>Назад
         </button>
-        {% if card %}
-        <a href="/adaptation/{{ card.id }}/download" class="btn btn-outline-success">
-            <i class="bi bi-file-earmark-excel-fill me-1"></i>Скачать Excel
-        </a>
-        {% endif %}
-        <a href="/adaptation" class="btn btn-outline-secondary">Отмена</a>
+        <div class="flex-grow-1 text-center">
+            <small class="text-muted" id="navInfo">1 / 5</small>
+        </div>
+        <button type="button" class="btn btn-primary px-3" id="btnNext" onclick="stepNext()">
+            Далее<i class="bi bi-arrow-right ms-1"></i>
+        </button>
+        <button type="submit" class="btn btn-success px-3 d-none" id="btnSave">
+            <i class="bi bi-floppy-fill me-1"></i>Сохранить
+        </button>
     </div>
 
-    <!-- Отступ для sticky бара на мобиле -->
+    <!-- Отступ для sticky бара -->
     <div class="d-lg-none" style="height:72px"></div>
 
 </form>
 
-<!-- ══ STICKY SAVE BAR (мобиль < 992px) ══════════════════════════════════ -->
+<!-- ══ STICKY SAVE BAR (мобиль) ════════════════════════════════════════════ -->
 <div class="adapt-save-bar d-flex d-lg-none" id="adaptSaveBar">
     <button form="adaptForm" type="submit" class="btn btn-primary fw-bold flex-grow-1" id="saveBtnMobile">
         <i class="bi bi-floppy-fill me-1"></i>Сохранить
@@ -704,7 +752,71 @@
     {% endif %}
 </div>
 
+<!-- ══ ОБУЧАЮЩИЙ ТУР (только при первом посещении) ══════════════════════════ -->
+<div id="tourOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;align-items:center;justify-content:center;padding:16px">
+    <div class="card shadow-lg border-0" style="max-width:420px;width:100%;border-radius:16px;overflow:hidden">
+        <div class="card-body p-4">
+            <div class="text-center mb-3">
+                <i class="bi bi-mortarboard-fill fs-1 text-primary"></i>
+            </div>
+            <h5 class="text-center mb-3">Карточка адаптации</h5>
+            <p class="text-muted small mb-2">Форма разделена на <b>5 шагов</b> для удобного заполнения:</p>
+            <ol class="small text-muted ps-3 mb-3">
+                <li><b>Общая информация</b> — суть проекта, тип здания, фасад</li>
+                <li><b>Кухня + Оборудование ТЗ</b> — производство, торговый зал</li>
+                <li><b>ИТ + Бэкофис</b> — серверы, весы, мебель склада</li>
+                <li><b>Помещения</b> — ремонт БЭК и ТЗ</li>
+                <li><b>Маркетинг + Прочее</b> — POSM, дополнительная информация</li>
+            </ol>
+            <p class="text-muted small mb-4">Счётчик в кружке <span class="badge bg-success">3</span> показывает заполненные поля на шаге. Можно нажать на кружок для перехода.</p>
+            <div class="d-grid">
+                <button class="btn btn-primary btn-lg" onclick="closeTour()">
+                    <i class="bi bi-play-fill me-1"></i>Начать заполнение
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
+/* ── Wizard ─────────────────────────────────── */
+.wizard-step { animation: wiz-in .3s ease both; }
+@keyframes wiz-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.wiz-step-btn {
+    background: transparent;
+    border: none;
+    transition: transform .15s;
+    cursor: pointer;
+    padding: 6px 4px;
+}
+.wiz-step-btn:hover { transform: translateY(-2px); }
+
+.wiz-circle {
+    width: 34px; height: 34px;
+    background: #dee2e6;
+    font-size: .85rem;
+    color: #495057;
+    transition: background .25s, color .25s, box-shadow .25s;
+}
+.wiz-step-btn.active .wiz-circle {
+    background: #3CB34A;
+    color: #fff;
+    box-shadow: 0 0 0 3px rgba(60,179,74,.3);
+}
+.wiz-step-btn:hover .wiz-circle { background: #adb5bd; }
+
+/* ── Card hover ─────────────────────────────── */
+.item-card { transition: box-shadow .2s, border-color .2s; }
+.item-card:hover {
+    box-shadow: 0 2px 10px rgba(0,0,0,.12);
+    border-color: #3CB34A !important;
+}
+
+/* ── Sticky save bar ────────────────────────── */
 .adapt-save-bar {
     position: fixed;
     bottom: calc(58px + env(safe-area-inset-bottom));
@@ -714,7 +826,7 @@
     border-top: 2px solid #3CB34A;
     gap: 8px;
     z-index: 1040;
-    box-shadow: 0 -4px 16px rgba(0,0,0,.25);
+    box-shadow: 0 -4px 16px rgba(0,0,0,.22);
 }
 </style>
 
@@ -722,20 +834,97 @@
 
 {% block scripts %}
 <script>
+// ══ Wizard ══════════════════════════════════════════════════════════════════
+const STEP_NAMES = [
+    '', 'Общая информация', 'Кухня и Оборудование ТЗ',
+    'Оборудование ИТ и Бэкофис', 'Помещения БЭК и ТЗ', 'Маркетинг и Иная информация'
+];
+const TOTAL = 5;
+let curStep = 1;
+
+function goStep(n) {
+    if (n < 1 || n > TOTAL) return;
+    document.querySelectorAll('.wizard-step').forEach(el => {
+        el.style.display = 'none';
+    });
+    const target = document.querySelector(`.wizard-step[data-step="${n}"]`);
+    if (target) { target.style.display = ''; }
+    curStep = n;
+    updateUI();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function stepNext() { goStep(curStep + 1); }
+function stepPrev() { goStep(curStep - 1); }
+
+function updateUI() {
+    const pct = Math.round(curStep / TOTAL * 100);
+    document.getElementById('wizProgress').style.width = pct + '%';
+    document.getElementById('wizStepLabel').textContent = `Шаг ${curStep} из ${TOTAL}`;
+    document.getElementById('wizStepName').textContent = STEP_NAMES[curStep] || '';
+    document.getElementById('navInfo').textContent = `${curStep} / ${TOTAL}`;
+
+    document.getElementById('btnPrev').disabled = curStep === 1;
+    const last = curStep === TOTAL;
+    document.getElementById('btnNext').classList.toggle('d-none', last);
+    document.getElementById('btnSave').classList.toggle('d-none', !last);
+
+    document.querySelectorAll('.wiz-step-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.step) === curStep);
+    });
+    updateBadges();
+}
+
+// ══ Smart badges — count filled fields per step ══════════════════════════
+function countFilled(stepN) {
+    const el = document.querySelector(`.wizard-step[data-step="${stepN}"]`);
+    if (!el) return 0;
+    let n = 0;
+    el.querySelectorAll('.wiz-field').forEach(f => {
+        if (f.value && f.value.trim()) n++;
+    });
+    return n;
+}
+function updateBadges() {
+    for (let i = 1; i <= TOTAL; i++) {
+        const b = document.querySelector(`.wiz-badge[data-step-badge="${i}"]`);
+        if (!b) continue;
+        const cnt = countFilled(i);
+        b.textContent = cnt;
+        b.className = `badge mt-1 wiz-badge ${cnt ? 'bg-success' : 'bg-secondary'}`;
+    }
+}
+
+// ══ Mark save button dirty on change ════════════════════════════════════
+document.getElementById('adaptForm')?.addEventListener('change', () => {
+    updateBadges();
+    ['btnSave','saveBtnMobile'].forEach(id => {
+        const b = document.getElementById(id);
+        if (!b) return;
+        b.classList.remove('btn-success','btn-primary');
+        b.classList.add('btn-warning');
+    });
+});
+
+// ══ Training tour ════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+    updateBadges();
+    updateUI();
+    if (!localStorage.getItem('adaptTourSeen')) {
+        document.getElementById('tourOverlay').style.display = 'flex';
+    }
+});
+
+function closeTour() {
+    localStorage.setItem('adaptTourSeen', '1');
+    document.getElementById('tourOverlay').style.display = 'none';
+}
+
+// ══ Send confirmation ════════════════════════════════════════════════════
 function confirmSend() {
-    var tk = '{{ card.tk_number or "" }}';
+    var tk = '{{ card.tk_number or "" if card else "" }}';
     if (confirm('Отправить карточку ТК ' + tk + ' на denis.mesmer@lenta.com?')) {
         document.getElementById('sendForm').submit();
     }
 }
-
-document.getElementById('adaptForm')?.addEventListener('change', function() {
-    ['saveBtn','saveBtnMobile'].forEach(function(id) {
-        const btn = document.getElementById(id);
-        if (!btn) return;
-        btn.innerHTML = '<i class="bi bi-floppy-fill me-1"></i>Сохранить *';
-        btn.classList.add('btn-warning'); btn.classList.remove('btn-primary');
-    });
-});
 </script>
 {% endblock %}

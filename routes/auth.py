@@ -1,3 +1,5 @@
+import base64
+import io
 import os
 
 from fastapi import APIRouter, Request, Form, Depends
@@ -6,7 +8,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, get_current_user, limiter
+from deps import templates, get_current_user, require_login, limiter
 from utils.passwords import hash_password, verify_password, _is_legacy_hash
 from utils.phone import normalize_phone
 
@@ -78,6 +80,14 @@ async def login_enter(request: Request, db: Session = Depends(get_db),
     if _is_legacy_hash(user.password_hash):
         user.password_hash = hash_password(password)
         db.commit()
+    # 2FA check
+    if getattr(user, "totp_enabled", False) and user.totp_secret:
+        request.session["pending_2fa"] = {
+            "user_id": user.id,
+            "phone": user.phone,
+            "display_name": user.display_name or "",
+        }
+        return RedirectResponse("/login?step=2fa", status_code=302)
     _set_session(request, user, db)
     return RedirectResponse("/", status_code=302)
 
@@ -118,6 +128,102 @@ async def create_password(request: Request, db: Session = Depends(get_db),
     db.refresh(user)
     _set_session(request, user, db)
     return RedirectResponse("/", status_code=302)
+
+
+@router.post("/login/2fa")
+@limiter.limit("10/minute")
+async def login_2fa(request: Request, db: Session = Depends(get_db),
+                    phone: str = Form(...), totp_code: str = Form(...)):
+    pending = request.session.get("pending_2fa")
+    if not pending or pending.get("phone") != phone:
+        return RedirectResponse("/login", status_code=302)
+    user = db.query(models.User).filter(models.User.phone == phone).first()
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    try:
+        import pyotp
+        ok = pyotp.TOTP(user.totp_secret).verify(totp_code.strip(), valid_window=1)
+    except Exception:
+        ok = False
+    if not ok:
+        return templates.TemplateResponse("login.html", {
+            "request": request, "step": "2fa",
+            "phone": phone,
+            "display_name": pending.get("display_name", ""),
+            "error": "Неверный код. Откройте приложение и введите текущий код.",
+        })
+    request.session.pop("pending_2fa", None)
+    _set_session(request, user, db)
+    return RedirectResponse("/", status_code=302)
+
+
+@router.get("/account/2fa", response_class=HTMLResponse)
+async def account_2fa_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_login),
+):
+    db_user = db.query(models.User).filter(models.User.id == user["id"]).first()
+    try:
+        import pyotp, qrcode as _qrcode
+        secret = db_user.totp_secret or pyotp.random_base32()
+        uri = pyotp.TOTP(secret).provisioning_uri(
+            name=user.get("display_name", "user"),
+            issuer_name="Лента Проекты",
+        )
+        qr = _qrcode.QRCode(box_size=6, border=2)
+        qr.add_data(uri)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        qr_b64 = base64.b64encode(buf.getvalue()).decode()
+    except ImportError:
+        secret, qr_b64 = "", ""
+
+    return templates.TemplateResponse("account_2fa.html", {
+        "request": request,
+        "user": user,
+        "db_user": db_user,
+        "secret": secret,
+        "qr_b64": qr_b64,
+        "totp_enabled": getattr(db_user, "totp_enabled", False),
+    })
+
+
+@router.post("/account/2fa/enable")
+async def account_2fa_enable(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_login),
+    totp_code: str = Form(...),
+    secret: str = Form(...),
+):
+    try:
+        import pyotp
+        ok = pyotp.TOTP(secret).verify(totp_code.strip(), valid_window=1)
+    except Exception:
+        ok = False
+    if not ok:
+        return RedirectResponse("/account/2fa?error=invalid_code", status_code=303)
+    db_user = db.query(models.User).filter(models.User.id == user["id"]).first()
+    db_user.totp_secret = secret
+    db_user.totp_enabled = True
+    db.commit()
+    return RedirectResponse("/account/2fa?enabled=1", status_code=303)
+
+
+@router.post("/account/2fa/disable")
+async def account_2fa_disable(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_login),
+):
+    db_user = db.query(models.User).filter(models.User.id == user["id"]).first()
+    db_user.totp_enabled = False
+    db_user.totp_secret = None
+    db.commit()
+    return RedirectResponse("/account/2fa?disabled=1", status_code=303)
 
 
 @router.get("/logout")

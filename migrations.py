@@ -176,6 +176,8 @@ _POSTGRES_MIGRATIONS = [
     )""",
     "CREATE INDEX IF NOT EXISTS ix_adaptation_tk ON adaptation_cards (tk_number)",
     "CREATE INDEX IF NOT EXISTS ix_adaptation_created_by ON adaptation_cards (created_by)",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret VARCHAR(64)",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN DEFAULT FALSE",
 ]
 
 _SQLITE_MIGRATIONS = [

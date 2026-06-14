@@ -109,6 +109,37 @@ class SessionVersionMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class AdminIPWhitelistMiddleware(BaseHTTPMiddleware):
+    """Блокирует доступ к /admin/* если IP не в белом списке (ADMIN_IP_WHITELIST env)."""
+    _ADMIN_PREFIX = ("/admin/",)
+
+    def __init__(self, app, whitelist: list[str]):
+        super().__init__(app)
+        self._ips = set(ip.strip() for ip in whitelist if ip.strip())
+
+    async def dispatch(self, request: Request, call_next):
+        if not self._ips:
+            return await call_next(request)
+        path = request.url.path
+        if any(path.startswith(p) for p in self._ADMIN_PREFIX):
+            user = request.session.get("user")
+            if user and user.get("is_admin"):
+                client_ip = (
+                    request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+                    or (request.client.host if request.client else "")
+                )
+                if client_ip not in self._ips:
+                    logger.warning("Admin IP blocked: ip=%s path=%s user=%s",
+                                   client_ip, path, user.get("display_name"))
+                    return HTMLResponse(
+                        "<h2>403 Forbidden</h2>"
+                        "<p>Ваш IP-адрес не разрешён для доступа к панели администратора.</p>"
+                        "<p><a href='/'>На главную</a></p>",
+                        status_code=403,
+                    )
+        return await call_next(request)
+
+
 class AuditMiddleware(BaseHTTPMiddleware):
     """Записывает посещения страниц авторизованными пользователями."""
     _SKIP_PREFIX = ("/static", "/api/ping", "/api/online", "/favicon", "/admin/audit")
@@ -157,7 +188,10 @@ async def not_found_handler(request: Request, exc):
 async def server_error_handler(request: Request, exc):
     return templates.TemplateResponse("500.html", {"request": request, "user": None}, status_code=500)
 
+_ADMIN_IP_WHITELIST = [ip.strip() for ip in os.getenv("ADMIN_IP_WHITELIST", "").split(",") if ip.strip()]
+
 app.add_middleware(AuditMiddleware)
+app.add_middleware(AdminIPWhitelistMiddleware, whitelist=_ADMIN_IP_WHITELIST)
 app.add_middleware(CSRFMiddleware)
 app.add_middleware(SessionVersionMiddleware)
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=86400 * 7,

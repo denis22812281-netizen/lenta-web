@@ -298,6 +298,36 @@
                 <i class="bi bi-arrow-left me-1"></i>Другой номер
             </button>
         </div>
+
+        <!-- ─── STEP 2FA: TOTP code ──────────────────────────── -->
+        {% elif step == "2fa" %}
+        <div class="step-title">Двухфакторная аутентификация</div>
+        <div class="step-sub">Введите 6-значный код из приложения-аутентификатора</div>
+        <div class="phone-display"><i class="bi bi-person me-2"></i>{{ display_name }}</div>
+
+        {% if error %}
+        <div class="error-box"><i class="bi bi-exclamation-circle-fill"></i>{{ error }}</div>
+        {% endif %}
+
+        <form method="post" action="/login/2fa" autocomplete="off">
+            <input type="hidden" name="phone" value="{{ phone }}">
+            <div class="mb-4">
+                <input type="text" name="totp_code" class="form-control text-center fw-bold fs-3"
+                       placeholder="000000" maxlength="6" inputmode="numeric"
+                       autocomplete="one-time-code"
+                       style="letter-spacing:10px;font-size:2rem!important"
+                       required autofocus>
+                <div class="form-text text-center">Код обновляется каждые 30 секунд</div>
+            </div>
+            <button type="submit" class="btn-login">
+                <i class="bi bi-shield-check me-2"></i>Подтвердить
+            </button>
+        </form>
+        <div class="text-center mt-3">
+            <button class="btn-back" onclick="window.location.href='/login'">
+                <i class="bi bi-arrow-left me-1"></i>Войти с другого аккаунта
+            </button>
+        </div>
         {% endif %}
 
         <div class="text-center mt-4" style="color:#ccc;font-size:11px">

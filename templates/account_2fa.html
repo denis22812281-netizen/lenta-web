@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block page_title %}Двухфакторная аутентификация{% endblock %}
+{% block title %}<i class="bi bi-shield-lock-fill me-2"></i>Двухфакторная аутентификация{% endblock %}
+
+{% block content %}
+
+{% if request.query_params.get('enabled') %}
+<div class="alert alert-success d-flex align-items-center gap-2 mb-4">
+    <i class="bi bi-check-circle-fill fs-5"></i>
+    <div>2FA успешно включена! Теперь при каждом входе потребуется код из приложения.</div>
+</div>
+{% elif request.query_params.get('disabled') %}
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
+    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+    <div>Двухфакторная аутентификация отключена.</div>
+</div>
+{% elif request.query_params.get('error') == 'invalid_code' %}
+<div class="alert alert-danger d-flex align-items-center gap-2 mb-4">
+    <i class="bi bi-x-circle-fill fs-5"></i>
+    <div>Неверный код. Проверьте время на устройстве и введите актуальный код.</div>
+</div>
+{% endif %}
+
+<div class="row justify-content-center">
+<div class="col-12 col-md-8 col-lg-6">
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header fw-bold d-flex align-items-center gap-2">
+            <i class="bi bi-shield-lock-fill text-primary"></i>
+            Статус двухфакторной аутентификации
+        </div>
+        <div class="card-body">
+            {% if totp_enabled %}
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <span class="fs-1">🔐</span>
+                <div>
+                    <div class="fw-bold text-success fs-5">2FA включена</div>
+                    <div class="text-muted small">Ваш аккаунт защищён одноразовыми кодами TOTP</div>
+                </div>
+            </div>
+            <form method="post" action="/account/2fa/disable"
+                  onsubmit="return confirm('Отключить двухфакторную аутентификацию? Ваш аккаунт будет защищён только паролем.')">
+                <input type="hidden" name="csrf_token" value="{{ request.session.get('csrf_token','') }}">
+                <button type="submit" class="btn btn-outline-danger">
+                    <i class="bi bi-shield-x me-1"></i>Отключить 2FA
+                </button>
+            </form>
+
+            {% else %}
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <span class="fs-1">🔓</span>
+                <div>
+                    <div class="fw-bold text-warning fs-5">2FA отключена</div>
+                    <div class="text-muted small">Включите двухфакторную аутентификацию для повышения безопасности</div>
+                </div>
+            </div>
+
+            {% if qr_b64 %}
+            <hr>
+            <h6 class="fw-bold mb-3">Подключить приложение-аутентификатор</h6>
+
+            <ol class="small text-muted mb-3">
+                <li class="mb-1">Установите <b>Google Authenticator</b>, <b>Yandex Key</b> или <b>Authy</b></li>
+                <li class="mb-1">Отсканируйте QR-код ниже</li>
+                <li class="mb-1">Введите 6-значный код из приложения для подтверждения</li>
+            </ol>
+
+            <div class="text-center mb-3">
+                <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR для 2FA"
+                     class="border rounded p-2" style="max-width:220px;image-rendering:pixelated">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold small">Или введите ключ вручную:</label>
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control font-monospace fw-bold" id="secretKey"
+                           value="{{ secret }}" readonly style="letter-spacing:2px">
+                    <button class="btn btn-outline-secondary" type="button" onclick="copySecret()">
+                        <i class="bi bi-copy" id="copyIcon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <form method="post" action="/account/2fa/enable">
+                <input type="hidden" name="csrf_token" value="{{ request.session.get('csrf_token','') }}">
+                <input type="hidden" name="secret" value="{{ secret }}">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Код подтверждения <span class="text-danger">*</span></label>
+                    <input type="text" name="totp_code" class="form-control text-center fw-bold fs-5"
+                           placeholder="000000" maxlength="6" inputmode="numeric"
+                           style="letter-spacing:8px" required autofocus>
+                    <div class="form-text">Введите текущий код из приложения</div>
+                </div>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-shield-check me-1"></i>Включить 2FA
+                </button>
+            </form>
+            {% else %}
+            <div class="alert alert-warning">
+                Библиотека <code>pyotp</code> не установлена. Запустите <code>pip install pyotp qrcode[pil]</code>.
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-warning">
+        <div class="card-body">
+            <h6 class="fw-bold mb-2"><i class="bi bi-info-circle text-warning me-1"></i>Что такое 2FA?</h6>
+            <p class="text-muted small mb-0">
+                Двухфакторная аутентификация (2FA) добавляет второй уровень защиты к вашему паролю.
+                После включения при каждом входе нужно будет вводить одноразовый код из приложения на телефоне.
+                Даже если кто-то узнает ваш пароль — без телефона он не сможет войти.
+            </p>
+        </div>
+    </div>
+
+</div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copySecret() {
+    const inp = document.getElementById('secretKey');
+    inp.select(); inp.setSelectionRange(0, 999);
+    navigator.clipboard.writeText(inp.value).then(() => {
+        const icon = document.getElementById('copyIcon');
+        icon.className = 'bi bi-check2';
+        setTimeout(() => { icon.className = 'bi bi-copy'; }, 2000);
+    }).catch(() => document.execCommand('copy'));
+}
+</script>
+{% endblock %}

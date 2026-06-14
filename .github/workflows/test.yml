@@ -2,28 +2,40 @@ name: Tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, master, develop]
   pull_request:
-    branches: [main]
+    branches: [main, master]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      SECRET_KEY: ci-test-secret-key-not-for-production
+      SENTRY_DSN: ""
+      CLOUDINARY_CLOUD_NAME: ""
+      TESTING: "1"
+
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
+          cache-dependency-path: lenta-web/requirements.txt
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        working-directory: lenta-web
+        run: pip install --upgrade pip && pip install -r requirements.txt
 
       - name: Run tests
-        run: pytest tests/ -v --tb=short
-        env:
-          SECRET_KEY: ci-secret-key-not-for-prod
-          TESTING: "1"
-          SENTRY_DSN: ""
-          CLOUDINARY_CLOUD_NAME: ""
+        working-directory: lenta-web
+        run: pytest tests/ -v --tb=short -x
+
+      - name: Check test DB cleanup
+        if: always()
+        working-directory: lenta-web
+        run: rm -f test_lenta.db

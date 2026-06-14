@@ -23,6 +23,8 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
     session_version = Column(Integer, default=1)
     last_seen = Column(DateTime, nullable=True)
+    totp_secret = Column(String(64), nullable=True)
+    totp_enabled = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
