@@ -154,7 +154,7 @@ async def adaptation_save(
     else:
         card = models.AdaptationCard(
             tk_number=tk_number,
-            created_by=user.get("name", ""),
+            created_by=user.get("display_name", ""),
             status="draft",
             data=data,
         )
