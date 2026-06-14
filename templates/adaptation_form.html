@@ -111,7 +111,7 @@
             <i class="bi bi-egg-fried me-2"></i>2. Производство / Кухня (ГО + размер)
             <i class="bi bi-chevron-down ms-auto"></i>
         </div>
-        <div class="collapse show" id="sec2">
+        <div class="collapse" id="sec2">
         <div class="card-body">
         <div class="row g-2">
 
@@ -159,7 +159,7 @@
             <i class="bi bi-archive-fill me-2"></i>3. Оборудование ТЗ
             <i class="bi bi-chevron-down ms-auto"></i>
         </div>
-        <div class="collapse show" id="sec3">
+        <div class="collapse" id="sec3">
         <div class="card-body">
         <div class="row g-2">
 
@@ -215,7 +215,7 @@
             <i class="bi bi-pc-display-horizontal me-2"></i>4. Оборудование ИТ
             <i class="bi bi-chevron-down ms-auto"></i>
         </div>
-        <div class="collapse show" id="sec4">
+        <div class="collapse" id="sec4">
         <div class="card-body">
         <div class="row g-2">
 
@@ -255,7 +255,7 @@
             <i class="bi bi-box-seam-fill me-2"></i>5. Оборудование Бэкофиса
             <i class="bi bi-chevron-down ms-auto"></i>
         </div>
-        <div class="collapse show" id="sec5">
+        <div class="collapse" id="sec5">
         <div class="card-body">
         <div class="row g-2">
 
@@ -301,7 +301,7 @@
             <i class="bi bi-door-open-fill me-2"></i>6. Помещения Бэкофиса
             <i class="bi bi-chevron-down ms-auto"></i>
         </div>
-        <div class="collapse show" id="sec6">
+        <div class="collapse" id="sec6">
         <div class="card-body">
         <div class="row g-2">
 
@@ -339,7 +339,7 @@
             <i class="bi bi-building-fill me-2"></i>7. Помещение ТЗ
             <i class="bi bi-chevron-down ms-auto"></i>
         </div>
-        <div class="collapse show" id="sec7">
+        <div class="collapse" id="sec7">
         <div class="card-body">
         <div class="row g-2">
 
@@ -409,7 +409,7 @@
             <i class="bi bi-megaphone-fill me-2"></i>8. Маркетинг
             <i class="bi bi-chevron-down ms-auto"></i>
         </div>
-        <div class="collapse show" id="sec8">
+        <div class="collapse" id="sec8">
         <div class="card-body">
         <div class="row g-2">
 
@@ -432,11 +432,86 @@
         </div>
         {% endfor %}
 
-        <div class="col-12 mt-2">
-            <label class="form-label fw-semibold">Иная важная информация / особенности стройки</label>
-            <textarea name="extra_info" class="form-control" rows="3"
-                      placeholder="Кто проводит демонтаж, особенности, дни работ и т.д.">{{ card_data.get('extra_info','') }}</textarea>
         </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- РАЗДЕЛ 9: ИНАЯ ВАЖНАЯ ИНФОРМАЦИЯ -->
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header fw-bold d-flex align-items-center text-dark"
+             role="button" style="background:#FFD200;cursor:pointer"
+             data-bs-toggle="collapse" data-bs-target="#sec9">
+            <i class="bi bi-exclamation-circle-fill me-2"></i>9. Иная важная информация
+            <i class="bi bi-chevron-down ms-auto"></i>
+        </div>
+        <div class="collapse show" id="sec9">
+        <div class="card-body">
+
+        <!-- Фиксированные поля строк 159-177 -->
+        <div class="row g-2 mb-3">
+
+        {% set info_items = [
+            ('who_demolition','Кто проводит демонтаж, особенности по стройке',None),
+            ('work_restrictions','Ограничения по работам (жилой дом и т.д.)',None),
+            ('lenta_online','Лента Онлайн',['да','нет','иное']),
+            ('cctv','Система видеонаблюдения',['да','нет','иное']),
+            ('security_alarm','Охранная сигнализация',['да','нет','иное']),
+            ('antitheft_frames','Антикражные рамки',['да','нет','иное']),
+            ('post1','Пост №1',['да','нет','иное']),
+            ('new_ho','Новое ХО',['да','нет','иное']),
+            ('meat_workshop','Мясной цех',['да','нет','иное']),
+            ('cryo_floors','Полы в ХК',['да','нет','иное']),
+            ('mobile_signal','Сотовая связь',['да','нет','иное']),
+            ('walkie_talkie','Рации',['да','нет','иное']),
+            ('fire_safety_lenta','Пожарная безопасность за ООО Лента',['да','нет','иное']),
+            ('fire_safety_ardd','Пожарная безопасность за АРДД',['да','нет','иное']),
+            ('receiving_room','Комната приёмки товара',['да','нет','иное']),
+            ('power_supply','Электроснабжение',['да','нет','иное']),
+            ('heat_supply','Теплоснабжение',['да','нет','иное']),
+            ('water_supply','Водоснабжение',['да','нет','иное']),
+            ('subrent_utilities','Доп. вводы для субаренды (ХВС/ГВС/водоотведение/электроэнергия)',None),
+        ] %}
+
+        {% for key, label, opts in info_items %}
+        <div class="col-12 col-sm-6 col-lg-4">
+            <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
+            {% if opts %}
+            <select name="{{ key }}" class="form-select form-select-sm">
+                <option value="">—</option>
+                {% for o in opts %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+            </select>
+            {% else %}
+            <textarea name="{{ key }}" class="form-control form-control-sm" rows="2"
+                      style="resize:vertical">{{ card_data.get(key,'') }}</textarea>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        </div>
+
+        <!-- Свободные текстовые блоки с жёлтыми заголовками -->
+        {% set free_sections = [
+            ('notes_main',   'Иная важная информация'),
+            ('notes_fasad',  'Фасад'),
+            ('notes_pb',     'Пожарная безопасность'),
+            ('notes_elektro','Электроснабжение'),
+            ('notes_voda',   'Водоснабжение'),
+            ('notes_teplo',  'Теплоснабжение'),
+        ] %}
+
+        {% for key, label in free_sections %}
+        <div class="mb-3">
+            <div class="fw-bold text-dark px-2 py-1 mb-1 rounded-1"
+                 style="background:#FFD200;font-size:.9rem">
+                {{ label }}
+            </div>
+            <textarea name="{{ key }}" class="form-control form-control-sm"
+                      rows="3" style="resize:vertical;font-size:.88rem"
+                      placeholder="Введите заметки (каждая строка → отдельная строка в Excel)">{{ card_data.get(key,'') }}</textarea>
+            <div class="text-muted" style="font-size:0.75rem">Каждая строка — отдельная запись в Excel</div>
+        </div>
+        {% endfor %}
 
         </div>
         </div>

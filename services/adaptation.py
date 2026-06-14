@@ -192,8 +192,39 @@ FIELDS: list[tuple[str, str, str, list | None]] = [
     ("mkt_ashel_mpc",    "B155","Лёгкая ашель и МНЦ над промо бинами",        OPTS_YES_NO),
     ("mkt_ashel_sof",    "B156","Сохранить ашель над СОФ",                    OPTS_YES_NO),
     ("mkt_posm",         "B157","Заказ POSM материалов для оформления",        OPTS_YES_NO),
-    ("extra_info",       "B159","Иная важная информация / особенности стройки", None),
+
+    # Section 9: Иная важная информация (строки 159-177) — фиксированные поля
+    ("who_demolition",   "A159","Кто проводит демонтаж, особенности по стройке",  None),
+    ("work_restrictions","B160","Ограничения по работам (жилой дом и т.д.)",       None),
+    ("lenta_online",     "B161","Лента Онлайн",                                    OPTS_YES_NO_OTHER),
+    ("cctv",             "B162","Система видеонаблюдения",                         OPTS_YES_NO_OTHER),
+    ("security_alarm",   "B163","Охранная сигнализация",                           OPTS_YES_NO_OTHER),
+    ("antitheft_frames", "B164","Антикражные рамки",                               OPTS_YES_NO_OTHER),
+    ("post1",            "B165","Пост №1",                                         OPTS_YES_NO_OTHER),
+    ("new_ho",           "B166","Новое ХО",                                        OPTS_YES_NO_OTHER),
+    ("meat_workshop",    "B167","Мясной цех",                                      OPTS_YES_NO_OTHER),
+    ("cryo_floors",      "B168","Полы в ХК",                                       OPTS_YES_NO_OTHER),
+    ("mobile_signal",    "B169","Сотовая связь",                                   OPTS_YES_NO_OTHER),
+    ("walkie_talkie",    "B170","Рации",                                            OPTS_YES_NO_OTHER),
+    ("fire_safety_lenta","B171","Пожарная безопасность за ООО Лента",              OPTS_YES_NO_OTHER),
+    ("fire_safety_ardd", "B172","Пожарная безопасность за АРДД",                   OPTS_YES_NO_OTHER),
+    ("receiving_room",   "B173","Комната приёмки товара",                          OPTS_YES_NO_OTHER),
+    ("power_supply",     "B174","Электроснабжение",                                OPTS_YES_NO_OTHER),
+    ("heat_supply",      "B175","Теплоснабжение",                                  OPTS_YES_NO_OTHER),
+    ("water_supply",     "B176","Водоснабжение",                                   OPTS_YES_NO_OTHER),
+    ("subrent_utilities","A177","Доп. вводы для субаренды (ХВС/ГВС/водоотведение/электроэнергия)", None),
 ]
+
+# Free-text note sections with yellow headers in Excel
+# key → (header_row, first_data_row, last_template_row, display_label)
+FREE_TEXT_SECTIONS: dict[str, tuple[int, int, int, str]] = {
+    "notes_main":    (178, 179, 183, "Иная важная информация"),
+    "notes_fasad":   (184, 185, 191, "Фасад"),
+    "notes_pb":      (192, 193, 195, "Пожарная безопасность"),
+    "notes_elektro": (196, 197, 198, "Электроснабжение"),
+    "notes_voda":    (199, 200, 203, "Водоснабжение"),
+    "notes_teplo":   (204, 205, 210, "Теплоснабжение"),
+}
 
 # Quick lookup: key → (cell, label, options)
 FIELD_MAP = {f[0]: (f[1], f[2], f[3]) for f in FIELDS}
@@ -212,7 +243,9 @@ def generate_excel(data: dict) -> bytes:
     """Open the adaptation template, write form values into 'Чек-лист', return bytes.
 
     All sheets, images and formatting from the original template are preserved.
-    Only the cells listed in FIELD_MAP are touched.
+    Fixed fields are written via FIELD_MAP.
+    Free-text sections (multiline textarea) are split by newline and written into
+    consecutive rows below each yellow header.
     """
     wb = openpyxl.load_workbook(str(TEMPLATE_PATH), keep_vba=False)
 
@@ -224,12 +257,21 @@ def generate_excel(data: dict) -> bytes:
     if ws is None:
         ws = wb.worksheets[0]
 
+    # Write fixed fields
     for key, value in data.items():
         entry = FIELD_MAP.get(key)
         if not entry or value is None or value == "":
             continue
-        cell_addr = entry[0]
-        ws[cell_addr] = value
+        ws[entry[0]] = value
+
+    # Write free-text sections (split by newline → individual rows in column B)
+    for key, (header_row, start_row, end_row, _label) in FREE_TEXT_SECTIONS.items():
+        text = data.get(key, "")
+        if not text:
+            continue
+        lines = [ln for ln in text.replace("\r", "").split("\n") if ln.strip()]
+        for i, line in enumerate(lines):
+            ws.cell(row=start_row + i, column=1, value=line)  # A:F merged → write to A
 
     buf = io.BytesIO()
     wb.save(buf)
