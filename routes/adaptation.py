@@ -1,18 +1,18 @@
 """Карточка адаптации — список, форма, сохранение, отправка, скачивание Excel."""
 import io
-import json
 import os
+import tempfile
 from datetime import datetime
 from urllib.parse import quote
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Form, Request, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 import models
 from database import get_db
 from deps import require_admin, require_login, templates
-from services.adaptation import FIELDS, DROPDOWN_OPTIONS, generate_excel, TEMPLATE_PATH
+from services.adaptation import FIELDS, FREE_TEXT_SECTIONS, DROPDOWN_OPTIONS, generate_excel, TEMPLATE_PATH
 
 router = APIRouter()
 
@@ -21,41 +21,46 @@ _NOTIFY_EMAIL = os.getenv("NOTIFY_PRECHECK_EMAIL", "denis.mesmer@lenta.com")
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
-def _send_adaptation_email(card: models.AdaptationCard) -> None:
-    """Send adaptation card by email with Excel attachment."""
+def _send_adaptation_email(card_dict: dict) -> None:
+    """Send adaptation card by email. Receives plain dict to avoid DetachedInstanceError."""
+    import logging
+    log = logging.getLogger(__name__)
     try:
-        import sib_api_v3_sdk
-        from sib_api_v3_sdk.rest import ApiException
-        cfg = sib_api_v3_sdk.Configuration()
-        cfg.api_key["api-key"] = os.getenv("BREVO_API_KEY", "")
-        api = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(cfg))
+        from services.email_service import notify_adaptation_card
 
-        excel_bytes = generate_excel(card.data or {})
-        import base64
-        attachment_b64 = base64.b64encode(excel_bytes).decode()
+        tk = card_dict.get("tk_number") or "—"
+        author = card_dict.get("created_by") or "—"
+        created_at = card_dict.get("created_at")
+        if hasattr(created_at, "strftime"):
+            date_str = created_at.strftime("%d.%m.%Y %H:%M")
+        else:
+            date_str = str(created_at or "")
+        data = card_dict.get("data") or {}
 
-        tk = card.tk_number or "—"
-        html = f"""
-        <h2>Карточка адаптации — ТК {tk}</h2>
-        <p>Составил: <b>{card.created_by}</b></p>
-        <p>Дата: {card.created_at.strftime('%d.%m.%Y %H:%M')}</p>
-        <p>Карточка прикреплена в формате Excel (.xlsx).</p>
-        """
+        excel_bytes = generate_excel(data)
 
-        send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
-            to=[{"email": _NOTIFY_EMAIL, "name": "Denis Mesmer"}],
-            sender={"email": "noreply@lenta-projects.ru", "name": "Lenta Projects"},
-            subject=f"Карточка адаптации ТК {tk}",
-            html_content=html,
-            attachment=[{
-                "content": attachment_b64,
-                "name": f"adaptation_tk{tk}.xlsx",
-            }],
-        )
-        api.send_transac_email(send_smtp_email)
+        # Write to temp file — email_service reads from path
+        fd, tmp_path = tempfile.mkstemp(suffix=".xlsx")
+        try:
+            os.write(fd, excel_bytes)
+            os.close(fd)
+            notify_adaptation_card(
+                to_email=_NOTIFY_EMAIL,
+                tk_number=tk,
+                author=author,
+                date_str=date_str,
+                data=data,
+                excel_path=tmp_path,
+            )
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
+
     except Exception as exc:
-        import logging
-        logging.getLogger(__name__).error("adaptation email error: %s", exc)
+        import logging as _logging
+        _logging.getLogger(__name__).error("adaptation email error: %s", exc, exc_info=True)
 
 
 # ── list ─────────────────────────────────────────────────────────────────────
@@ -127,9 +132,15 @@ async def adaptation_save(
     card_id = form.get("card_id", "").strip()
     tk_number = form.get("tk_number", "").strip()
 
-    # Collect all field values
+    # Collect structured field values
     data: dict = {}
     for key, _cell, _label, _opts in FIELDS:
+        v = form.get(key, "")
+        if v:
+            data[key] = v
+
+    # Collect free-text section values (notes_main, notes_fasad, etc.)
+    for key in FREE_TEXT_SECTIONS:
         v = form.get(key, "")
         if v:
             data[key] = v
@@ -151,7 +162,7 @@ async def adaptation_save(
 
     db.commit()
     db.refresh(card)
-    return RedirectResponse(f"/adaptation/{card.id}/edit", status_code=303)
+    return RedirectResponse(f"/adaptation/{card.id}/edit?saved=1", status_code=303)
 
 
 # ── send (email + mark sent) ─────────────────────────────────────────────────
@@ -167,12 +178,20 @@ async def adaptation_send(
     if not card:
         return RedirectResponse("/adaptation", status_code=302)
 
+    # Extract all data BEFORE commit — avoid DetachedInstanceError in background task
+    card_dict = {
+        "tk_number":  card.tk_number,
+        "created_by": card.created_by,
+        "created_at": card.created_at,
+        "data":       dict(card.data or {}),
+    }
+
     card.status = "sent"
     card.sent_at = datetime.utcnow()
     card.recipient_email = _NOTIFY_EMAIL
     db.commit()
 
-    background_tasks.add_task(_send_adaptation_email, card)
+    background_tasks.add_task(_send_adaptation_email, card_dict)
     return RedirectResponse(f"/adaptation/{card_id}/edit?sent=1", status_code=303)
 
 
