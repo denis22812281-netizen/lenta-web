@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+{% block page_title %}Аналитика — Лента Проекты{% endblock %}
+{% block title %}<i class="bi bi-graph-up me-2"></i>Интерактивная аналитика{% endblock %}
+
+{% block content %}
+
+<!-- ══ KPI КАРТОЧКИ ══════════════════════════════════════════════════════════ -->
+<div class="row g-3 mb-4">
+
+    <div class="col-6 col-lg-3">
+        <div class="an-kpi an-kpi-blue">
+            <div class="an-kpi-num">{{ total_projects }}</div>
+            <div class="an-kpi-lbl">Всего проектов</div>
+            <div class="an-kpi-sub">{{ active_projects }} активных</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="an-kpi an-kpi-green">
+            <div class="an-kpi-num">{{ total_construction }}</div>
+            <div class="an-kpi-lbl">Открытий Констракшн</div>
+            <div class="an-kpi-sub">
+                {% if total_construction > 0 %}
+                {{ ((early_cnt + ontime_cnt) / total_construction * 100) | round(0) | int }}% вовремя или раньше
+                {% else %}нет данных{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="an-kpi an-kpi-yellow">
+            <div class="an-kpi-num">{{ late_cnt }}</div>
+            <div class="an-kpi-lbl">Открыто с опозданием</div>
+            <div class="an-kpi-sub">{{ early_cnt }} раньше срока</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="an-kpi an-kpi-purple">
+            <div class="an-kpi-num">{{ total_adapt }}</div>
+            <div class="an-kpi-lbl">Карточек адаптации</div>
+            <div class="an-kpi-sub">{{ sent_adapt }} отправлено</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ══ РЯД 1: ЛИНЕЙНЫЙ ТРЕНД + ИТОГИ ОТКРЫТИЙ ══════════════════════════════ -->
+<div class="row g-3 mb-3">
+
+    <!-- График 1: Открытия ТК по месяцам -->
+    <div class="col-lg-8">
+        <div class="an-card">
+            <div class="an-card-header">
+                <i class="bi bi-graph-up-arrow text-success me-2"></i>
+                Открытия ТК по месяцам
+                <span class="badge bg-secondary ms-2 fw-normal" style="font-size:.7rem">Констракшн · 12 мес.</span>
+            </div>
+            <div class="an-chart-wrap" style="height:260px">
+                <canvas id="chartMonthly"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- График 2: Итоги открытий (donut) -->
+    <div class="col-lg-4">
+        <div class="an-card h-100">
+            <div class="an-card-header">
+                <i class="bi bi-pie-chart-fill text-primary me-2"></i>
+                Итоги открытий
+            </div>
+            <div class="an-chart-wrap d-flex flex-column align-items-center justify-content-center" style="height:260px">
+                <div style="position:relative;width:160px;height:160px">
+                    <canvas id="chartResults"></canvas>
+                    <div class="an-donut-center">
+                        <div class="an-donut-num">{{ total_construction }}</div>
+                        <div class="an-donut-lbl">открытий</div>
+                    </div>
+                </div>
+                <div id="legendResults" class="mt-3 w-100 px-2"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ══ РЯД 2: МЕНЕДЖЕРЫ + ЗАДАЧИ ════════════════════════════════════════════ -->
+<div class="row g-3 mb-3">
+
+    <!-- График 3: Менеджеры (stacked bar) -->
+    <div class="col-lg-7">
+        <div class="an-card">
+            <div class="an-card-header">
+                <i class="bi bi-people-fill text-warning me-2"></i>
+                Производительность менеджеров
+                <span class="badge bg-secondary ms-2 fw-normal" style="font-size:.7rem">завершённые ТК</span>
+            </div>
+            <div class="an-chart-wrap" style="height:250px">
+                <canvas id="chartManagers"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- График 4: Задачи по статусам (donut) -->
+    <div class="col-lg-5">
+        <div class="an-card">
+            <div class="an-card-header">
+                <i class="bi bi-clipboard2-data-fill text-info me-2"></i>
+                Задачи по статусам
+            </div>
+            <div class="an-chart-wrap d-flex flex-column align-items-center justify-content-center" style="height:250px">
+                <div style="position:relative;width:150px;height:150px">
+                    <canvas id="chartTasks"></canvas>
+                    <div class="an-donut-center">
+                        <div class="an-donut-num" id="taskTotal">—</div>
+                        <div class="an-donut-lbl">задач</div>
+                    </div>
+                </div>
+                <div id="legendTasks" class="mt-3 w-100 px-2"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ══ РЯД 3: КАРТОЧКИ АДАПТАЦИИ + ТИПЫ ПРОЕКТОВ ═══════════════════════════ -->
+<div class="row g-3 mb-3">
+
+    <!-- График 5: Карточки адаптации по месяцам (bar) -->
+    <div class="col-lg-7">
+        <div class="an-card">
+            <div class="an-card-header">
+                <i class="bi bi-card-checklist text-danger me-2"></i>
+                Карточки адаптации — динамика
+                <span class="badge bg-secondary ms-2 fw-normal" style="font-size:.7rem">6 месяцев</span>
+            </div>
+            <div class="an-chart-wrap" style="height:220px">
+                <canvas id="chartAdapt"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- График 6: Типы проектов (donut) -->
+    <div class="col-lg-5">
+        <div class="an-card">
+            <div class="an-card-header">
+                <i class="bi bi-building-fill text-secondary me-2"></i>
+                Проекты по типам
+            </div>
+            <div class="an-chart-wrap d-flex flex-column align-items-center justify-content-center" style="height:220px">
+                <div style="position:relative;width:140px;height:140px">
+                    <canvas id="chartTypes"></canvas>
+                    <div class="an-donut-center">
+                        <div class="an-donut-num">{{ total_projects }}</div>
+                        <div class="an-donut-lbl">всего</div>
+                    </div>
+                </div>
+                <div id="legendTypes" class="mt-3 w-100 px-2"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ══ РЯД 4: ДЕДЛАЙНЫ (горизонтальный бар) ════════════════════════════════ -->
+{% if j_dl_labels != '[]' %}
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <div class="an-card">
+            <div class="an-card-header">
+                <i class="bi bi-alarm-fill text-danger me-2"></i>
+                Ближайшие дедлайны проектов
+                <span class="badge bg-warning text-dark ms-2 fw-normal" style="font-size:.7rem">следующие 45 дней</span>
+            </div>
+            <div class="an-chart-wrap" style="height:{{ [200, (j_dl_labels | length) * 36 + 60] | max }}px;max-height:380px">
+                <canvas id="chartDeadlines"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- ══ СТИЛИ ══════════════════════════════════════════════════════════════════ -->
+<style>
+.an-kpi {
+    border-radius: 14px;
+    padding: 18px 20px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+}
+.an-kpi::after {
+    content: '';
+    position: absolute;
+    right: -20px; bottom: -20px;
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.1);
+}
+.an-kpi-num  { font-size: 2.2rem; font-weight: 900; line-height: 1; }
+.an-kpi-lbl  { font-size: .8rem; opacity: .85; margin-top: 4px; }
+.an-kpi-sub  { font-size: .72rem; opacity: .65; margin-top: 2px; }
+.an-kpi-blue   { background: linear-gradient(135deg,#2563eb,#1d4ed8); }
+.an-kpi-green  { background: linear-gradient(135deg,#16a34a,#15803d); }
+.an-kpi-yellow { background: linear-gradient(135deg,#d97706,#b45309); }
+.an-kpi-purple { background: linear-gradient(135deg,#7c3aed,#6d28d9); }
+
+.an-card {
+    background: var(--bs-body-bg);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 14px;
+    padding: 0;
+    overflow: hidden;
+}
+.an-card-header {
+    padding: 14px 18px;
+    font-weight: 600;
+    font-size: .9rem;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    display: flex;
+    align-items: center;
+}
+.an-chart-wrap { padding: 16px 12px 12px; }
+
+.an-donut-center {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    text-align: center; pointer-events: none;
+}
+.an-donut-num { font-size: 1.6rem; font-weight: 900; }
+.an-donut-lbl { font-size: .7rem; color: #888; }
+
+.an-legend-row {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    padding: 3px 0; font-size: .78rem;
+}
+.an-legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%; flex-shrink: 0;
+}
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/vendor/chartjs/chart.min.js"></script>
+<script>
+Chart.defaults.font.family = "'Segoe UI', Arial, sans-serif";
+Chart.defaults.color = '#94a3b8';
+
+const P = {
+    green:  '#3CB34A', dkGreen: '#1A5C22', ltGreen: '#86efac',
+    blue:   '#3b82f6', ltBlue:  '#93c5fd',
+    yellow: '#f59e0b', red:     '#ef4444',
+    purple: '#8b5cf6', gray:    '#64748b', ltGray: '#cbd5e1',
+};
+
+function makeLegend(id, labels, colors, values) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = labels.map((l, i) =>
+        `<div class="an-legend-row">
+            <span style="display:flex;align-items:center;gap:7px">
+                <span class="an-legend-dot" style="background:${colors[i]}"></span>${l}
+            </span>
+            <b>${values[i]}</b>
+        </div>`
+    ).join('');
+}
+
+function makeDonut(id, labels, values, colors) {
+    const total = values.reduce((a, b) => a + b, 0);
+    return new Chart(document.getElementById(id), {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: values, backgroundColor: colors,
+                borderWidth: 2, borderColor: 'transparent', hoverOffset: 5 }] },
+        options: {
+            cutout: '65%', responsive: true, maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: ctx =>
+                    ` ${ctx.label}: ${ctx.raw} (${total ? Math.round(ctx.raw / total * 100) : 0}%)` }
+                },
+            },
+        }
+    });
+}
+
+// ── 1. Открытия по месяцам (line) ───────────────────────────────────────────
+const monthLabels = {{ j_month_labels }};
+const monthCounts = {{ j_month_counts }};
+
+new Chart(document.getElementById('chartMonthly'), {
+    type: 'line',
+    data: {
+        labels: monthLabels,
+        datasets: [{
+            label: 'Открытий ТК',
+            data: monthCounts,
+            borderColor: P.green,
+            backgroundColor: 'rgba(60,179,74,.12)',
+            pointBackgroundColor: P.green,
+            pointRadius: 5, pointHoverRadius: 7,
+            tension: 0.4, fill: true, borderWidth: 2.5,
+        }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => ` ${ctx.raw} ТК открыто` } }
+        },
+        scales: {
+            x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { maxRotation: 30 } },
+            y: { grid: { color: 'rgba(255,255,255,.04)' }, beginAtZero: true,
+                 ticks: { precision: 0 } }
+        }
+    }
+});
+
+// ── 2. Итоги открытий (donut) ────────────────────────────────────────────────
+const resLabels = {{ j_result_labels }};
+const resValues = {{ j_result_values }};
+const resColors = [P.green, P.blue, P.red];
+makeDonut('chartResults', resLabels, resValues, resColors);
+makeLegend('legendResults', resLabels, resColors, resValues);
+
+// ── 3. Менеджеры (stacked horizontal bar) ────────────────────────────────────
+const mgrNames  = {{ j_mgr_names }};
+const mgrEarly  = {{ j_mgr_early }};
+const mgrOntime = {{ j_mgr_ontime }};
+const mgrLate   = {{ j_mgr_late }};
+
+new Chart(document.getElementById('chartManagers'), {
+    type: 'bar',
+    data: {
+        labels: mgrNames,
+        datasets: [
+            { label: 'Раньше срока', data: mgrEarly,  backgroundColor: P.green,   borderRadius: 0 },
+            { label: 'Вовремя',      data: mgrOntime, backgroundColor: P.blue,    borderRadius: 0 },
+            { label: 'С опозданием', data: mgrLate,   backgroundColor: P.red,     borderRadius: 4 },
+        ]
+    },
+    options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 14 } },
+            tooltip: { mode: 'index' }
+        },
+        scales: {
+            x: { stacked: true, grid: { color: 'rgba(255,255,255,.04)' }, ticks: { precision: 0 } },
+            y: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } }
+        }
+    }
+});
+
+// ── 4. Задачи по статусам (donut) ────────────────────────────────────────────
+const taskLabels = {{ j_task_labels }};
+const taskValues = {{ j_task_values }};
+const taskTotal  = taskValues.reduce((a, b) => a + b, 0);
+document.getElementById('taskTotal').textContent = taskTotal;
+
+const TASK_COLORS = { 'Открытая': P.gray, 'В работе': P.blue,
+                      'На проверке': P.yellow, 'Завершена': P.green };
+const taskColors = taskLabels.map(l => TASK_COLORS[l] || P.ltGray);
+makeDonut('chartTasks', taskLabels, taskValues, taskColors);
+makeLegend('legendTasks', taskLabels, taskColors, taskValues);
+
+// ── 5. Карточки адаптации (grouped bar) ──────────────────────────────────────
+const adaptLabels = {{ j_adapt_labels }};
+const adaptDraft  = {{ j_adapt_draft }};
+const adaptSent   = {{ j_adapt_sent }};
+
+new Chart(document.getElementById('chartAdapt'), {
+    type: 'bar',
+    data: {
+        labels: adaptLabels,
+        datasets: [
+            { label: 'Черновики', data: adaptDraft,
+              backgroundColor: 'rgba(245,158,11,.6)', borderRadius: 5 },
+            { label: 'Отправлено', data: adaptSent,
+              backgroundColor: P.green, borderRadius: 5 },
+        ]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 12 } },
+        },
+        scales: {
+            x: { grid: { display: false } },
+            y: { grid: { color: 'rgba(255,255,255,.04)' }, beginAtZero: true, ticks: { precision: 0 } }
+        }
+    }
+});
+
+// ── 6. Типы проектов (donut) ─────────────────────────────────────────────────
+const typeLabels = {{ j_type_labels }};
+const typeValues = {{ j_type_values }};
+const typeColors = [P.green, P.blue, P.purple, P.yellow, P.red, P.gray];
+makeDonut('chartTypes', typeLabels, typeValues, typeColors);
+makeLegend('legendTypes', typeLabels, typeColors, typeValues);
+
+// ── 7. Дедлайны (horizontal bar) ─────────────────────────────────────────────
+const dlLabels = {{ j_dl_labels }};
+const dlDays   = {{ j_dl_days }};
+const dlMgrs   = {{ j_dl_mgrs }};
+
+if (dlLabels.length) {
+    new Chart(document.getElementById('chartDeadlines'), {
+        type: 'bar',
+        data: {
+            labels: dlLabels,
+            datasets: [{
+                label: 'Дней до дедлайна',
+                data: dlDays,
+                backgroundColor: dlDays.map(d =>
+                    d <= 7 ? P.red : d <= 14 ? P.yellow : P.blue),
+                borderRadius: 5,
+            }]
+        },
+        options: {
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: (ctx) => {
+                    const mgr = dlMgrs[ctx.dataIndex] || '—';
+                    return [` ${ctx.raw} дней`, ` Менеджер: ${mgr}`];
+                }}}
+            },
+            scales: {
+                x: { grid: { color: 'rgba(255,255,255,.04)' }, beginAtZero: true,
+                     ticks: { callback: v => v + ' д' } },
+                y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+            }
+        }
+    });
+}
+</script>
+{% endblock %}

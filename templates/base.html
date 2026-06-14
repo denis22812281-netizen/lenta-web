@@ -107,6 +107,9 @@
                 <i class="bi bi-graph-up-arrow"></i><span>Отчёт директора</span>
             </a>
             {% endif %}
+            <a href="/analytics" class="nav-item {% if '/analytics' in request.url.path %}active{% endif %}">
+                <i class="bi bi-graph-up"></i><span>Аналитика</span>
+            </a>
             <a href="/stats" class="nav-item {% if '/stats' in request.url.path %}active{% endif %}">
                 <i class="bi bi-bar-chart-fill"></i><span>Статистика</span>
             </a>
