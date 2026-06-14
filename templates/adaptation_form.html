@@ -147,7 +147,7 @@
                     {% for o in ['да','нет','иное'] %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
                 </select>
                 <input type="text" name="{{ size_key }}" class="form-control" style="max-width:90px"
-                       placeholder="м²" value="{{ card_data.get(size_key,'') }}">
+                       placeholder="размер" value="{{ card_data.get(size_key,'') }}">
             </div>
         </div>
         {% endfor %}
@@ -166,47 +166,64 @@
         </div>
         <div class="collapse" id="sec3">
         <div class="card-body">
+        <div class="text-muted mb-2" style="font-size:.8rem">
+            <i class="bi bi-info-circle me-1"></i>Для каждой позиции: решение + кол-во/комментарий
+        </div>
         <div class="row g-2">
 
         {% set eq_tz = [
-            ('cash_tables','Кассовые столы'),('kso','КСО'),
-            ('marmite','Мармиты'),('grill_eq','Гриль (оборудование)'),
-            ('oven','Печь'),('convection_oven','Пароконвектомат'),
-            ('cool_shelves','Холодильные горки'),('cool_shelves_1500','Холодильные горки H 1500'),
-            ('cool_doors','Двери в холодильных горках'),('ho_ikra','ХО Икра'),
-            ('lari','Лари'),('vizory','Визоры'),
-            ('showcases','Витрины'),('bonety','Бонеты'),
-            ('freezer_cabinets','Морозильные шкафы'),
-            ('eq_bumpers','Отбойники оборудования'),
-            ('ldsp','ЛДСП'),('shelving','Стеллажное оборудование'),
-            ('shelving_sof','Стеллажное оборудование СОФ'),
-            ('shelving_bakery','Стеллажное оборудование Пекарня'),
-            ('shopping_carts','Тележки покупательские'),
-            ('price_holders','Замена ценникодержателей'),
-            ('shelving_recount','Пересчёт стеллажного оборудования (БУ)'),
+            ('cash_tables','cash_size','Кассовые столы'),
+            ('kso','kso_size','КСО'),
+            ('marmite','marmite_count','Мармиты'),
+            ('grill_eq','grill_eq_count','Гриль (оборудование)'),
+            ('oven','oven_count','Печь'),
+            ('convection_oven','convection_oven_count','Пароконвектомат'),
+            ('cool_shelves','cool_shelves_count','Холодильные горки'),
+            ('cool_shelves_1500','cool_shelves_1500_count','Холодильные горки H 1500'),
+            ('cool_doors','cool_doors_count','Двери в холодильных горках'),
+            ('ho_ikra','ho_ikra_count','ХО Икра'),
+            ('lari','lari_count','Лари'),
+            ('vizory','vizory_count','Визоры'),
+            ('showcases','showcases_count','Витрины'),
+            ('bonety','bonety_count','Бонеты'),
+            ('freezer_cabinets','freezer_cabinets_count','Морозильные шкафы'),
+            ('eq_bumpers','eq_bumpers_count','Отбойники оборудования'),
+            ('ldsp','ldsp_count','ЛДСП'),
+            ('shelving','shelving_count','Стеллажное оборудование'),
+            ('shelving_sof','shelving_sof_count','Стеллажное оборудование СОФ'),
+            ('shelving_bakery','shelving_bakery_count','Стеллажное оборудование Пекарня'),
+            ('shopping_carts','shopping_carts_count','Тележки покупательские'),
         ] %}
 
         {% set OPTS_REPLACE = ['да','нет','иное','полная замена','частичная замена'] %}
-        {% for key, label in eq_tz %}
+        {% for key, cnt_key, label in eq_tz %}
         <div class="col-12 col-sm-6 col-lg-4">
             <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
-            {% if key == 'price_holders' %}
-            <select name="{{ key }}" class="form-select form-select-sm">
-                <option value="да" selected>да</option>
-            </select>
-            {% elif key == 'shelving_recount' %}
-            <select name="{{ key }}" class="form-select form-select-sm">
-                <option value="">—</option>
-                {% for o in ['да','нет'] %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
-            </select>
-            {% else %}
-            <select name="{{ key }}" class="form-select form-select-sm">
-                <option value="">—</option>
-                {% for o in OPTS_REPLACE %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
-            </select>
-            {% endif %}
+            <div class="input-group input-group-sm">
+                <select name="{{ key }}" class="form-select" style="flex:0 0 56%">
+                    <option value="">—</option>
+                    {% for o in OPTS_REPLACE %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+                </select>
+                <input type="text" name="{{ cnt_key }}" class="form-control"
+                       placeholder="кол-во / доп." value="{{ card_data.get(cnt_key,'') }}">
+            </div>
         </div>
         {% endfor %}
+
+        <!-- Замена ценникодержателей и пересчёт — без кол-во -->
+        <div class="col-12 col-sm-6 col-lg-4">
+            <label class="form-label form-label-sm fw-semibold">Замена ценникодержателей</label>
+            <select name="price_holders" class="form-select form-select-sm">
+                <option value="да" selected>да</option>
+            </select>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-4">
+            <label class="form-label form-label-sm fw-semibold">Пересчёт стеллажного оборудования (БУ)</label>
+            <select name="shelving_recount" class="form-select form-select-sm">
+                <option value="">—</option>
+                {% for o in ['да','нет'] %}<option value="{{ o }}"{% if card_data.get('shelving_recount')==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+            </select>
+        </div>
 
         </div>
         </div>
@@ -523,8 +540,8 @@
         </div>
     </div>
 
-    <!-- Кнопки -->
-    <div class="d-flex gap-3 flex-wrap my-4">
+    <!-- Кнопки — только десктоп (на мобиле используется sticky-бар) -->
+    <div class="d-none d-lg-flex gap-3 flex-wrap my-4">
         <button type="submit" class="btn btn-primary px-4" id="saveBtn">
             <i class="bi bi-floppy-fill me-1"></i>Сохранить черновик
         </button>
@@ -536,7 +553,39 @@
         <a href="/adaptation" class="btn btn-outline-secondary">Отмена</a>
     </div>
 
+    <!-- Отступ для sticky бара на мобиле -->
+    <div class="d-lg-none" style="height:72px"></div>
+
 </form>
+
+<!-- ══ STICKY SAVE BAR (мобиль < 992px) ══════════════════════════════════ -->
+<div class="adapt-save-bar d-flex d-lg-none" id="adaptSaveBar">
+    <button form="adaptForm" type="submit" class="btn btn-primary fw-bold flex-grow-1" id="saveBtnMobile">
+        <i class="bi bi-floppy-fill me-1"></i>Сохранить
+    </button>
+    {% if card %}
+    <button type="button" class="btn btn-warning fw-bold px-3" onclick="confirmSend()" title="Отправить на почту">
+        <i class="bi bi-send-fill"></i>
+    </button>
+    <a href="/adaptation/{{ card.id }}/download" class="btn btn-outline-success px-3" title="Скачать Excel">
+        <i class="bi bi-file-earmark-excel-fill"></i>
+    </a>
+    {% endif %}
+</div>
+
+<style>
+.adapt-save-bar {
+    position: fixed;
+    bottom: calc(58px + env(safe-area-inset-bottom));
+    left: 0; right: 0;
+    padding: 8px 12px;
+    background: var(--bs-body-bg);
+    border-top: 2px solid #3CB34A;
+    gap: 8px;
+    z-index: 1040;
+    box-shadow: 0 -4px 16px rgba(0,0,0,.25);
+}
+</style>
 
 {% endblock %}
 
@@ -548,8 +597,12 @@ function confirmSend() {
 }
 
 document.getElementById('adaptForm')?.addEventListener('change', function() {
-    const btn = document.getElementById('saveBtn');
-    if (btn) { btn.textContent = ''; btn.innerHTML = '<i class="bi bi-floppy-fill me-1"></i>Сохранить черновик *'; btn.classList.add('btn-warning'); btn.classList.remove('btn-primary'); }
+    ['saveBtn','saveBtnMobile'].forEach(function(id) {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        btn.innerHTML = '<i class="bi bi-floppy-fill me-1"></i>Сохранить *';
+        btn.classList.add('btn-warning'); btn.classList.remove('btn-primary');
+    });
 });
 </script>
 {% endblock %}
