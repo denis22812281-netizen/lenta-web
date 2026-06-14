@@ -121,45 +121,47 @@
         <div class="row g-2">
 
         {% set kitchen_items = [
-            ('bakery','bakery_size','Пекарня СП'),
-            ('tandyr','tandyr_size','Тандыр'),
-            ('grill','grill_size','Гриль'),
-            ('fish_fresh','fish_fresh_size','Рыба на льду'),
-            ('fish_smoked','fish_smoked_size','Рыба копчёная'),
-            ('meat_chilled','meat_chilled_size','Мясо охлаждённое'),
-            ('meat_shop','meat_shop_size','Мясная лавка'),
-            ('cheese','cheese_size','Сыр'),
-            ('sausage','sausage_size','Колбаса'),
-            ('salads','salads_size','Салаты / ГБ'),
-            ('pizza','pizza_size','Пицца'),
-            ('shawarma','shawarma_size','Шаверма'),
-            ('pancakes','pancakes_size','Блины'),
-            ('coffee','coffee_size','Кофе-машина'),
-            ('cafe_zone','cafe_zone_size','Зона кафе'),
+            ('bakery','Пекарня СП'),
+            ('tandyr','Тандыр'),
+            ('grill','Гриль'),
+            ('fish_fresh','Рыба на льду'),
+            ('fish_smoked','Рыба копчёная'),
+            ('meat_chilled','Мясо охлаждённое'),
+            ('meat_shop','Мясная лавка'),
+            ('cheese','Сыр'),
+            ('sausage','Колбаса'),
+            ('salads','Салаты / ГБ'),
+            ('pizza','Пицца'),
+            ('shawarma','Шаверма'),
+            ('pancakes','Блины'),
+            ('coffee','Кофе-машина'),
+            ('cafe_zone','Зона кафе'),
         ] %}
-
-        {% set kitchen_type_map = {
-            'bakery':'bakery_type','tandyr':'tandyr_type','grill':'grill_type',
-            'fish_fresh':'fish_fresh_type','fish_smoked':'fish_smoked_type',
-            'meat_chilled':'meat_chilled_type','meat_shop':'meat_shop_type',
-            'cheese':'cheese_type','sausage':'sausage_type','salads':'salads_type',
-            'pizza':'pizza_type','shawarma':'shawarma_type','pancakes':'pancakes_type',
-            'coffee':'coffee_type','cafe_zone':'cafe_zone_type',
-        } %}
-        {% for key, size_key, label in kitchen_items %}
-        {% set type_key = kitchen_type_map.get(key, key ~ '_type') %}
-        <div class="col-12 col-sm-6 col-xl-4">
-            <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
-            <div class="input-group input-group-sm mb-1">
-                <select name="{{ key }}" class="form-select" style="flex:0 0 45%">
-                    <option value="">—</option>
-                    {% for o in ['да','нет','иное'] %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
-                </select>
-                <input type="text" name="{{ size_key }}" class="form-control"
-                       placeholder="размер" value="{{ card_data.get(size_key,'') }}">
+        {% for key, label in kitchen_items %}
+        <div class="col-12 mb-2">
+            <div class="border rounded p-2">
+                <div class="fw-semibold small mb-1 text-secondary">{{ label }}</div>
+                <div class="row g-1">
+                    <div class="col-5">
+                        <select name="{{ key }}" class="form-select form-select-sm">
+                            <option value="">— ГО —</option>
+                            {% for o in ['да','нет','иное'] %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-7">
+                        <input type="text" name="{{ key }}_size" class="form-control form-control-sm"
+                               placeholder="размер" value="{{ card_data.get(key+'_size','') }}">
+                    </div>
+                    <div class="col-6">
+                        <input type="text" name="{{ key }}_type" class="form-control form-control-sm"
+                               placeholder="тип витрины" value="{{ card_data.get(key+'_type','') }}">
+                    </div>
+                    <div class="col-6">
+                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm"
+                               placeholder="комментарий" value="{{ card_data.get(key+'_comment','') }}">
+                    </div>
+                </div>
             </div>
-            <input type="text" name="{{ type_key }}" class="form-control form-control-sm"
-                   placeholder="тип витрины" value="{{ card_data.get(type_key,'') }}">
         </div>
         {% endfor %}
 
@@ -279,23 +281,27 @@
             <div class="border rounded p-2">
                 <div class="fw-semibold small mb-1 text-secondary">{{ label }}</div>
                 <div class="row g-1">
-                    <div class="col-7">
+                    <div class="col-6">
                         <select name="{{ key }}" class="form-select form-select-sm">
                             <option value="">— замена —</option>
                             {% for o in OPTS_REPLACE %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
                         </select>
                     </div>
-                    <div class="col-5">
+                    <div class="col-3">
                         <input type="text" name="{{ key }}_size" class="form-control form-control-sm"
                                placeholder="размер" value="{{ card_data.get(key+'_size','') }}">
                     </div>
-                    <div class="col-5">
+                    <div class="col-3">
                         <input type="text" name="{{ key }}_count" class="form-control form-control-sm"
                                placeholder="кол-во" value="{{ card_data.get(key+'_count','') }}">
                     </div>
-                    <div class="col-7">
+                    <div class="col-6">
                         <input type="text" name="{{ key }}_type" class="form-control form-control-sm"
                                placeholder="тип" value="{{ card_data.get(key+'_type','') }}">
+                    </div>
+                    <div class="col-6">
+                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm"
+                               placeholder="комментарий" value="{{ card_data.get(key+'_comment','') }}">
                     </div>
                 </div>
             </div>
@@ -343,23 +349,27 @@
             <div class="border rounded p-2">
                 <div class="fw-semibold small mb-1 text-secondary">{{ label }}</div>
                 <div class="row g-1">
-                    <div class="col-7">
+                    <div class="col-6">
                         <select name="{{ key }}" class="form-select form-select-sm">
                             <option value="">— замена —</option>
                             {% for o in OPTS_REPLACE %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
                         </select>
                     </div>
-                    <div class="col-5">
+                    <div class="col-3">
                         <input type="text" name="{{ key }}_size" class="form-control form-control-sm"
                                placeholder="размер" value="{{ card_data.get(key+'_size','') }}">
                     </div>
-                    <div class="col-5">
+                    <div class="col-3">
                         <input type="text" name="{{ key }}_count" class="form-control form-control-sm"
                                placeholder="кол-во" value="{{ card_data.get(key+'_count','') }}">
                     </div>
-                    <div class="col-7">
+                    <div class="col-6">
                         <input type="text" name="{{ key }}_type" class="form-control form-control-sm"
                                placeholder="тип" value="{{ card_data.get(key+'_type','') }}">
+                    </div>
+                    <div class="col-6">
+                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm"
+                               placeholder="комментарий" value="{{ card_data.get(key+'_comment','') }}">
                     </div>
                 </div>
             </div>
