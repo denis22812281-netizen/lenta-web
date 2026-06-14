@@ -827,33 +827,6 @@ def send_smr_deadline_notification(
 def notify_adaptation_card(to_email: str, tk_number: str, author: str,
                            date_str: str, data: dict, excel_path: str) -> bool:
     """Карточка адаптации — красивое письмо с Excel-вложением."""
-    key_fields = [
-        ("Суть проекта",      data.get("recon_type", "")),
-        ("Недвижимость",      data.get("real_estate", "")),
-        ("Тип ХО",            data.get("ho_type", "")),
-        ("Открытый фасад",    data.get("open_facade", "")),
-        ("Строение",          data.get("building_location", "")),
-        ("Тип здания",        data.get("building_type", "")),
-        ("Текущий РТО",       data.get("current_rto", "")),
-        ("Прогн. РТО",        data.get("projected_rto", "")),
-    ]
-    rows = "".join(
-        f'<tr style="background:{"#f9fafb" if i%2==0 else "#ffffff"}">'
-        f'<td style="padding:8px 14px;color:#374151;font-size:13px;font-weight:600;'
-        f'width:50%;border-bottom:1px solid #f3f4f6">{label}</td>'
-        f'<td style="padding:8px 14px;color:#111827;font-size:13px;'
-        f'border-bottom:1px solid #f3f4f6">{val}</td></tr>'
-        for i, (label, val) in enumerate(key_fields) if val
-    )
-    fields_table = (
-        f'<div style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin:16px 0">'
-        f'<div style="background:#1A5C22;padding:9px 14px;color:#a3d9a5;'
-        f'font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px">'
-        f'Основные параметры</div>'
-        f'<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse">'
-        f'{rows}</table></div>'
-        if rows else ""
-    )
     content = f"""
         <p style="font-size:16px;margin-bottom:4px">Добрый день.</p>
         <p><b>{author}</b> заполнил карточку адаптации объекта:</p>
@@ -863,7 +836,6 @@ def notify_adaptation_card(to_email: str, tk_number: str, author: str,
           <div style="color:#555;font-size:13px;margin-top:4px">Заполнил: <b>{author}</b></div>
           <div style="color:#9ca3af;font-size:12px;margin-top:2px">Дата: {date_str}</div>
         </div>
-        {fields_table}
         <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;
                     padding:12px 16px;margin-top:16px">
           <span style="color:#1d4ed8;font-size:14px">
