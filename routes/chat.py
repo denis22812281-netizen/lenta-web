@@ -1,7 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Request, Form, Depends, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Request, Form, Depends, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session
@@ -13,6 +13,34 @@ from services.online import ONLINE_USERS, ONLINE_TIMEOUT
 from services.cloud_storage import upload_photo, media_url
 
 router = APIRouter()
+
+
+def _push_chat(db, sender: str, receiver: str, preview: str):
+    """Отправить push о новом сообщении в фоне."""
+    from services.push_service import notify_user, notify_all, is_configured
+    if not is_configured():
+        return
+    title = f"💬 {sender}"
+    body = preview[:80] if preview else "Новое сообщение"
+    url = f"/chat?partner={sender}"
+    if receiver:
+        notify_user(db, receiver, title, body, url)
+    else:
+        # Общий чат — всем кроме отправителя
+        import models as _m
+        subs = db.query(_m.PushSubscription).filter(
+            _m.PushSubscription.user_name != sender
+        ).all()
+        from services.push_service import send_push
+        expired = []
+        for sub in subs:
+            result = send_push(sub, title, body, "/chat")
+            if result is None:
+                expired.append(sub)
+        for sub in expired:
+            db.delete(sub)
+        if expired:
+            db.commit()
 
 
 @router.get("/chat", response_class=HTMLResponse)
@@ -85,7 +113,8 @@ async def chat_messages(request: Request, db: Session = Depends(get_db),
 
 
 @router.post("/api/chat/send")
-async def chat_send(request: Request, db: Session = Depends(get_db)):
+async def chat_send(request: Request, background_tasks: BackgroundTasks,
+                    db: Session = Depends(get_db)):
     user = get_current_user(request)
     if not user:
         return {"error": "Не авторизован"}
@@ -93,19 +122,19 @@ async def chat_send(request: Request, db: Session = Depends(get_db)):
     text = data.get("text", "").strip()
     if not text:
         return {"error": "Пустое сообщение"}
-    msg = models.ChatMessage(
-        sender_name=user.get("display_name", ""),
-        receiver_name=data.get("partner", ""),
-        text=text,
-    )
+    sender = user.get("display_name", "")
+    receiver = data.get("partner", "")
+    msg = models.ChatMessage(sender_name=sender, receiver_name=receiver, text=text)
     db.add(msg)
     db.commit()
     db.refresh(msg)
+    background_tasks.add_task(_push_chat, db, sender, receiver, text)
     return {"id": msg.id, "time": msg.created_at.strftime("%H:%M")}
 
 
 @router.post("/api/chat/send-photo")
-async def chat_send_photo(request: Request, db: Session = Depends(get_db),
+async def chat_send_photo(request: Request, background_tasks: BackgroundTasks,
+                          db: Session = Depends(get_db),
                           file: UploadFile = File(...),
                           partner: str = Form(""), text: str = Form("")):
     user = get_current_user(request)
@@ -116,15 +145,14 @@ async def chat_send_photo(request: Request, db: Session = Depends(get_db),
         ext = '.jpg'
     fname = (f"{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_"
              f"{user.get('display_name','u').replace(' ','_')}{ext}")
-    stored = upload_photo(await file.read(), "chat", fname)  # noqa: chat photos are small
-    msg = models.ChatMessage(
-        sender_name=user.get("display_name", ""),
-        receiver_name=partner, text=text or "",
-        photo_path=stored,
-    )
+    stored = upload_photo(await file.read(), "chat", fname)
+    sender = user.get("display_name", "")
+    msg = models.ChatMessage(sender_name=sender, receiver_name=partner,
+                             text=text or "", photo_path=stored)
     db.add(msg)
     db.commit()
     db.refresh(msg)
+    background_tasks.add_task(_push_chat, db, sender, partner, text or "📷 Фото")
     return {"id": msg.id, "time": msg.created_at.strftime("%H:%M"), "photo": msg.photo_path}
 
 
