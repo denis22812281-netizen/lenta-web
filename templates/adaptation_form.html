@@ -55,6 +55,7 @@
             <i class="bi bi-file-earmark-excel-fill me-1"></i>Скачать Excel
         </a>
         <form method="post" action="/adaptation/{{ card.id }}/send" class="d-inline" id="sendForm">
+            <input type="hidden" name="csrf_token" value="{{ request.session.get('csrf_token','') }}">
             <button type="button" class="btn btn-warning btn-sm fw-bold" onclick="confirmSend()">
                 <i class="bi bi-send-fill me-1"></i>Отправить на почту
             </button>
@@ -717,8 +718,6 @@
 }
 </style>
 
-{% endblock %}
-
 <!-- Модаль подтверждения отправки -->
 {% if card %}
 <div class="modal fade" id="sendModal" tabindex="-1">
@@ -740,6 +739,8 @@
   </div>
 </div>
 {% endif %}
+
+{% endblock %}
 
 {% block extra_js %}
 <script>
