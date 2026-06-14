@@ -754,32 +754,103 @@
             <p class="text-muted small mb-3"><i class="bi bi-camera me-1"></i>Фото не добавлены</p>
             {% endif %}
 
-            <form method="post" action="/adaptation/{{ card.id }}/photos/upload"
-                  enctype="multipart/form-data">
-                <div class="d-flex gap-2 align-items-center flex-wrap">
-                    <input type="file" name="file" id="adaptPhotoInput"
-                           accept="image/*" style="display:none"
-                           onchange="onAdaptPhoto(this)">
-                    <button type="button" class="btn btn-sm btn-outline-warning"
-                            onclick="document.getElementById('adaptPhotoInput').click()">
-                        <i class="bi bi-camera-fill me-1"></i>Добавить фото
-                    </button>
-                    <span id="adaptPhotoName" class="small text-muted"></span>
-                    <button type="submit" id="adaptPhotoSubmit"
-                            class="btn btn-sm btn-warning text-dark fw-bold" style="display:none">
-                        <i class="bi bi-upload me-1"></i>Загрузить
-                    </button>
+            <input type="file" name="files" id="adaptPhotoInput"
+                   accept="image/*" multiple style="display:none"
+                   onchange="onAdaptPhotos(this)">
+            <div class="d-flex gap-2 align-items-center flex-wrap mb-2">
+                <button type="button" class="btn btn-sm btn-outline-warning"
+                        onclick="document.getElementById('adaptPhotoInput').click()">
+                    <i class="bi bi-images me-1"></i>Выбрать фото
+                </button>
+                <span id="adaptPhotoName" class="small text-muted"></span>
+            </div>
+
+            <!-- Прогресс -->
+            <div id="adaptUploadProgress" style="display:none" class="mb-2">
+                <div class="progress" style="height:8px;border-radius:4px">
+                    <div id="adaptProgressBar" class="progress-bar bg-warning progress-bar-striped progress-bar-animated"
+                         style="width:0%"></div>
                 </div>
-                <div class="text-muted mt-1" style="font-size:.7rem">Макс. 20 МБ · JPG, PNG, WEBP</div>
-            </form>
+                <div id="adaptProgressText" class="text-muted mt-1" style="font-size:.75rem"></div>
+            </div>
+
+            <button type="button" id="adaptPhotoSubmit"
+                    class="btn btn-sm btn-warning text-dark fw-bold" style="display:none"
+                    onclick="uploadAdaptPhotos()">
+                <i class="bi bi-cloud-upload me-1"></i>Загрузить
+            </button>
+            <div class="text-muted mt-2" style="font-size:.7rem">
+                Макс. 20 МБ на фото · JPG, PNG, WEBP, HEIC · Можно выбрать сразу все
+            </div>
         </div>
     </div>
     <style>.adapt-photo-thumb{transition:transform .15s}.adapt-photo-thumb:hover{transform:scale(1.04)}</style>
     <script>
-    function onAdaptPhoto(inp) {
-        const f = inp.files[0];
-        document.getElementById('adaptPhotoName').textContent = f ? f.name : '';
-        document.getElementById('adaptPhotoSubmit').style.display = f ? '' : 'none';
+    var _adaptFiles = [];
+    function onAdaptPhotos(inp) {
+        _adaptFiles = Array.from(inp.files);
+        const btn = document.getElementById('adaptPhotoSubmit');
+        const lbl = document.getElementById('adaptPhotoName');
+        if (_adaptFiles.length) {
+            lbl.textContent = _adaptFiles.length + ' фото выбрано';
+            btn.style.display = '';
+            btn.textContent = '';
+            btn.innerHTML = '<i class="bi bi-cloud-upload me-1"></i>Загрузить ' + _adaptFiles.length + ' фото';
+        } else {
+            lbl.textContent = '';
+            btn.style.display = 'none';
+        }
+    }
+    function uploadAdaptPhotos() {
+        if (!_adaptFiles.length) return;
+        const btn = document.getElementById('adaptPhotoSubmit');
+        const prog = document.getElementById('adaptUploadProgress');
+        const bar  = document.getElementById('adaptProgressBar');
+        const txt  = document.getElementById('adaptProgressText');
+        btn.disabled = true;
+        prog.style.display = '';
+        bar.style.width = '5%';
+        txt.textContent = 'Подготовка…';
+
+        const fd = new FormData();
+        _adaptFiles.forEach(f => fd.append('files', f));
+
+        const start = Date.now();
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/adaptation/{{ card.id }}/photos/upload');
+
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+                const pct = Math.round(e.loaded / e.total * 90);
+                bar.style.width = pct + '%';
+                const mb = (e.loaded / 1048576).toFixed(1);
+                const total = (e.total / 1048576).toFixed(1);
+                const elapsed = (Date.now() - start) / 1000;
+                const speed = elapsed > 0 ? (e.loaded / 1048576 / elapsed).toFixed(1) : '…';
+                txt.textContent = mb + ' / ' + total + ' МБ · ' + speed + ' МБ/с';
+            }
+        };
+        xhr.onload = function() {
+            bar.style.width = '100%';
+            bar.classList.remove('progress-bar-animated');
+            if (xhr.status === 200) {
+                const r = JSON.parse(xhr.responseText);
+                txt.textContent = '✓ Загружено ' + r.uploaded + ' фото' + (r.errors ? ', ошибок: ' + r.errors : '');
+                bar.classList.remove('bg-warning');
+                bar.classList.add('bg-success');
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                txt.textContent = '✗ Ошибка загрузки';
+                bar.classList.add('bg-danger');
+                btn.disabled = false;
+            }
+        };
+        xhr.onerror = function() {
+            txt.textContent = '✗ Нет соединения';
+            bar.classList.add('bg-danger');
+            btn.disabled = false;
+        };
+        xhr.send(fd);
     }
     </script>
     {% else %}
