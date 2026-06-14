@@ -191,8 +191,25 @@ async def adaptation_send(
     card.recipient_email = _NOTIFY_EMAIL
     db.commit()
 
+    from services.email_service import EMAIL_ENABLED
     background_tasks.add_task(_send_adaptation_email, card_dict)
-    return RedirectResponse(f"/adaptation/{card_id}/edit?sent=1", status_code=303)
+    suffix = "" if EMAIL_ENABLED else "&email_warn=1"
+    return RedirectResponse(f"/adaptation/{card_id}/edit?sent=1{suffix}", status_code=303)
+
+
+# ── delete card ──────────────────────────────────────────────────────────────
+
+@router.post("/adaptation/{card_id}/delete")
+async def adaptation_delete(
+    card_id: int,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_login),
+):
+    card = db.query(models.AdaptationCard).filter_by(id=card_id).first()
+    if card:
+        db.delete(card)
+        db.commit()
+    return RedirectResponse("/adaptation?deleted=1", status_code=303)
 
 
 # ── download Excel ───────────────────────────────────────────────────────────

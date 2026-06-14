@@ -4,6 +4,12 @@
 
 {% block content %}
 
+{% if request.query_params.get('deleted') %}
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-3">
+    <i class="bi bi-trash-fill"></i><div>Карточка удалена.</div>
+</div>
+{% endif %}
+
 <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
     <div>
         <span class="badge bg-secondary fs-6">{{ cards|length }} карточек</span>
@@ -53,6 +59,14 @@
            onclick="event.stopPropagation()">
             <i class="bi bi-file-earmark-excel-fill"></i>
         </a>
+        <form method="post" action="/adaptation/{{ card.id }}/delete"
+              onclick="event.stopPropagation()"
+              onsubmit="return confirm('Удалить карточку ТК {{ card.tk_number or card.id }}?')">
+            <input type="hidden" name="csrf_token" value="{{ request.session.get('csrf_token','') }}">
+            <button type="submit" class="btn btn-outline-danger btn-sm">
+                <i class="bi bi-trash3-fill"></i>
+            </button>
+        </form>
     </div>
 
 </a>

@@ -23,10 +23,17 @@
 {% block content %}
 
 {% if request.query_params.get('sent') %}
+{% if request.query_params.get('email_warn') %}
+<div class="alert alert-danger d-flex align-items-center gap-2 mb-3">
+    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+    <div><b>Email не отправлен!</b> BREVO_API_KEY не задан в переменных Railway. Проверьте настройки сервера.</div>
+</div>
+{% else %}
 <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
     <i class="bi bi-check-circle-fill fs-5"></i>
-    <div>Карточка отправлена на почту <b>{{ "denis.mesmer@lenta.com" }}</b>. Скачать Excel можно ниже.</div>
+    <div>Карточка отправлена на почту <b>denis.mesmer@lenta.com</b>. Скачать Excel можно ниже.</div>
 </div>
+{% endif %}
 {% elif request.query_params.get('saved') %}
 <div class="alert alert-info d-flex align-items-center gap-2 mb-3">
     <i class="bi bi-floppy-fill fs-5"></i>
@@ -576,42 +583,62 @@
         <!-- Фиксированные поля строк 159-177 -->
         <div class="row g-2 mb-3">
 
-        {% set info_items = [
-            ('who_demolition','Кто проводит демонтаж, особенности по стройке',None),
-            ('work_restrictions','Ограничения по работам (жилой дом и т.д.)',None),
-            ('lenta_online','Лента Онлайн',['да','нет','иное']),
-            ('cctv','Система видеонаблюдения',['да','нет','иное']),
-            ('security_alarm','Охранная сигнализация',['да','нет','иное']),
-            ('antitheft_frames','Антикражные рамки',['да','нет','иное']),
-            ('post1','Пост №1',['да','нет','иное']),
-            ('new_ho','Новое ХО',['да','нет','иное']),
-            ('meat_workshop','Мясной цех',['да','нет','иное']),
-            ('cryo_floors','Полы в ХК',['да','нет','иное']),
-            ('mobile_signal','Сотовая связь',['да','нет','иное']),
-            ('walkie_talkie','Рации',['да','нет','иное']),
-            ('fire_safety_lenta','Пожарная безопасность за ООО Лента',['да','нет','иное']),
-            ('fire_safety_ardd','Пожарная безопасность за АРДД',['да','нет','иное']),
-            ('receiving_room','Комната приёмки товара',['да','нет','иное']),
-            ('power_supply','Электроснабжение',['да','нет','иное']),
-            ('heat_supply','Теплоснабжение',['да','нет','иное']),
-            ('water_supply','Водоснабжение',['да','нет','иное']),
-            ('subrent_utilities','Доп. вводы для субаренды (ХВС/ГВС/водоотведение/электроэнергия)',None),
+        {# Текстовые поля — без комментария #}
+        {% for key, label in [
+            ('who_demolition','Кто проводит демонтаж, особенности по стройке'),
+            ('work_restrictions','Ограничения по работам (жилой дом и т.д.)'),
         ] %}
-
-        {% for key, label, opts in info_items %}
-        <div class="col-12 col-sm-6 col-lg-4">
+        <div class="col-12 col-sm-6">
             <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
-            {% if opts %}
-            <select name="{{ key }}" class="form-select form-select-sm">
-                <option value="">—</option>
-                {% for o in opts %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
-            </select>
-            {% else %}
             <textarea name="{{ key }}" class="form-control form-control-sm" rows="2"
                       style="resize:vertical">{{ card_data.get(key,'') }}</textarea>
-            {% endif %}
         </div>
         {% endfor %}
+
+        {# Дропдауны с комментарием #}
+        {% set info_dropdown = [
+            ('lenta_online','Лента Онлайн'),
+            ('cctv','Система видеонаблюдения'),
+            ('security_alarm','Охранная сигнализация'),
+            ('antitheft_frames','Антикражные рамки'),
+            ('post1','Пост №1'),
+            ('new_ho','Новое ХО'),
+            ('meat_workshop','Мясной цех'),
+            ('cryo_floors','Полы в ХК'),
+            ('mobile_signal','Сотовая связь'),
+            ('walkie_talkie','Рации'),
+            ('fire_safety_lenta','Пожарная безопасность за ООО Лента'),
+            ('fire_safety_ardd','Пожарная безопасность за АРДД'),
+            ('receiving_room','Комната приёмки товара'),
+            ('power_supply','Электроснабжение'),
+            ('heat_supply','Теплоснабжение'),
+            ('water_supply','Водоснабжение'),
+        ] %}
+        {% for key, label in info_dropdown %}
+        <div class="col-12 mb-2">
+            <div class="border rounded p-2">
+                <div class="fw-semibold small mb-1 text-secondary">{{ label }}</div>
+                <div class="row g-1">
+                    <div class="col-5">
+                        <select name="{{ key }}" class="form-select form-select-sm">
+                            <option value="">—</option>
+                            {% for o in ['да','нет','иное'] %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-7">
+                        <input type="text" name="{{ key }}_comment" class="form-control form-control-sm"
+                               placeholder="комментарий" value="{{ card_data.get(key+'_comment','') }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <div class="col-12">
+            <label class="form-label form-label-sm fw-semibold">Доп. вводы для субаренды (ХВС/ГВС/водоотведение/электроэнергия)</label>
+            <textarea name="subrent_utilities" class="form-control form-control-sm" rows="2"
+                      style="resize:vertical">{{ card_data.get('subrent_utilities','') }}</textarea>
+        </div>
 
         </div>
 
