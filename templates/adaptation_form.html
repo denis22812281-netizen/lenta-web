@@ -718,35 +718,15 @@
 }
 </style>
 
-<!-- Модаль подтверждения отправки -->
-{% if card %}
-<div class="modal fade" id="sendModal" tabindex="-1">
-  <div class="modal-dialog modal-sm modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-body text-center py-4">
-        <i class="bi bi-send-fill text-warning d-block mb-3" style="font-size:2.5rem"></i>
-        <p class="fw-bold fs-6 mb-1">Отправить карточку адаптации?</p>
-        <p class="text-muted small mb-0">ТК {{ card.tk_number or '—' }} → <b>denis.mesmer@lenta.com</b></p>
-      </div>
-      <div class="modal-footer justify-content-center border-0 pt-0 pb-3 gap-2">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
-        <button type="button" class="btn btn-warning fw-bold px-4"
-                onclick="document.getElementById('sendForm').submit()">
-          <i class="bi bi-send-fill me-1"></i>Отправить
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-{% endif %}
-
 {% endblock %}
 
 {% block extra_js %}
 <script>
 function confirmSend() {
-    var modal = document.getElementById('sendModal');
-    if (modal) { new bootstrap.Modal(modal).show(); }
+    var tk = '{{ card.tk_number or "" }}';
+    if (confirm('Отправить карточку ТК ' + tk + ' на denis.mesmer@lenta.com?')) {
+        document.getElementById('sendForm').submit();
+    }
 }
 
 document.getElementById('adaptForm')?.addEventListener('change', function() {
