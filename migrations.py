@@ -178,6 +178,36 @@ _POSTGRES_MIGRATIONS = [
     "CREATE INDEX IF NOT EXISTS ix_adaptation_created_by ON adaptation_cards (created_by)",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret VARCHAR(64)",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN DEFAULT FALSE",
+    """CREATE TABLE IF NOT EXISTS project_history (
+        id SERIAL PRIMARY KEY,
+        project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+        changed_by VARCHAR(100) DEFAULT '',
+        field_label VARCHAR(100) DEFAULT '',
+        old_value TEXT DEFAULT '',
+        new_value TEXT DEFAULT '',
+        changed_at TIMESTAMP DEFAULT NOW()
+    )""",
+    "CREATE INDEX IF NOT EXISTS ix_project_history_project_id ON project_history (project_id)",
+    """CREATE TABLE IF NOT EXISTS project_attachments (
+        id SERIAL PRIMARY KEY,
+        project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+        original_name VARCHAR(300) DEFAULT '',
+        file_url VARCHAR(500) DEFAULT '',
+        file_type VARCHAR(20) DEFAULT 'file',
+        file_size INTEGER DEFAULT 0,
+        uploaded_by VARCHAR(100) DEFAULT '',
+        uploaded_at TIMESTAMP DEFAULT NOW()
+    )""",
+    "CREATE INDEX IF NOT EXISTS ix_proj_attach_project_id ON project_attachments (project_id)",
+    """CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id SERIAL PRIMARY KEY,
+        user_name VARCHAR(100) DEFAULT '',
+        endpoint TEXT UNIQUE NOT NULL,
+        p256dh TEXT DEFAULT '',
+        auth_key TEXT DEFAULT '',
+        created_at TIMESTAMP DEFAULT NOW()
+    )""",
+    "CREATE INDEX IF NOT EXISTS ix_push_sub_user ON push_subscriptions (user_name)",
 ]
 
 _SQLITE_MIGRATIONS = [
@@ -272,6 +302,33 @@ _SQLITE_MIGRATIONS = [
         sent_at TIMESTAMP,
         recipient_email VARCHAR(200) DEFAULT '',
         data TEXT DEFAULT '{}'
+    )""",
+    """CREATE TABLE IF NOT EXISTS project_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+        changed_by VARCHAR(100) DEFAULT '',
+        field_label VARCHAR(100) DEFAULT '',
+        old_value TEXT DEFAULT '',
+        new_value TEXT DEFAULT '',
+        changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""",
+    """CREATE TABLE IF NOT EXISTS project_attachments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+        original_name VARCHAR(300) DEFAULT '',
+        file_url VARCHAR(500) DEFAULT '',
+        file_type VARCHAR(20) DEFAULT 'file',
+        file_size INTEGER DEFAULT 0,
+        uploaded_by VARCHAR(100) DEFAULT '',
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""",
+    """CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_name VARCHAR(100) DEFAULT '',
+        endpoint TEXT UNIQUE NOT NULL,
+        p256dh TEXT DEFAULT '',
+        auth_key TEXT DEFAULT '',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""",
 ]
 

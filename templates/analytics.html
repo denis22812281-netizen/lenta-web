@@ -172,7 +172,7 @@
                 Ближайшие дедлайны проектов
                 <span class="badge bg-warning text-dark ms-2 fw-normal" style="font-size:.7rem">следующие 45 дней</span>
             </div>
-            <div class="an-chart-wrap" style="height:{{ [200, (j_dl_labels | length) * 36 + 60] | max }}px;max-height:380px">
+            <div class="an-chart-wrap" style="height:{{ [200, dl_count * 36 + 60] | max }}px;max-height:380px">
                 <canvas id="chartDeadlines"></canvas>
             </div>
         </div>
@@ -238,6 +238,17 @@
 .an-legend-dot {
     width: 10px; height: 10px;
     border-radius: 50%; flex-shrink: 0;
+}
+
+.an-card-header { flex-wrap: wrap; gap: 4px; }
+
+@media (max-width: 400px) {
+    .an-kpi { padding: 12px 14px; }
+    .an-kpi-num { font-size: 1.7rem; }
+    .an-kpi-sub { display: none; }
+}
+@media (max-width: 991px) {
+    .an-chart-wrap { padding: 12px 8px 10px; }
 }
 </style>
 

@@ -79,3 +79,14 @@ class AuditLog(Base):
         Index("ix_audit_user",    "user_name"),
         Index("ix_audit_created", "created_at"),
     )
+
+
+class PushSubscription(Base):
+    """Web Push подписки пользователей для браузерных уведомлений."""
+    __tablename__ = "push_subscriptions"
+    id = Column(Integer, primary_key=True)
+    user_name = Column(String(100), default="", index=True)
+    endpoint = Column(Text, unique=True, nullable=False)
+    p256dh = Column(Text, default="")
+    auth_key = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)

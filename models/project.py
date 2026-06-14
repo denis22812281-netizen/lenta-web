@@ -61,6 +61,10 @@ class Project(Base):
                             order_by="ProjectComment.created_at")
     opening_photos = relationship("OpeningPhoto", back_populates="project", cascade="all, delete-orphan",
                                   order_by="OpeningPhoto.uploaded_at")
+    attachments = relationship("ProjectAttachment", back_populates="project", cascade="all, delete-orphan",
+                               order_by="ProjectAttachment.uploaded_at.desc()")
+    history = relationship("ProjectHistory", back_populates="project", cascade="all, delete-orphan",
+                           order_by="ProjectHistory.changed_at.desc()")
     __table_args__ = (
         Index("ix_project_manager_id", "manager_id"),
         Index("ix_project_status",     "status"),
@@ -101,6 +105,33 @@ class OpeningPhoto(Base):
     uploaded_at = Column(DateTime, default=datetime.utcnow)
     is_featured = Column(Boolean, default=False)
     project = relationship("Project", back_populates="opening_photos")
+
+
+class ProjectAttachment(Base):
+    """Файлы и фото, прикреплённые к проекту."""
+    __tablename__ = "project_attachments"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"))
+    original_name = Column(String(300), default="")
+    file_url = Column(String(500), default="")
+    file_type = Column(String(20), default="file")  # image | pdf | xls | doc | file
+    file_size = Column(Integer, default=0)
+    uploaded_by = Column(String(100), default="")
+    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    project = relationship("Project", back_populates="attachments")
+
+
+class ProjectHistory(Base):
+    """Журнал изменений полей проекта."""
+    __tablename__ = "project_history"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"))
+    changed_by = Column(String(100), default="")
+    field_label = Column(String(100), default="")
+    old_value = Column(Text, default="")
+    new_value = Column(Text, default="")
+    changed_at = Column(DateTime, default=datetime.utcnow)
+    project = relationship("Project", back_populates="history")
 
 
 class SyncConfig(Base):

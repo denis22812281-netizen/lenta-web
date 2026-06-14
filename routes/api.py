@@ -227,3 +227,51 @@ async def reconstruct_notifications(request: Request, db: Session = Depends(get_
                     "body": f"Начало зонирования завтра: {p.zoning_start.strftime('%d.%m.%Y')}",
                     "date": str(p.zoning_start)})
     return {"notifications": notifications, "manager": manager.name if manager else "Все"}
+
+
+# ─── PWA Push-уведомления ─────────────────────────────────────────────────────
+
+@router.post("/api/push/subscribe")
+async def push_subscribe(request: Request, db: Session = Depends(get_db),
+                         user: dict = Depends(require_login)):
+    """Сохраняет Push-подписку браузера пользователя."""
+    body = await request.json()
+    endpoint = body.get("endpoint", "")
+    p256dh   = body.get("keys", {}).get("p256dh", "")
+    auth_key = body.get("keys", {}).get("auth", "")
+    if not endpoint:
+        return JSONResponse({"ok": False, "error": "no endpoint"}, status_code=400)
+    existing = db.query(models.PushSubscription).filter(
+        models.PushSubscription.endpoint == endpoint).first()
+    if existing:
+        existing.p256dh = p256dh
+        existing.auth_key = auth_key
+        existing.user_name = user.get("display_name", "")
+    else:
+        db.add(models.PushSubscription(
+            user_name=user.get("display_name", ""),
+            endpoint=endpoint, p256dh=p256dh, auth_key=auth_key,
+        ))
+    db.commit()
+    return JSONResponse({"ok": True})
+
+
+@router.delete("/api/push/subscribe")
+async def push_unsubscribe(request: Request, db: Session = Depends(get_db),
+                           user: dict = Depends(require_login)):
+    body = await request.json()
+    endpoint = body.get("endpoint", "")
+    if endpoint:
+        sub = db.query(models.PushSubscription).filter(
+            models.PushSubscription.endpoint == endpoint).first()
+        if sub:
+            db.delete(sub)
+            db.commit()
+    return JSONResponse({"ok": True})
+
+
+@router.get("/api/push/vapid-public-key")
+async def vapid_public_key():
+    import os as _os
+    key = _os.getenv("VAPID_PUBLIC_KEY", "")
+    return {"key": key, "enabled": bool(key)}

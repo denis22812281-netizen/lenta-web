@@ -69,6 +69,7 @@
     <div class="d-flex align-items-center justify-content-between mb-2">
         <span class="text-muted small" id="wizStepLabel">Шаг 1 из 5</span>
         <span class="fw-semibold small" id="wizStepName">Общая информация</span>
+        <span id="autoSaveInd" style="font-size:.7rem;color:#3CB34A;opacity:0;transition:opacity .4s;margin-left:auto"></span>
     </div>
     <div class="progress mb-3" style="height:8px;border-radius:6px">
         <div class="progress-bar bg-success" id="wizProgress" style="width:20%;transition:width .4s ease"></div>
@@ -894,7 +895,57 @@ function updateBadges() {
     }
 }
 
-// ══ Mark save button dirty on change ════════════════════════════════════
+// ══ Auto-save to localStorage ════════════════════════════════════════════
+const DRAFT_KEY = 'adapt_draft_{{ card.id if card else "new" }}';
+let _autoSaveTimer = null;
+
+function _serializeForm() {
+    const data = {};
+    document.querySelectorAll('#adaptForm .wiz-field').forEach(f => {
+        if (f.name) data[f.name] = f.value;
+    });
+    return data;
+}
+
+function _doAutoSave() {
+    try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+            ts: Date.now(),
+            data: _serializeForm(),
+        }));
+        const ind = document.getElementById('autoSaveInd');
+        if (ind) {
+            ind.textContent = 'Черновик сохранён ' + new Date().toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'});
+            ind.style.opacity = '1';
+            setTimeout(() => { ind.style.opacity = '0'; }, 3000);
+        }
+    } catch(e) {}
+}
+
+function _restoreDraft() {
+    {% if not card %}
+    try {
+        const raw = localStorage.getItem(DRAFT_KEY);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        if (!saved || !saved.data) return;
+        const age = (Date.now() - saved.ts) / 1000 / 60;
+        if (age > 120) { localStorage.removeItem(DRAFT_KEY); return; }
+        Object.entries(saved.data).forEach(([name, val]) => {
+            const el = document.querySelector(`#adaptForm [name="${name}"]`);
+            if (el && val) el.value = val;
+        });
+        updateBadges();
+        const ind = document.getElementById('autoSaveInd');
+        if (ind) { ind.textContent = 'Восстановлен черновик'; ind.style.opacity = '1'; }
+    } catch(e) {}
+    {% endif %}
+}
+
+function _clearDraft() {
+    try { localStorage.removeItem(DRAFT_KEY); } catch(e) {}
+}
+
 document.getElementById('adaptForm')?.addEventListener('change', () => {
     updateBadges();
     ['btnSave','saveBtnMobile'].forEach(id => {
@@ -903,10 +954,15 @@ document.getElementById('adaptForm')?.addEventListener('change', () => {
         b.classList.remove('btn-success','btn-primary');
         b.classList.add('btn-warning');
     });
+    clearTimeout(_autoSaveTimer);
+    _autoSaveTimer = setTimeout(_doAutoSave, 1500);
 });
+
+document.getElementById('adaptForm')?.addEventListener('submit', _clearDraft);
 
 // ══ Training tour ════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+    _restoreDraft();
     updateBadges();
     updateUI();
     if (!localStorage.getItem('adaptTourSeen')) {

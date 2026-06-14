@@ -3,301 +3,347 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Инструкция — Лента.PM</title>
+<title>Руководство пользователя — Лента.PM</title>
 <link rel="stylesheet" href="/static/vendor/bootstrap-icons/bootstrap-icons.min.css">
 <style>
-  :root {
-    --green:      #3CB34A;
-    --green-dark: #2A8436;
-    --green-deep: #1A5C22;
-    --green-bg:   #0D2010;
-    --yellow:     #FFD200;
-    --yellow-dk:  #E6B800;
-    --page-bg:    #F4FAF5;
-    --card-bg:    #ffffff;
-    --text:       #1a2e1c;
-    --text-muted: #5a7a5c;
-    --border:     #c8e6c9;
-  }
+:root {
+  --green:      #3CB34A;
+  --green-dark: #2A8436;
+  --green-deep: #1A5C22;
+  --green-bg:   #0D2010;
+  --yellow:     #FFD200;
+  --yellow-dk:  #E6B800;
+  --page-bg:    #F4FAF5;
+  --card-bg:    #ffffff;
+  --text:       #1a2e1c;
+  --text-muted: #5a7a5c;
+  --border:     #c8e6c9;
+}
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  body {
-    font-family: 'Segoe UI', Arial, sans-serif;
-    font-size: 15px;
-    line-height: 1.7;
-    color: var(--text);
-    background: var(--page-bg);
-  }
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text);
+  background: var(--page-bg);
+}
 
-  /* ── Топбар ── */
-  .topbar {
-    background: var(--green-bg);
-    border-bottom: 3px solid var(--yellow);
-    padding: 0 32px;
-    height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: sticky; top: 0; z-index: 100;
-    box-shadow: 0 2px 12px rgba(0,0,0,.35);
-  }
-  .topbar-brand {
-    display: flex; align-items: center; gap: 12px;
-  }
-  .topbar-brand img {
-    width: 38px; height: 38px; object-fit: contain;
-  }
-  .topbar-brand .brand-name {
-    font-size: 20px; font-weight: 800; color: #fff; letter-spacing: .3px;
-  }
-  .topbar-brand .brand-name span { color: #4ade80; }
-  .topbar-brand .brand-sub {
-    font-size: 10px; color: rgba(255,255,255,.45);
-    text-transform: uppercase; letter-spacing: 1px; margin-top: -4px;
-  }
-  .topbar-actions { display: flex; gap: 10px; align-items: center; }
-  .btn-pdf {
-    background: var(--yellow); color: var(--green-bg);
-    border: none; padding: 8px 20px; border-radius: 8px;
-    font-weight: 700; cursor: pointer; font-size: 14px;
-    display: inline-flex; align-items: center; gap: 6px;
-    transition: background .2s;
-  }
-  .btn-pdf:hover { background: var(--yellow-dk); }
-  .btn-back {
-    color: rgba(255,255,255,.5); text-decoration: none; font-size: 14px;
-    padding: 8px 14px; border-radius: 8px;
-    transition: color .2s, background .2s;
-  }
-  .btn-back:hover { color: #fff; background: rgba(255,255,255,.08); }
+/* ── Топбар ─────────────────────────────────────────────── */
+.topbar {
+  background: var(--green-bg);
+  border-bottom: 3px solid var(--yellow);
+  padding: 0 32px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 12px rgba(0,0,0,.35);
+}
+.topbar-brand { display: flex; align-items: center; gap: 12px; }
+.topbar-brand img { width: 38px; height: 38px; object-fit: contain; }
+.brand-name { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: .3px; }
+.brand-name span { color: #4ade80; }
+.brand-sub { font-size: 10px; color: rgba(255,255,255,.45); text-transform: uppercase; letter-spacing: 1px; margin-top: -4px; }
+.topbar-actions { display: flex; gap: 10px; align-items: center; }
+.btn-pdf {
+  background: var(--yellow); color: var(--green-bg);
+  border: none; padding: 8px 20px; border-radius: 8px;
+  font-weight: 700; cursor: pointer; font-size: 14px;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: background .2s;
+}
+.btn-pdf:hover { background: var(--yellow-dk); }
+.btn-back {
+  color: rgba(255,255,255,.5); text-decoration: none; font-size: 14px;
+  padding: 8px 14px; border-radius: 8px;
+  transition: color .2s, background .2s;
+}
+.btn-back:hover { color: #fff; background: rgba(255,255,255,.08); }
 
-  /* ── Обложка ── */
-  .cover {
-    background: linear-gradient(135deg, var(--green-bg) 0%, #0a3018 50%, var(--green-deep) 100%);
-    border-bottom: 4px solid var(--yellow);
-    padding: 56px 40px 48px;
-    display: flex;
-    align-items: center;
-    gap: 40px;
-  }
-  .cover-logo-wrap {
-    flex-shrink: 0;
-    width: 110px; height: 110px;
-    background: rgba(60,179,74,.15);
-    border: 2px solid rgba(255,210,0,.3);
-    border-radius: 24px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .cover-logo-wrap img { width: 80px; height: 80px; object-fit: contain; }
-  .cover-text { color: #fff; }
-  .cover-eyebrow {
-    font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
-    color: var(--yellow); margin-bottom: 10px; font-weight: 600;
-  }
-  .cover-title {
-    font-size: 32px; font-weight: 800; line-height: 1.2; margin-bottom: 10px;
-  }
-  .cover-title span { color: var(--yellow); }
-  .cover-desc { color: rgba(255,255,255,.6); font-size: 15px; line-height: 1.6; }
-  .cover-meta {
-    margin-top: 20px; display: flex; gap: 16px; flex-wrap: wrap;
-  }
-  .cover-badge {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: rgba(255,210,0,.12);
-    border: 1px solid rgba(255,210,0,.35);
-    color: var(--yellow); padding: 5px 14px; border-radius: 20px; font-size: 13px;
-  }
+/* ── Обложка ─────────────────────────────────────────────── */
+.cover {
+  background: linear-gradient(135deg, var(--green-bg) 0%, #0a3018 50%, var(--green-deep) 100%);
+  border-bottom: 4px solid var(--yellow);
+  padding: 56px 40px 48px;
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  position: relative;
+  overflow: hidden;
+}
+.cover::before {
+  content: '';
+  position: absolute; right: -60px; top: -60px;
+  width: 320px; height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(60,179,74,.12) 0%, transparent 70%);
+}
+.cover::after {
+  content: '';
+  position: absolute; left: 30%; bottom: -40px;
+  width: 180px; height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,210,0,.07) 0%, transparent 70%);
+}
+.cover-logo-wrap {
+  flex-shrink: 0;
+  width: 120px; height: 120px;
+  background: rgba(60,179,74,.15);
+  border: 2px solid rgba(255,210,0,.3);
+  border-radius: 28px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; z-index: 1;
+}
+.cover-logo-wrap img { width: 84px; height: 84px; object-fit: contain; }
+.cover-text { color: #fff; position: relative; z-index: 1; }
+.cover-eyebrow {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 2px;
+  color: var(--yellow); margin-bottom: 12px; font-weight: 600;
+}
+.cover-title {
+  font-size: 34px; font-weight: 800; line-height: 1.2; margin-bottom: 12px;
+}
+.cover-title span { color: var(--yellow); }
+.cover-desc { color: rgba(255,255,255,.6); font-size: 15px; line-height: 1.65; }
+.cover-meta {
+  margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap;
+}
+.cover-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,210,0,.1);
+  border: 1px solid rgba(255,210,0,.3);
+  color: var(--yellow); padding: 5px 14px; border-radius: 20px; font-size: 13px;
+}
+.cover-modules {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-top: 16px;
+}
+.cm { background: rgba(60,179,74,.18); color: #86efac; border: 1px solid rgba(60,179,74,.3);
+      padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
 
-  /* ── Контейнер ── */
-  .container {
-    max-width: 920px; margin: 0 auto; padding: 36px 24px 80px;
-  }
+/* ── Контейнер ───────────────────────────────────────────── */
+.container {
+  max-width: 960px; margin: 0 auto; padding: 36px 24px 80px;
+}
 
-  /* ── Оглавление ── */
-  .toc {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-left: 4px solid var(--green);
-    border-radius: 12px;
-    padding: 28px 32px;
-    margin-bottom: 32px;
-    box-shadow: 0 2px 10px rgba(42,132,54,.08);
-  }
-  .toc-header {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 18px;
-  }
-  .toc-header i { color: var(--green); font-size: 20px; }
-  .toc-header h2 { font-size: 16px; font-weight: 700; color: var(--green-deep); }
-  .toc-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px;
-  }
-  .toc-grid a {
-    color: var(--green-dark); text-decoration: none; font-size: 14px;
-    display: flex; align-items: center; gap: 6px;
-    padding: 4px 0; border-bottom: 1px dashed #e8f5e9;
-    transition: color .15s;
-  }
-  .toc-grid a:hover { color: var(--green); }
-  .toc-grid a .num {
-    font-weight: 700; color: var(--green); min-width: 22px; font-size: 13px;
-  }
+/* ── Оглавление ──────────────────────────────────────────── */
+.toc {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--green);
+  border-radius: 14px;
+  padding: 28px 32px;
+  margin-bottom: 32px;
+  box-shadow: 0 2px 14px rgba(42,132,54,.08);
+}
+.toc-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 20px;
+}
+.toc-header i { color: var(--green); font-size: 20px; }
+.toc-header h2 { font-size: 17px; font-weight: 700; color: var(--green-deep); }
+.toc-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 5px 28px;
+}
+.toc-grid a {
+  color: var(--green-dark); text-decoration: none; font-size: 14px;
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 0; border-bottom: 1px dashed #dff0df;
+  transition: color .15s;
+}
+.toc-grid a:hover { color: var(--green); }
+.toc-grid a .num {
+  font-weight: 700; color: var(--green); min-width: 24px; font-size: 12px;
+  background: #e8f5e9; border-radius: 4px; text-align: center; padding: 1px 3px;
+}
+.badge-new {
+  background: #3CB34A; color: #fff; font-size: 9px; font-weight: 800;
+  padding: 1px 5px; border-radius: 4px; text-transform: uppercase; letter-spacing: .3px;
+  margin-left: 4px; vertical-align: middle;
+}
 
-  /* ── Секции ── */
-  .section {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 10px rgba(42,132,54,.07);
-    overflow: hidden;
-  }
-  .section-head {
-    background: linear-gradient(135deg, var(--green-deep), var(--green-dark));
-    padding: 18px 28px;
-    display: flex; align-items: center; gap: 14px;
-  }
-  .section-head i {
-    font-size: 22px; color: var(--yellow); flex-shrink: 0;
-  }
-  .section-head h2 {
-    font-size: 18px; font-weight: 700; color: #fff; margin: 0;
-  }
-  .section-body { padding: 24px 28px; }
-  .section-body h3 {
-    font-size: 14px; font-weight: 700; color: var(--green-deep);
-    margin: 18px 0 8px; display: flex; align-items: center; gap: 6px;
-  }
-  .section-body h3::before {
-    content: '';
-    display: inline-block; width: 3px; height: 14px;
-    background: var(--yellow); border-radius: 2px;
-  }
+/* ── Секции ──────────────────────────────────────────────── */
+.section {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(42,132,54,.07);
+  overflow: hidden;
+}
+.section-head {
+  background: linear-gradient(135deg, var(--green-deep) 0%, var(--green-dark) 100%);
+  padding: 18px 28px;
+  display: flex; align-items: center; gap: 14px;
+}
+.section-head i { font-size: 22px; color: var(--yellow); flex-shrink: 0; }
+.section-head h2 { font-size: 18px; font-weight: 700; color: #fff; margin: 0; }
+.section-head .new-tag {
+  margin-left: auto;
+  background: rgba(255,210,0,.25); color: var(--yellow);
+  border: 1px solid rgba(255,210,0,.4);
+  font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 10px;
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.section-body { padding: 24px 28px; }
+.section-body h3 {
+  font-size: 14px; font-weight: 700; color: var(--green-deep);
+  margin: 20px 0 9px; display: flex; align-items: center; gap: 7px;
+}
+.section-body h3:first-child { margin-top: 0; }
+.section-body h3::before {
+  content: '';
+  display: inline-block; width: 3px; height: 14px;
+  background: var(--yellow); border-radius: 2px; flex-shrink: 0;
+}
 
-  p { margin-bottom: 10px; color: #3a5a3c; }
-  ul, ol { padding-left: 22px; margin-bottom: 12px; }
-  li { margin-bottom: 5px; color: #3a5a3c; }
-  strong { color: var(--green-deep); }
+p { margin-bottom: 10px; color: #3a5a3c; }
+ul, ol { padding-left: 22px; margin-bottom: 12px; }
+li { margin-bottom: 5px; color: #3a5a3c; }
+strong { color: var(--green-deep); }
 
-  /* ── Шаги ── */
-  .steps { counter-reset: step; padding-left: 0; list-style: none; }
-  .steps li {
-    counter-increment: step;
-    padding: 9px 12px 9px 46px; position: relative;
-    margin-bottom: 6px; border-radius: 8px;
-    background: #f0fbf1; border: 1px solid #c8e6c9;
-    color: #2a4a2c;
-  }
-  .steps li::before {
-    content: counter(step);
-    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
-    width: 22px; height: 22px; border-radius: 50%;
-    background: var(--green-dark); color: #fff;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 700;
-  }
+/* ── Шаги ────────────────────────────────────────────────── */
+.steps { counter-reset: step; padding-left: 0; list-style: none; }
+.steps li {
+  counter-increment: step;
+  padding: 9px 12px 9px 48px; position: relative;
+  margin-bottom: 6px; border-radius: 8px;
+  background: #f0fbf1; border: 1px solid #c8e6c9;
+  color: #2a4a2c;
+}
+.steps li::before {
+  content: counter(step);
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--green-dark); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+}
 
-  /* ── Подсказки ── */
-  .tip {
-    border-left: 4px solid var(--yellow);
-    background: #fffde7;
-    padding: 11px 15px; border-radius: 0 8px 8px 0;
-    margin: 12px 0; font-size: 14px; color: #5a4a00;
-  }
-  .tip strong { color: #7a6000; }
-  .info {
-    border-left: 4px solid var(--green);
-    background: #e8f5e9;
-    padding: 11px 15px; border-radius: 0 8px 8px 0;
-    margin: 12px 0; font-size: 14px; color: #1b4a20;
-  }
-  .info strong { color: var(--green-deep); }
+/* ── Подсказки ───────────────────────────────────────────── */
+.tip {
+  border-left: 4px solid var(--yellow);
+  background: #fffde7;
+  padding: 12px 16px; border-radius: 0 8px 8px 0;
+  margin: 12px 0; font-size: 14px; color: #5a4a00;
+}
+.tip strong { color: #7a6000; }
+.info {
+  border-left: 4px solid var(--green);
+  background: #e8f5e9;
+  padding: 12px 16px; border-radius: 0 8px 8px 0;
+  margin: 12px 0; font-size: 14px; color: #1b4a20;
+}
+.info strong { color: var(--green-deep); }
+.warn {
+  border-left: 4px solid #ef4444;
+  background: #fef2f2;
+  padding: 12px 16px; border-radius: 0 8px 8px 0;
+  margin: 12px 0; font-size: 14px; color: #7f1d1d;
+}
 
-  /* ── Бейджи статусов ── */
-  .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
-  .badge {
-    padding: 4px 14px; border-radius: 20px;
-    font-size: 13px; font-weight: 600;
-  }
-  .b-green  { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
-  .b-gray   { background: #f0f4f0; color: #4a6a4c; border: 1px solid #c8d8c8; }
-  .b-orange { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
-  .b-yellow { background: #fffde7; color: #7a6000; border: 1px solid #ffe082; }
-  .b-red    { background: #fce4e4; color: #c62828; border: 1px solid #ef9a9a; }
+/* ── Бейджи статусов ─────────────────────────────────────── */
+.badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.badge {
+  padding: 4px 14px; border-radius: 20px;
+  font-size: 13px; font-weight: 600;
+}
+.b-green  { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+.b-gray   { background: #f0f4f0; color: #4a6a4c; border: 1px solid #c8d8c8; }
+.b-orange { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+.b-yellow { background: #fffde7; color: #7a6000; border: 1px solid #ffe082; }
+.b-red    { background: #fce4e4; color: #c62828; border: 1px solid #ef9a9a; }
+.b-blue   { background: #e3f2fd; color: #0d47a1; border: 1px solid #90caf9; }
+.b-purple { background: #f3e5f5; color: #6a1b9a; border: 1px solid #ce93d8; }
 
-  /* ── Таблица ── */
-  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
-  th {
-    background: var(--green-deep); color: #fff;
-    text-align: left; padding: 10px 14px; font-size: 13px;
-    text-transform: uppercase; letter-spacing: .5px;
-  }
-  th:first-child { border-radius: 8px 0 0 0; }
-  th:last-child  { border-radius: 0 8px 0 0; }
-  td { padding: 10px 14px; border-bottom: 1px solid #e8f5e9; color: #2a4a2c; }
-  tr:last-child td { border-bottom: none; }
-  tr:nth-child(even) td { background: #f4faf5; }
+/* ── Таблица ─────────────────────────────────────────────── */
+.tbl { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; border-radius: 8px; overflow: hidden; }
+.tbl th {
+  background: var(--green-deep); color: #fff;
+  text-align: left; padding: 11px 16px; font-size: 13px;
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.tbl td { padding: 10px 16px; border-bottom: 1px solid #e8f5e9; color: #2a4a2c; }
+.tbl tr:last-child td { border-bottom: none; }
+.tbl tr:nth-child(even) td { background: #f4faf5; }
 
-  /* ── Секция контактов (нижняя) ── */
-  .contact-card {
-    background: linear-gradient(135deg, var(--green-bg), #0a3018);
-    border-radius: 12px; padding: 28px 32px;
-    display: flex; align-items: center; gap: 24px;
-    margin-top: 24px; border: 1px solid rgba(255,210,0,.2);
-  }
-  .contact-card img {
-    width: 72px; height: 72px; border-radius: 50%;
-    object-fit: cover; border: 3px solid var(--yellow); flex-shrink: 0;
-  }
-  .contact-card .ci { font-size: 48px; flex-shrink: 0; }
-  .contact-text { color: #fff; }
-  .contact-text h3 { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
-  .contact-text p { color: rgba(255,255,255,.6); font-size: 14px; margin: 0; }
-  .contact-text .role { color: var(--yellow); font-size: 12px; font-weight: 600;
-                        text-transform: uppercase; letter-spacing: .5px; }
+/* ── 2-колоночная сетка фич ─────────────────────────────── */
+.feat-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0;
+}
+.feat-item {
+  background: #f0fbf1; border: 1px solid #c8e6c9; border-radius: 10px;
+  padding: 12px 14px; display: flex; align-items: flex-start; gap: 10px;
+}
+.feat-item i { font-size: 18px; color: var(--green); flex-shrink: 0; margin-top: 2px; }
+.feat-item strong { display: block; font-size: 13px; color: var(--green-deep); margin-bottom: 2px; }
+.feat-item span { font-size: 13px; color: #4a6a4c; }
 
-  /* ── Футер ── */
-  .footer {
-    text-align: center; color: var(--text-muted); font-size: 12px;
-    margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border);
-  }
+/* ── Контакты ────────────────────────────────────────────── */
+.contacts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px; }
+.contact-card {
+  background: linear-gradient(135deg, var(--green-bg), #0a3018);
+  border-radius: 12px; padding: 22px 24px;
+  display: flex; align-items: center; gap: 18px;
+  border: 1px solid rgba(255,210,0,.2);
+}
+.contact-card img {
+  width: 64px; height: 64px; border-radius: 50%;
+  object-fit: cover; border: 3px solid var(--yellow); flex-shrink: 0;
+}
+.contact-card .ci { font-size: 42px; flex-shrink: 0; }
+.contact-text { color: #fff; }
+.contact-text .role { color: var(--yellow); font-size: 11px; font-weight: 600;
+                      text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
+.contact-text h3 { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
+.contact-text p { color: rgba(255,255,255,.55); font-size: 13px; margin: 0; }
 
-  /* ── Скриншоты ── */
-  .screenshot {
-    margin: 20px 0 6px;
-    text-align: center;
-  }
-  .screenshot img {
-    max-width: 100%;
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(26,92,34,.15);
-    display: block;
-    margin: 0 auto;
-  }
-  .screenshot figcaption {
-    margin-top: 8px;
-    font-size: 12px;
-    color: var(--text-muted);
-    font-style: italic;
-  }
+/* ── Скриншоты ───────────────────────────────────────────── */
+.screenshot { margin: 20px 0 6px; text-align: center; }
+.screenshot img {
+  max-width: 100%;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(26,92,34,.15);
+  display: block; margin: 0 auto;
+}
+.screenshot figcaption {
+  margin-top: 8px; font-size: 12px; color: var(--text-muted); font-style: italic;
+}
 
-  /* ── ПЕЧАТЬ ── */
-  @media print {
-    @page { margin: 15mm 12mm; }
-    body  { background: #fff; font-size: 13px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .topbar, .btn-pdf, .btn-back { display: none !important; }
-    .container { max-width: 100%; padding: 0; }
-    .cover { page-break-after: always; }
-    .section { page-break-inside: avoid; box-shadow: none; border: 1px solid #c8e6c9; margin-bottom: 12px; }
-    .toc { box-shadow: none; }
-    .section-head { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .steps li { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    h2, h3 { page-break-after: avoid; }
-    .contact-card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  }
+/* ── Футер ───────────────────────────────────────────────── */
+.footer {
+  text-align: center; color: var(--text-muted); font-size: 12px;
+  margin-top: 48px; padding-top: 20px; border-top: 1px solid var(--border);
+}
+
+/* ── Мобиль ──────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .cover { flex-direction: column; padding: 36px 24px 32px; gap: 24px; }
+  .cover-logo-wrap { width: 80px; height: 80px; }
+  .cover-title { font-size: 24px; }
+  .toc-grid { grid-template-columns: 1fr; }
+  .feat-grid { grid-template-columns: 1fr; }
+  .contacts-grid { grid-template-columns: 1fr; }
+  .topbar { padding: 0 16px; }
+  .section-body { padding: 20px 18px; }
+  .toc { padding: 20px 18px; }
+}
+
+/* ── Печать ──────────────────────────────────────────────── */
+@media print {
+  @page { margin: 15mm 12mm; }
+  body  { background: #fff; font-size: 13px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .topbar, .btn-pdf, .btn-back { display: none !important; }
+  .container { max-width: 100%; padding: 0; }
+  .cover { page-break-after: always; }
+  .section { page-break-inside: avoid; box-shadow: none; border: 1px solid #c8e6c9; margin-bottom: 12px; }
+  .toc { box-shadow: none; }
+  .section-head, .steps li, .contact-card { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  h2, h3 { page-break-after: avoid; }
+}
 </style>
 </head>
 <body>
@@ -325,436 +371,608 @@
 <div class="cover">
   <div class="cover-logo-wrap">
     <img src="/static/img/raccoon.png" alt="Лента.PM"
-         onerror="this.outerHTML='<div style=\'font-size:56px\'>🦝</div>'">
+         onerror="this.outerHTML='<div style=\'font-size:60px;text-align:center\'>🦝</div>'">
   </div>
   <div class="cover-text">
     <div class="cover-eyebrow"><i class="bi bi-book-fill"></i> &nbsp;Руководство пользователя</div>
     <div class="cover-title">Система управления<br>проектами <span>ЛЕНТА</span></div>
     <div class="cover-desc">
       Внутренний инструмент строительного департамента.<br>
-      Реконструкции · Констракшн · SMR · AI-аналитика
+      Реконструкции · Констракшн · СМР · Адаптация · AI-аналитика
     </div>
     <div class="cover-meta">
-      <span class="cover-badge"><i class="bi bi-calendar3"></i> Версия 1.0 · Июнь 2026</span>
+      <span class="cover-badge"><i class="bi bi-calendar3"></i> Версия 2.0 · Июнь 2026</span>
       <span class="cover-badge"><i class="bi bi-people-fill"></i> Команда 10 человек</span>
       <span class="cover-badge"><i class="bi bi-shield-fill-check"></i> Конфиденциально</span>
+    </div>
+    <div class="cover-modules">
+      <span class="cm">Дашборд</span><span class="cm">Проекты</span><span class="cm">Дедлайны</span>
+      <span class="cm">Задачи</span><span class="cm">ВПК</span><span class="cm">СМР</span>
+      <span class="cm">Адаптация</span><span class="cm">Аналитика</span><span class="cm">AI-чат</span>
+      <span class="cm">Поиск</span><span class="cm">2FA</span><span class="cm">Мобиль</span>
     </div>
   </div>
 </div>
 
 <div class="container">
 
-  <!-- Оглавление -->
-  <div class="toc">
-    <div class="toc-header">
-      <i class="bi bi-list-ul"></i>
-      <h2>Содержание</h2>
-    </div>
-    <div class="toc-grid">
-      <a href="#s1"><span class="num">01</span> Назначение системы</a>
-      <a href="#s9">09 &nbsp;ВПК — внутренний контроль</a>
-      <a href="#s2"><span class="num">02</span> Вход в систему</a>
-      <a href="#s10">10 &nbsp;КСО — отчётность</a>
-      <a href="#s3"><span class="num">03</span> Дашборд</a>
-      <a href="#s11">11 &nbsp;Менеджеры</a>
-      <a href="#s4"><span class="num">04</span> Проекты — Реконструкция</a>
-      <a href="#s12">12 &nbsp;AI-ассистент</a>
-      <a href="#s5"><span class="num">05</span> Проекты — Констракшн</a>
-      <a href="#s13">13 &nbsp;Статистика</a>
-      <a href="#s6"><span class="num">06</span> Задачи</a>
-      <a href="#s14">14 &nbsp;Исп. дашборд <span style="background:#FFD200;color:#0D2010;font-size:10px;font-weight:800;padding:1px 6px;border-radius:4px;margin-left:4px">ТОП</span></a>
-      <a href="#s7"><span class="num">07</span> Дедлайны</a>
-      <a href="#s15">15 &nbsp;Экспорт отчётов</a>
-      <a href="#s8"><span class="num">08</span> SMR — стройконтроль</a>
-      <a href="#s16">16 &nbsp;Для администратора</a>
-      <a href="#s13">13 &nbsp;Статистика</a>
-      <a href="#s17">17 &nbsp;Поддержка</a>
-
-    </div>
+<!-- ── Оглавление ─────────────────────────────────────────── -->
+<div class="toc">
+  <div class="toc-header">
+    <i class="bi bi-list-ul"></i>
+    <h2>Содержание</h2>
   </div>
+  <div class="toc-grid">
+    <a href="#s1"><span class="num">01</span> Назначение системы</a>
+    <a href="#s11"><span class="num">11</span> Менеджеры</a>
+    <a href="#s2"><span class="num">02</span> Вход и двухфакторная защита</a>
+    <a href="#s12"><span class="num">12</span> Карточки адаптации <span class="badge-new">NEW</span></a>
+    <a href="#s3"><span class="num">03</span> Дашборд</a>
+    <a href="#s13"><span class="num">13</span> AI-ассистент</a>
+    <a href="#s4"><span class="num">04</span> Проекты — Реконструкция</a>
+    <a href="#s14"><span class="num">14</span> Интерактивная аналитика <span class="badge-new">NEW</span></a>
+    <a href="#s5"><span class="num">05</span> Проекты — Констракшн</a>
+    <a href="#s15"><span class="num">15</span> Исполнительный дашборд <span style="background:#FFD200;color:#0D2010;font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px">ТОП</span></a>
+    <a href="#s6"><span class="num">06</span> Задачи</a>
+    <a href="#s16"><span class="num">16</span> Глобальный поиск <span class="badge-new">NEW</span></a>
+    <a href="#s7"><span class="num">07</span> Дедлайны</a>
+    <a href="#s17"><span class="num">17</span> Экспорт отчётов</a>
+    <a href="#s8"><span class="num">08</span> СМР — стройконтроль</a>
+    <a href="#s18"><span class="num">18</span> Мобильная версия <span class="badge-new">NEW</span></a>
+    <a href="#s9"><span class="num">09</span> ВПК — внутренний контроль</a>
+    <a href="#s19"><span class="num">19</span> Для администратора</a>
+    <a href="#s10"><span class="num">10</span> КСО — отчётность</a>
+    <a href="#s20"><span class="num">20</span> Техническая поддержка</a>
+  </div>
+</div>
 
-  <!-- 1 -->
-  <div class="section" id="s1">
-    <div class="section-head"><i class="bi bi-info-circle-fill"></i><h2>1. Назначение системы</h2></div>
-    <div class="section-body">
-      <p>Система <strong>Лента.PM</strong> — внутренний инструмент строительного департамента сети ЛЕНТА. Предназначена для полного контроля жизненного цикла объектов реконструкции и нового строительства.</p>
-      <ul>
-        <li>Отслеживание статусов объектов в реальном времени</li>
-        <li>Контроль дедлайнов по этапам проектов</li>
-        <li>Управление задачами внутри команды</li>
-        <li>Отправка SMR-уведомлений подрядчикам и получение подтверждений</li>
-        <li>Формирование отчётов и экспорт в Excel одним кликом</li>
-        <li>AI-ассистент с доступом ко всем данным системы</li>
-      </ul>
-      <div class="info">
-        <strong>Команда:</strong> руководитель Гаврин Игорь + 8 менеджеров проектов. Доступ предоставляется администратором по номеру телефона.
+<!-- ── 1. Назначение ──────────────────────────────────────── -->
+<div class="section" id="s1">
+  <div class="section-head"><i class="bi bi-info-circle-fill"></i><h2>1. Назначение системы</h2></div>
+  <div class="section-body">
+    <p><strong>Лента.PM</strong> — внутренний инструмент строительного департамента сети ЛЕНТА. Обеспечивает полный контроль жизненного цикла объектов реконструкции и нового строительства от планирования до открытия.</p>
+
+    <div class="feat-grid">
+      <div class="feat-item">
+        <i class="bi bi-building"></i>
+        <div><strong>Управление объектами</strong><span>Реконструкция и Констракшн с историей изменений</span></div>
+      </div>
+      <div class="feat-item">
+        <i class="bi bi-calendar2-check"></i>
+        <div><strong>Контроль дедлайнов</strong><span>Этапы проектов с цветовой индикацией состояния</span></div>
+      </div>
+      <div class="feat-item">
+        <i class="bi bi-check2-square"></i>
+        <div><strong>Задачи и поручения</strong><span>Внутренний трекер с приоритетами и исполнителями</span></div>
+      </div>
+      <div class="feat-item">
+        <i class="bi bi-bar-chart-steps"></i>
+        <div><strong>СМР-уведомления</strong><span>Автоматические письма подрядчикам с подтверждением</span></div>
+      </div>
+      <div class="feat-item">
+        <i class="bi bi-card-checklist"></i>
+        <div><strong>Карточки адаптации</strong><span>Пошаговый ввод данных по новым объектам</span></div>
+      </div>
+      <div class="feat-item">
+        <i class="bi bi-robot"></i>
+        <div><strong>AI-ассистент</strong><span>Ответы на вопросы по данным системы в реальном времени</span></div>
+      </div>
+      <div class="feat-item">
+        <i class="bi bi-graph-up"></i>
+        <div><strong>Интерактивная аналитика</strong><span>7 графиков по всем модулям системы</span></div>
+      </div>
+      <div class="feat-item">
+        <i class="bi bi-search"></i>
+        <div><strong>Глобальный поиск</strong><span>Мгновенный поиск по всем объектам системы</span></div>
       </div>
     </div>
-  </div>
 
-  <!-- 2 -->
-  <div class="section" id="s2">
-    <div class="section-head"><i class="bi bi-key-fill"></i><h2>2. Вход в систему</h2></div>
-    <div class="section-body">
-      <h3>Первый вход</h3>
-      <ol class="steps">
-        <li>Откройте браузер и перейдите по ссылке системы (можно отсканировать QR-код)</li>
-        <li>Введите номер телефона в формате <strong>+7XXXXXXXXXX</strong></li>
-        <li>Если номер есть в системе — введите пароль (при первом входе создайте новый)</li>
-        <li>Нажмите «Войти» — откроется главный дашборд</li>
-      </ol>
-      <figure class="screenshot">
-        <img src="/static/img/help/01_login.png" alt="Страница входа">
-        <figcaption>Страница авторизации — ввод номера телефона</figcaption>
-      </figure>
-      <div class="tip"><strong>Совет:</strong> Сохраните пароль в браузере — кнопка «Сохранить» появится при вводе автоматически.</div>
-      <h3>Если забыли пароль</h3>
-      <p>Обратитесь к администратору — Месмер Денис. Он сбросит пароль, при следующем входе вы создадите новый.</p>
+    <div class="info">
+      <strong>Команда:</strong> директор Комаров Алексей, руководитель Гаврин Игорь + 8 менеджеров проектов. Доступ предоставляется администратором по номеру телефона.
     </div>
   </div>
+</div>
 
-  <!-- 3 -->
-  <div class="section" id="s3">
-    <div class="section-head"><i class="bi bi-speedometer2"></i><h2>3. Дашборд — главная страница</h2></div>
-    <div class="section-body">
-      <p>После входа открывается дашборд — сводка по всему портфелю проектов в реальном времени.</p>
-      <ul>
-        <li><strong>Карточки статистики</strong> — активные, завершённые, просроченные объекты</li>
-        <li><strong>Срочные объекты</strong> — дедлайн менее 7 дней</li>
-        <li><strong>Просроченные</strong> — объекты с истёкшим сроком и количество дней просрочки</li>
-        <li><strong>Открытые задачи</strong> — задачи команды, требующие внимания</li>
-        <li><strong>Онлайн</strong> — кто из коллег сейчас работает в системе</li>
-      </ul>
-      <div class="badge-row">
-        <span class="badge b-red"><i class="bi bi-exclamation-circle"></i> Красный — просрочено</span>
-        <span class="badge b-yellow"><i class="bi bi-clock"></i> Жёлтый — менее 7 дней</span>
-        <span class="badge b-green"><i class="bi bi-check-circle"></i> Зелёный — в норме</span>
+<!-- ── 2. Вход и 2FA ──────────────────────────────────────── -->
+<div class="section" id="s2">
+  <div class="section-head"><i class="bi bi-key-fill"></i><h2>2. Вход в систему и двухфакторная защита</h2></div>
+  <div class="section-body">
+    <h3>Первый вход</h3>
+    <ol class="steps">
+      <li>Откройте браузер и перейдите по адресу системы</li>
+      <li>Введите номер телефона в формате <strong>+7XXXXXXXXXX</strong></li>
+      <li>Если номер зарегистрирован — введите пароль. При первом входе задайте новый</li>
+      <li>Нажмите «Войти» — откроется главный дашборд</li>
+    </ol>
+    <div class="tip"><strong>Совет:</strong> Добавьте сайт в закладки или на рабочий стол — на мобильном телефоне он работает как приложение.</div>
+
+    <h3>Если забыли пароль</h3>
+    <p>Обратитесь к администратору — Месмер Денис. Он сбросит пароль, при следующем входе вы зададите новый самостоятельно.</p>
+
+    <h3>Двухфакторная аутентификация (2FA)</h3>
+    <p>Дополнительный уровень защиты аккаунта — после ввода пароля система запросит 6-значный код из приложения-аутентификатора.</p>
+    <ol class="steps">
+      <li>Перейдите в <strong>Профиль → Двухфакторная аутентификация</strong> (иконка щита в боковой панели)</li>
+      <li>Отсканируйте QR-код через <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong> или аналог</li>
+      <li>Введите 6-значный код из приложения и нажмите «Подключить»</li>
+      <li>При каждом входе после пароля система будет запрашивать текущий код</li>
+    </ol>
+    <div class="info"><strong>Рекомендуется</strong> всем сотрудникам с правами администратора. Код меняется каждые 30 секунд — используйте актуальный.</div>
+    <div class="tip"><strong>Если потеряли доступ к приложению</strong> — обратитесь к администратору для отключения 2FA.</div>
+  </div>
+</div>
+
+<!-- ── 3. Дашборд ─────────────────────────────────────────── -->
+<div class="section" id="s3">
+  <div class="section-head"><i class="bi bi-speedometer2"></i><h2>3. Дашборд — главная страница</h2></div>
+  <div class="section-body">
+    <p>После входа открывается дашборд — сводка по всему портфелю проектов в реальном времени.</p>
+    <div class="feat-grid">
+      <div class="feat-item">
+        <i class="bi bi-grid-1x2-fill"></i>
+        <div><strong>KPI-карточки</strong><span>Активные, завершённые, просроченные объекты</span></div>
       </div>
-      <figure class="screenshot">
-        <img src="/static/img/help/02_dashboard.png" alt="Дашборд">
-        <figcaption>Дашборд — сводная статистика по всему портфелю проектов</figcaption>
-      </figure>
-    </div>
-  </div>
-
-  <!-- 4 -->
-  <div class="section" id="s4">
-    <div class="section-head"><i class="bi bi-building"></i><h2>4. Проекты — Реконструкция</h2></div>
-    <div class="section-body">
-      <p>Раздел содержит все объекты типа «Реконструкция» с фильтрацией, поиском и массовыми операциями.</p>
-      <h3>Список объектов</h3>
-      <ul>
-        <li>Фильтрация по статусу, менеджеру, городу</li>
-        <li>Поиск по номеру ТК или названию объекта</li>
-        <li>Массовые действия — выбрать несколько объектов и изменить статус или менеджера</li>
-      </ul>
-      <h3>Статусы проекта</h3>
-      <div class="badge-row">
-        <span class="badge b-yellow">Планирование</span>
-        <span class="badge b-green">Активный</span>
-        <span class="badge b-orange">Приостановлен</span>
-        <span class="badge b-gray">Завершён</span>
+      <div class="feat-item">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <div><strong>Срочные объекты</strong><span>Дедлайн менее 7 дней — требуют внимания сейчас</span></div>
       </div>
-      <h3>Создание нового объекта</h3>
-      <ol class="steps">
-        <li>Нажмите «+ Добавить» в правом верхнем углу списка</li>
-        <li>Заполните обязательные поля: название, номер ТК, город, тип, статус</li>
-        <li>Назначьте ответственного менеджера и укажите плановые даты</li>
-        <li>Нажмите «Сохранить»</li>
-      </ol>
-      <figure class="screenshot">
-        <img src="/static/img/help/03_projects_reconstruct.png" alt="Реконструкции">
-        <figcaption>Список объектов реконструкции — фильтры, статусы, поиск</figcaption>
-      </figure>
-      <h3>Карточка объекта</h3>
-      <p>Нажмите на объект для просмотра деталей: основные данные, этапы проекта, файлы, история изменений.</p>
-      <figure class="screenshot">
-        <img src="/static/img/help/12_project_detail.png" alt="Карточка объекта">
-        <figcaption>Карточка проекта — информация, этапы, Gantt-график, задачи</figcaption>
-      </figure>
-    </div>
-  </div>
-
-  <!-- 5 -->
-  <div class="section" id="s5">
-    <div class="section-head"><i class="bi bi-buildings"></i><h2>5. Проекты — Констракшн</h2></div>
-    <div class="section-body">
-      <p>Раздел для объектов нового строительства. Интерфейс и логика работы идентичны разделу «Реконструкция».</p>
-      <div class="info"><strong>Разница:</strong> в таблицах дедлайнов и отчётах Реконструкции и Констракшн отображаются на отдельных вкладках.</div>
-      <figure class="screenshot">
-        <img src="/static/img/help/04_projects_construction.png" alt="Констракшн">
-        <figcaption>Раздел Констракшн — объекты нового строительства</figcaption>
-      </figure>
-    </div>
-  </div>
-
-  <!-- 6 -->
-  <div class="section" id="s6">
-    <div class="section-head"><i class="bi bi-check2-square"></i><h2>6. Задачи</h2></div>
-    <div class="section-body">
-      <p>Внутренний трекер команды для оперативного взаимодействия и постановки поручений.</p>
-      <h3>Создание задачи</h3>
-      <ol class="steps">
-        <li>Перейдите в раздел «Задачи» в боковом меню</li>
-        <li>Нажмите «+ Новая задача»</li>
-        <li>Укажите название, описание, приоритет, исполнителя и срок выполнения</li>
-        <li>Нажмите «Сохранить»</li>
-      </ol>
-      <h3>Приоритеты</h3>
-      <div class="badge-row">
-        <span class="badge b-gray">Низкий</span>
-        <span class="badge b-yellow">Средний</span>
-        <span class="badge b-orange">Высокий</span>
+      <div class="feat-item">
+        <i class="bi bi-clock-history"></i>
+        <div><strong>Просроченные</strong><span>Объекты с истёкшим сроком и количество дней просрочки</span></div>
       </div>
-      <figure class="screenshot">
-        <img src="/static/img/help/06_tasks.png" alt="Задачи">
-        <figcaption>Раздел задач — трекер поручений команды</figcaption>
-      </figure>
-      <div class="tip"><strong>Совет:</strong> При завершении задачи добавьте комментарий — это помогает вести историю работы по объекту.</div>
-    </div>
-  </div>
-
-  <!-- 7 -->
-  <div class="section" id="s7">
-    <div class="section-head"><i class="bi bi-calendar2-check-fill"></i><h2>7. Дедлайны</h2></div>
-    <div class="section-body">
-      <p>Сводная таблица по этапам всех активных проектов — видно что просрочено, что завершено, что в работе.</p>
-      <h3>Как читать таблицу</h3>
-      <ul>
-        <li>Строки — объекты (ТК)</li>
-        <li>Столбцы — этапы проекта с датами начала и окончания</li>
-        <li>Цвет ячейки показывает состояние этапа (просрочено / скоро / выполнено)</li>
-      </ul>
-      <h3>Импорт из Excel</h3>
-      <ol class="steps">
-        <li>Подготовьте файл в установленном формате</li>
-        <li>Перейдите «Дедлайны» → «Импортировать»</li>
-        <li>Выберите файл (макс. 10 МБ) и нажмите «Загрузить»</li>
-        <li>Система обновит даты автоматически по всем объектам</li>
-      </ol>
-      <figure class="screenshot">
-        <img src="/static/img/help/05_deadlines.png" alt="Дедлайны">
-        <figcaption>Раздел дедлайнов — сводная таблица этапов всех активных объектов</figcaption>
-      </figure>
-    </div>
-  </div>
-
-  <!-- 8 -->
-  <div class="section" id="s8">
-    <div class="section-head"><i class="bi bi-tools"></i><h2>8. SMR — строительно-монтажные работы</h2></div>
-    <div class="section-body">
-      <p>Модуль для управления графиками подрядчиков и автоматической отправки уведомлений о выполненных работах.</p>
-      <h3>Отправка уведомления</h3>
-      <ol class="steps">
-        <li>Откройте нужный SMR-объект из списка</li>
-        <li>Отметьте выполненные этапы работ</li>
-        <li>Нажмите «Отправить уведомление» — подрядчик получит письмо</li>
-        <li>Подрядчик переходит по ссылке и подтверждает выполнение</li>
-      </ol>
-      <div class="info"><strong>Подтверждение</strong> фиксируется в системе с датой и временем — для отчётности и контроля.</div>
-      <h3>База контактов</h3>
-      <p>Раздел «Контакты» → список подрядчиков с email-адресами. Можно добавлять и удалять контакты.</p>
-      <figure class="screenshot">
-        <img src="/static/img/help/07_smr.png" alt="SMR">
-        <figcaption>График СМР — список объектов и управление уведомлениями</figcaption>
-      </figure>
-    </div>
-  </div>
-
-  <!-- 9 -->
-  <div class="section" id="s9">
-    <div class="section-head"><i class="bi bi-clipboard2-data-fill"></i><h2>9. ВПК — внутренний контроль</h2></div>
-    <div class="section-body">
-      <p>Мониторинг отчётов по объектам для внутреннего контроля качества.</p>
-      <ul>
-        <li>Реестр отчётов с датами и статусами по объектам</li>
-        <li>Счётчик непрочитанных материалов в боковом меню</li>
-        <li>Экспорт реестра в Excel</li>
-      </ul>
-      <div class="tip"><strong>Индикатор ВПК:</strong> цифра рядом с пунктом меню показывает количество новых непрочитанных отчётов.</div>
-      <figure class="screenshot">
-        <img src="/static/img/help/08_vpk.png" alt="ВПК">
-        <figcaption>ВПК — реестр отчётов по внутреннему контролю</figcaption>
-      </figure>
-    </div>
-  </div>
-
-  <!-- 10 -->
-  <div class="section" id="s10">
-    <div class="section-head"><i class="bi bi-folder2-open"></i><h2>10. КСО — отчётность</h2></div>
-    <div class="section-body">
-      <p>Реестр КСО-документации по объектам — хранение и контроль отчётных документов.</p>
-      <ul>
-        <li>Фильтрация по объекту, дате, статусу проверки</li>
-        <li>Прикрепление файлов к записям</li>
-        <li>Отметки о прохождении проверки</li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- 11 -->
-  <div class="section" id="s11">
-    <div class="section-head"><i class="bi bi-people-fill"></i><h2>11. Менеджеры</h2></div>
-    <div class="section-body">
-      <p>Справочник команды — контактные данные и текущая нагрузка по каждому менеджеру.</p>
-      <ul>
-        <li>ФИО, телефон, email каждого сотрудника</li>
-        <li>Количество активных объектов у менеджера</li>
-        <li>Отметка руководителя (Гаврин Игорь)</li>
-      </ul>
-      <figure class="screenshot">
-        <img src="/static/img/help/09_managers.png" alt="Менеджеры">
-        <figcaption>Справочник менеджеров — команда и текущая нагрузка</figcaption>
-      </figure>
-      <p>Менеджеры из этого справочника назначаются на объекты в карточках проектов.</p>
-    </div>
-  </div>
-
-  <!-- 12 -->
-  <div class="section" id="s12">
-    <div class="section-head"><i class="bi bi-robot"></i><h2>12. AI-ассистент</h2></div>
-    <div class="section-body">
-      <p>Встроенный чат-бот, который видит все данные системы в реальном времени и помогает анализировать портфель проектов.</p>
-      <h3>Что умеет</h3>
-      <ul>
-        <li>«Сколько у нас просроченных объектов?»</li>
-        <li>«Какие ТК закрываются в этом месяце?»</li>
-        <li>«У кого из менеджеров больше всего активных проектов?»</li>
-        <li>«Составь сводку по статусам портфеля»</li>
-        <li>Проверить загруженный Excel-файл на ошибки в формулах</li>
-      </ul>
-      <h3>Провайдеры</h3>
-      <div class="badge-row">
-        <span class="badge b-green">Groq — быстрый, бесплатный</span>
-        <span class="badge b-yellow">Claude — точный анализ</span>
-        <span class="badge b-gray">DeepSeek</span>
+      <div class="feat-item">
+        <i class="bi bi-wifi"></i>
+        <div><strong>Онлайн</strong><span>Кто из коллег работает в системе прямо сейчас</span></div>
       </div>
-      <figure class="screenshot">
-        <img src="/static/img/help/10_ai.png" alt="AI-ассистент">
-        <figcaption>AI-ассистент — чат с доступом ко всем данным системы</figcaption>
-      </figure>
-      <div class="tip"><strong>Рекомендация:</strong> для быстрых вопросов — Groq, для глубокого анализа и отчётов — Claude.</div>
     </div>
+    <h3>Цветовая индикация</h3>
+    <div class="badge-row">
+      <span class="badge b-red"><i class="bi bi-exclamation-circle"></i> Красный — просрочено</span>
+      <span class="badge b-yellow"><i class="bi bi-clock"></i> Жёлтый — менее 7 дней</span>
+      <span class="badge b-green"><i class="bi bi-check-circle"></i> Зелёный — в норме</span>
+      <span class="badge b-gray"><i class="bi bi-dash-circle"></i> Серый — завершён</span>
+    </div>
+    <div class="tip"><strong>Быстрые действия:</strong> кнопки на дашборде позволяют перейти прямо в нужный раздел одним кликом без навигации по меню.</div>
   </div>
+</div>
 
-  <!-- 13 -->
-  <div class="section" id="s13">
-    <div class="section-head"><i class="bi bi-bar-chart-fill"></i><h2>13. Статистика</h2></div>
-    <div class="section-body">
-      <p>Аналитические графики по всему портфелю проектов.</p>
-      <ul>
-        <li>Распределение объектов по статусам и типам</li>
-        <li>Динамика завершения объектов по месяцам</li>
-        <li>Нагрузка на менеджеров (активные объекты)</li>
-        <li>Доля просроченных объектов в портфеле</li>
-      </ul>
-      <figure class="screenshot">
-        <img src="/static/img/help/11_stats.png" alt="Статистика">
-        <figcaption>Раздел статистики — аналитические графики по портфелю</figcaption>
-      </figure>
+<!-- ── 4. Реконструкция ───────────────────────────────────── -->
+<div class="section" id="s4">
+  <div class="section-head"><i class="bi bi-building"></i><h2>4. Проекты — Реконструкция</h2></div>
+  <div class="section-body">
+    <p>Все объекты типа «Реконструкция» с фильтрацией, поиском и массовыми операциями.</p>
+    <h3>Фильтрация и поиск</h3>
+    <ul>
+      <li>Фильтр по статусу, менеджеру, городу и году</li>
+      <li>Поиск по номеру ТК или названию объекта</li>
+      <li>Массовые действия — выбрать несколько объектов и изменить статус или менеджера разом</li>
+    </ul>
+    <h3>Статусы проекта</h3>
+    <div class="badge-row">
+      <span class="badge b-yellow">Планирование</span>
+      <span class="badge b-blue">Активный</span>
+      <span class="badge b-orange">Приостановлен</span>
+      <span class="badge b-gray">Завершён</span>
     </div>
+    <h3>Создание объекта</h3>
+    <ol class="steps">
+      <li>Нажмите «+ Добавить» в правом верхнем углу</li>
+      <li>Укажите название, номер ТК, город, тип, статус</li>
+      <li>Назначьте ответственного менеджера и плановые даты</li>
+      <li>Нажмите «Сохранить»</li>
+    </ol>
+    <h3>Карточка объекта</h3>
+    <p>Нажмите на объект для просмотра: основные данные, этапы с датами, файлы, комментарии, история изменений. В карточке доступна кнопка <strong>«Gantt»</strong> — визуализация графика этапов.</p>
+    <div class="tip"><strong>Комментарии:</strong> добавляйте заметки прямо в карточке проекта — они сохраняются с именем автора и временем.</div>
   </div>
+</div>
 
-  <!-- 14 -->
-  <div class="section" id="s14">
-    <div class="section-head">
-      <i class="bi bi-briefcase-fill"></i>
-      <h2>14. Исполнительный дашборд &nbsp;<span style="background:var(--yellow);color:var(--green-bg);font-size:12px;font-weight:800;padding:2px 8px;border-radius:6px;vertical-align:middle">ТОП</span></h2>
-    </div>
-    <div class="section-body">
-      <div class="info"><strong>Доступ:</strong> только Комаров Алексей (директор) и Гаврин Игорь (руководитель). В боковом меню обозначен жёлтым бейджем «ТОП».</div>
-      <p>Специальный аналитический дашборд для руководства — сводка по портфелю Констракшн с акцентом на результаты и ответственность.</p>
-      <h3>KPI-карточки (вверху)</h3>
-      <ul>
-        <li><strong>Открыто в году</strong> — сколько объектов Констракшн открыто с начала текущего года</li>
-        <li><strong>В работе сейчас</strong> — количество активных объектов Констракшн</li>
-        <li><strong>Просрочено открытий</strong> — объекты, у которых дата открытия позже плановой</li>
-        <li><strong>Откроется в 90 дней</strong> — прогноз: объекты с плановым открытием в ближайшие 3 месяца</li>
-      </ul>
-      <h3>Рейтинг менеджеров</h3>
-      <p>Автоматически рассчитывается по формуле: <strong>открытия × 3 − просрочки × 5 − просроченные задачи × 2</strong>. Позволяет объективно оценить эффективность каждого менеджера за год.</p>
-      <h3>График открытий по месяцам</h3>
-      <p>Динамика открытий объектов Констракшн по месяцам текущего года — для контроля темпа работ.</p>
-      <h3>Прогноз и просроченные</h3>
-      <p>Список объектов, открывающихся в ближайшие 90 дней, и список объектов с нарушением сроков — для оперативного контроля.</p>
-      <div class="tip"><strong>PDF:</strong> на странице есть кнопка «PDF» — распечатайте дашборд прямо в браузере для совещания или отчёта.</div>
-      <figure class="screenshot">
-        <img src="/static/img/help/13_executive.png" alt="Исполнительный дашборд">
-        <figcaption>Исполнительный дашборд — KPI, рейтинг менеджеров, прогноз открытий</figcaption>
-      </figure>
-    </div>
+<!-- ── 5. Констракшн ──────────────────────────────────────── -->
+<div class="section" id="s5">
+  <div class="section-head"><i class="bi bi-buildings"></i><h2>5. Проекты — Констракшн</h2></div>
+  <div class="section-body">
+    <p>Объекты нового строительства. Интерфейс идентичен разделу «Реконструкция», за исключением специфичных полей.</p>
+    <div class="info"><strong>Разница:</strong> в таблицах дедлайнов и исполнительном дашборде Реконструкции и Констракшн отображаются раздельно. Аналитика по открытиям ТК строится именно по объектам Констракшн.</div>
+    <h3>Дата открытия</h3>
+    <p>Ключевое поле для Констракшн — <strong>Дата открытия</strong>. Сравнивается с плановой датой и определяет попадание в категории «раньше срока», «вовремя», «с опозданием» в исполнительном дашборде и аналитике.</p>
   </div>
+</div>
 
-  <!-- 15 -->
-  <div class="section" id="s15">
-    <div class="section-head"><i class="bi bi-file-earmark-excel-fill"></i><h2>15. Экспорт отчётов</h2></div>
-    <div class="section-body">
-      <p>Из большинства разделов доступна выгрузка данных в Excel одним кликом.</p>
-      <table>
-        <tr><th>Раздел</th><th>Что экспортируется</th></tr>
-        <tr><td><i class="bi bi-building"></i> Проекты</td><td>Полный реестр с датами, статусами, менеджерами</td></tr>
-        <tr><td><i class="bi bi-calendar2-check"></i> Дедлайны</td><td>Таблица этапов по всем активным объектам</td></tr>
-        <tr><td><i class="bi bi-check2-square"></i> Задачи</td><td>Список с исполнителями, приоритетами и статусами</td></tr>
-        <tr><td><i class="bi bi-clipboard2-data"></i> ВПК</td><td>Реестр отчётов по внутреннему контролю</td></tr>
-      </table>
-      <p>Кнопка «Экспорт» или «Скачать Excel» находится в правом верхнем углу каждого раздела.</p>
+<!-- ── 6. Задачи ──────────────────────────────────────────── -->
+<div class="section" id="s6">
+  <div class="section-head"><i class="bi bi-check2-square"></i><h2>6. Задачи</h2></div>
+  <div class="section-body">
+    <p>Внутренний трекер команды для постановки и контроля поручений.</p>
+    <h3>Создание задачи</h3>
+    <ol class="steps">
+      <li>Раздел «Задачи» в боковом меню → «+ Новая задача»</li>
+      <li>Укажите название, описание, приоритет и срок</li>
+      <li>Назначьте исполнителя из списка менеджеров</li>
+      <li>Нажмите «Сохранить»</li>
+    </ol>
+    <h3>Приоритеты и статусы</h3>
+    <div class="badge-row">
+      <span class="badge b-gray">Низкий</span>
+      <span class="badge b-yellow">Средний</span>
+      <span class="badge b-orange">Высокий</span>
     </div>
-  </div>
-
-  <!-- 16 -->
-  <div class="section" id="s16">
-    <div class="section-head"><i class="bi bi-gear-fill"></i><h2>16. Для администратора</h2></div>
-    <div class="section-body">
-      <div class="info"><strong>Только для администраторов:</strong> Гаврин Игорь и Месмер Денис.</div>
-      <h3>Добавление пользователя</h3>
-      <ol class="steps">
-        <li>Перейдите в меню → «Пользователи» (внизу боковой панели)</li>
-        <li>Введите номер телефона нового сотрудника</li>
-        <li>Укажите отображаемое имя и уровень прав</li>
-        <li>Сохраните — сотрудник может войти сразу</li>
-      </ol>
-      <h3>Сброс пароля</h3>
-      <p>Список пользователей → кнопка «Сбросить пароль». При следующем входе сотрудник задаст новый пароль.</p>
-      <h3>Удаление доступа</h3>
-      <p>Удалите телефон из белого списка — пользователь немедленно теряет доступ к системе.</p>
-      <h3>Журнал действий</h3>
-      <p>Страница <strong>/admin/audit</strong> — полная история всех действий: входы, создание и удаление объектов, смены статусов.</p>
-      <div class="tip"><strong>Важно:</strong> перед удалением пользователя убедитесь, что его объекты переназначены другому менеджеру.</div>
+    <div class="badge-row">
+      <span class="badge b-gray">Открытая</span>
+      <span class="badge b-blue">В работе</span>
+      <span class="badge b-yellow">На проверке</span>
+      <span class="badge b-green">Завершена</span>
     </div>
+    <div class="tip"><strong>Совет:</strong> Завершая задачу, добавьте комментарий — это ведёт историю работы по объекту для будущих проверок.</div>
   </div>
+</div>
 
-  <!-- 17 Поддержка -->
-  <div class="section" id="s17">
-    <div class="section-head"><i class="bi bi-headset"></i><h2>17. Техническая поддержка</h2></div>
-    <div class="section-body">
-      <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:4px">
-        <div class="contact-card" style="flex:1; min-width:240px">
-          <img src="/static/img/raccoon_mesmer.jpg" alt="Месмер Денис"
-               onerror="this.outerHTML='<div class=\'ci\'>🦝</div>'">
-          <div class="contact-text">
-            <div class="role">Разработчик · Администратор</div>
-            <h3>Месмер Денис</h3>
-            <p>Вопросы по работе системы, доступу, ошибкам</p>
-          </div>
+<!-- ── 7. Дедлайны ───────────────────────────────────────── -->
+<div class="section" id="s7">
+  <div class="section-head"><i class="bi bi-calendar2-check-fill"></i><h2>7. Дедлайны</h2></div>
+  <div class="section-body">
+    <p>Сводная таблица по этапам всех активных проектов — одна страница показывает состояние по всему портфелю.</p>
+    <h3>Как читать таблицу</h3>
+    <ul>
+      <li><strong>Строки</strong> — объекты (ТК)</li>
+      <li><strong>Столбцы</strong> — этапы проекта (Старт / Окончание)</li>
+      <li><strong>Цвет ячейки</strong> — состояние этапа: просрочено / скоро / выполнено / в плане</li>
+    </ul>
+    <h3>Вкладки</h3>
+    <p>Дедлайны разделены на вкладки: <strong>Реконструкции</strong> и <strong>Констракшн</strong> — переключайтесь между ними сверху страницы.</p>
+    <h3>Импорт из Excel</h3>
+    <ol class="steps">
+      <li>Подготовьте файл в установленном формате (столбцы: ТК, этапы, Старт, Окончание)</li>
+      <li>Перейдите «Дедлайны» → «Импортировать»</li>
+      <li>Выберите файл (макс. 10 МБ) и нажмите «Загрузить»</li>
+      <li>Система автоматически обновит даты по всем объектам из файла</li>
+    </ol>
+    <div class="tip"><strong>Формат Excel:</strong> уточните актуальный шаблон у Месмера Дениса — он адаптирован под внутреннюю структуру файлов ТК.</div>
+  </div>
+</div>
+
+<!-- ── 8. СМР ─────────────────────────────────────────────── -->
+<div class="section" id="s8">
+  <div class="section-head"><i class="bi bi-tools"></i><h2>8. СМР — строительно-монтажные работы</h2></div>
+  <div class="section-body">
+    <p>Управление графиками подрядчиков и автоматическая отправка уведомлений о выполненных работах.</p>
+    <h3>Отправка уведомления</h3>
+    <ol class="steps">
+      <li>Откройте нужный объект из списка СМР</li>
+      <li>Отметьте выполненные этапы работ</li>
+      <li>Нажмите «Отправить уведомление» — подрядчик получит письмо со ссылкой</li>
+      <li>Подрядчик переходит по ссылке и подтверждает выполнение работ</li>
+    </ol>
+    <div class="info"><strong>Подтверждение</strong> фиксируется в системе с датой и временем — автоматически для отчётности и контроля.</div>
+    <h3>База контактов</h3>
+    <p>Раздел «Контакты» → список подрядчиков с email-адресами. Добавляйте и обновляйте контакты перед отправкой уведомлений.</p>
+    <h3>Еженедельный дайджест</h3>
+    <p>Система автоматически формирует и отправляет еженедельный дайджест по статусу СМР-объектов руководителю.</p>
+  </div>
+</div>
+
+<!-- ── 9. ВПК ─────────────────────────────────────────────── -->
+<div class="section" id="s9">
+  <div class="section-head"><i class="bi bi-clipboard2-data-fill"></i><h2>9. ВПК — внутренний контроль</h2></div>
+  <div class="section-body">
+    <p>Мониторинг отчётов по объектам для внутреннего контроля качества строительства.</p>
+    <ul>
+      <li>Реестр отчётов с датами, статусами и ответственными по объектам</li>
+      <li>Счётчик непрочитанных материалов — отображается в боковом меню</li>
+      <li>Предпросмотр отчётов без скачивания</li>
+      <li>Экспорт реестра в Excel одним кликом</li>
+    </ul>
+    <div class="tip"><strong>Индикатор ВПК:</strong> цифра рядом с пунктом меню — количество новых непрочитанных отчётов. Обнуляется при просмотре.</div>
+  </div>
+</div>
+
+<!-- ── 10. КСО ────────────────────────────────────────────── -->
+<div class="section" id="s10">
+  <div class="section-head"><i class="bi bi-folder2-open"></i><h2>10. КСО — отчётность</h2></div>
+  <div class="section-body">
+    <p>Реестр КСО-документации — хранение и контроль отчётных документов по объектам.</p>
+    <ul>
+      <li>Фильтрация по объекту, дате, статусу проверки</li>
+      <li>Прикрепление файлов к записям</li>
+      <li>Отметки о прохождении проверки с датой</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ── 11. Менеджеры ─────────────────────────────────────── -->
+<div class="section" id="s11">
+  <div class="section-head"><i class="bi bi-people-fill"></i><h2>11. Менеджеры</h2></div>
+  <div class="section-body">
+    <p>Справочник команды — контактные данные и текущая нагрузка каждого менеджера.</p>
+    <ul>
+      <li>ФИО, телефон, email каждого сотрудника</li>
+      <li>Количество активных объектов у менеджера в реальном времени</li>
+      <li>Отметка руководителя (Гаврин Игорь) — выделена визуально</li>
+    </ul>
+    <p>Менеджеры из этого справочника назначаются на объекты в карточках проектов. Нагрузка пересчитывается автоматически.</p>
+  </div>
+</div>
+
+<!-- ── 12. Адаптация ─────────────────────────────────────── -->
+<div class="section" id="s12">
+  <div class="section-head">
+    <i class="bi bi-card-checklist"></i>
+    <h2>12. Карточки адаптации</h2>
+    <span class="new-tag">НОВЫЙ РАЗДЕЛ</span>
+  </div>
+  <div class="section-body">
+    <p>Модуль для подготовки комплектов адаптационных данных по новым объектам: оборудование кухни, холодильные витрины, мебель, вывески, кассы и прочее.</p>
+
+    <h3>Пошаговый мастер</h3>
+    <p>Карточка заполняется в <strong>5 шагов</strong> — прогресс-бар вверху показывает текущий этап и количество заполненных полей на каждом шаге:</p>
+    <ol class="steps">
+      <li><strong>Общая информация</strong> — номер ТК, город, тип реконструкции, менеджер, даты</li>
+      <li><strong>Кухня и оборудование ТЗ</strong> — холодильные витрины, высота помещения, состав оборудования</li>
+      <li><strong>Мебель и освещение</strong> — кассовые боксы, стойки, стеллажи, торговое оборудование</li>
+      <li><strong>Вывески и навигация</strong> — фасадные вывески, внутренняя навигация, указатели</li>
+      <li><strong>Итоги и комментарии</strong> — дополнительные пожелания, финальная проверка</li>
+    </ol>
+
+    <h3>Обучающий тур</h3>
+    <p>При первом открытии формы автоматически запускается краткий тур — он объяснит назначение каждого шага. Повторно вызвать тур можно кнопкой <i class="bi bi-question-circle"></i> в правом верхнем углу формы.</p>
+
+    <h3>Сохранение и отправка</h3>
+    <div class="badge-row">
+      <span class="badge b-yellow">Черновик — сохранено, не отправлено</span>
+      <span class="badge b-green">Отправлено — финальная версия</span>
+    </div>
+    <p>Карточку можно сохранять как черновик и возвращаться к заполнению позже. Кнопка «Отправить» переводит её в финальный статус.</p>
+
+    <h3>Скачать Excel</h3>
+    <p>Нажмите «Скачать Excel» в карточке — система сформирует файл с заполненными данными в стандартном формате.</p>
+    <div class="tip"><strong>Совет:</strong> заполняйте обязательный минимум (Шаг 1) сразу при создании объекта, остальные шаги — по мере поступления данных.</div>
+  </div>
+</div>
+
+<!-- ── 13. AI ──────────────────────────────────────────────── -->
+<div class="section" id="s13">
+  <div class="section-head"><i class="bi bi-robot"></i><h2>13. AI-ассистент</h2></div>
+  <div class="section-body">
+    <p>Встроенный чат-бот с доступом ко всем данным системы в реальном времени — задавайте вопросы на обычном языке.</p>
+    <h3>Примеры запросов</h3>
+    <ul>
+      <li>«Сколько у нас просроченных объектов?»</li>
+      <li>«Какие ТК открываются в этом месяце?»</li>
+      <li>«У кого из менеджеров больше всего активных проектов?»</li>
+      <li>«Составь сводку по статусам портфеля для совещания»</li>
+      <li>«Покажи все Констракшн-объекты без даты открытия»</li>
+    </ul>
+    <h3>Провайдеры</h3>
+    <div class="badge-row">
+      <span class="badge b-green">Groq — быстрый, для простых вопросов</span>
+      <span class="badge b-purple">Claude — глубокий анализ и отчёты</span>
+      <span class="badge b-gray">DeepSeek — альтернатива</span>
+    </div>
+    <div class="tip"><strong>Рекомендация:</strong> для быстрых справок — Groq, для сводок к совещанию — Claude.</div>
+  </div>
+</div>
+
+<!-- ── 14. Аналитика ─────────────────────────────────────── -->
+<div class="section" id="s14">
+  <div class="section-head">
+    <i class="bi bi-graph-up-arrow"></i>
+    <h2>14. Интерактивная аналитика</h2>
+    <span class="new-tag">НОВЫЙ РАЗДЕЛ</span>
+  </div>
+  <div class="section-body">
+    <p>Страница <strong>/analytics</strong> — 7 интерактивных графиков по всем данным системы. KPI-карточки вверху дают мгновенную сводку.</p>
+
+    <h3>KPI-карточки</h3>
+    <div class="feat-grid">
+      <div class="feat-item">
+        <i class="bi bi-collection-fill" style="color:#3b82f6"></i>
+        <div><strong>Всего проектов</strong><span>Общее число и из них активных</span></div>
+      </div>
+      <div class="feat-item">
+        <i class="bi bi-building-check" style="color:#16a34a"></i>
+        <div><strong>Открытий Констракшн</strong><span>% открытых вовремя или раньше срока</span></div>
+      </div>
+      <div class="feat-item">
+        <i class="bi bi-alarm-fill" style="color:#d97706"></i>
+        <div><strong>С опозданием</strong><span>Открыто позже плановой даты</span></div>
+      </div>
+      <div class="feat-item">
+        <i class="bi bi-card-checklist" style="color:#7c3aed"></i>
+        <div><strong>Карточки адаптации</strong><span>Всего создано и отправлено</span></div>
+      </div>
+    </div>
+
+    <h3>Графики</h3>
+    <table class="tbl">
+      <tr><th>График</th><th>Что показывает</th></tr>
+      <tr><td>Открытия ТК по месяцам</td><td>Линейный тренд за последние 12 месяцев (Констракшн)</td></tr>
+      <tr><td>Итоги открытий</td><td>Доля «раньше / вовремя / с опозданием» — кольцевая диаграмма</td></tr>
+      <tr><td>Производительность менеджеров</td><td>Горизонтальный бар: сколько объектов каждый открыл и как</td></tr>
+      <tr><td>Задачи по статусам</td><td>Кольцевая диаграмма по статусам всех задач</td></tr>
+      <tr><td>Карточки адаптации</td><td>Динамика создания карточек (черновики / отправленные) за 6 мес.</td></tr>
+      <tr><td>Проекты по типам</td><td>Распределение всех проектов по категориям</td></tr>
+      <tr><td>Ближайшие дедлайны</td><td>До 10 объектов с дедлайном в ближайшие 45 дней — с цветом срочности</td></tr>
+    </table>
+    <div class="tip"><strong>Наведите курсор</strong> на любой график — появятся детальные подсказки с цифрами. Все данные обновляются в реальном времени при загрузке страницы.</div>
+  </div>
+</div>
+
+<!-- ── 15. Исполнительный ─────────────────────────────────── -->
+<div class="section" id="s15">
+  <div class="section-head">
+    <i class="bi bi-briefcase-fill"></i>
+    <h2>15. Исполнительный дашборд &nbsp;<span style="background:var(--yellow);color:var(--green-bg);font-size:12px;font-weight:800;padding:2px 8px;border-radius:6px">ТОП</span></h2>
+  </div>
+  <div class="section-body">
+    <div class="info"><strong>Доступ:</strong> только Комаров Алексей (директор) и Гаврин Игорь (руководитель). Обозначен жёлтым бейджем «ТОП» в меню.</div>
+    <p>Аналитический дашборд для руководства — итоги портфеля Констракшн с акцентом на эффективность и ответственность менеджеров.</p>
+
+    <h3>KPI-карточки</h3>
+    <ul>
+      <li><strong>Открыто в году</strong> — Констракшн-объекты, открытые с начала текущего года</li>
+      <li><strong>В работе сейчас</strong> — активные объекты Констракшн</li>
+      <li><strong>Просрочено открытий</strong> — дата открытия позже плановой</li>
+      <li><strong>Откроется в 90 дней</strong> — прогноз по плановым датам</li>
+    </ul>
+
+    <h3>Рейтинг менеджеров</h3>
+    <p>Автоматически рассчитывается по формуле: <strong>открытия × 3 − просрочки × 5 − просроченные задачи × 2</strong>. Объективная оценка эффективности за год.</p>
+
+    <h3>PDF для совещания</h3>
+    <p>Кнопка «PDF» в правом верхнем углу — распечатайте дашборд прямо в браузере для совещания или отчёта директору.</p>
+  </div>
+</div>
+
+<!-- ── 16. Поиск ──────────────────────────────────────────── -->
+<div class="section" id="s16">
+  <div class="section-head">
+    <i class="bi bi-search"></i>
+    <h2>16. Глобальный поиск</h2>
+    <span class="new-tag">НОВЫЙ РАЗДЕЛ</span>
+  </div>
+  <div class="section-body">
+    <p>Мгновенный поиск по всему содержимому системы — иконка лупы в верхней панели или сочетание клавиш <strong>Ctrl + K</strong> (⌘K на Mac).</p>
+    <h3>Что ищет</h3>
+    <div class="feat-grid">
+      <div class="feat-item">
+        <i class="bi bi-building"></i>
+        <div><strong>Проекты</strong><span>По номеру ТК, названию, городу</span></div>
+      </div>
+      <div class="feat-item">
+        <i class="bi bi-check2-square"></i>
+        <div><strong>Задачи</strong><span>По названию и описанию</span></div>
+      </div>
+      <div class="feat-item">
+        <i class="bi bi-people"></i>
+        <div><strong>Менеджеры</strong><span>По имени и номеру телефона</span></div>
+      </div>
+      <div class="feat-item">
+        <i class="bi bi-card-checklist"></i>
+        <div><strong>Карточки адаптации</strong><span>По номеру ТК</span></div>
+      </div>
+    </div>
+    <div class="tip"><strong>Совет:</strong> для поиска конкретного ТК просто введите его номер — система найдёт объект по всем разделам и покажет ссылку прямо в результатах.</div>
+  </div>
+</div>
+
+<!-- ── 17. Экспорт ────────────────────────────────────────── -->
+<div class="section" id="s17">
+  <div class="section-head"><i class="bi bi-file-earmark-excel-fill"></i><h2>17. Экспорт отчётов</h2></div>
+  <div class="section-body">
+    <p>Из большинства разделов доступна выгрузка данных в Excel одним кликом. Кнопка «Экспорт» или «Скачать Excel» — в правом верхнем углу каждого раздела.</p>
+    <table class="tbl">
+      <tr><th>Раздел</th><th>Что экспортируется</th></tr>
+      <tr><td><i class="bi bi-building"></i> Проекты</td><td>Полный реестр с датами, статусами, менеджерами</td></tr>
+      <tr><td><i class="bi bi-calendar2-check"></i> Дедлайны</td><td>Таблица этапов по всем активным объектам</td></tr>
+      <tr><td><i class="bi bi-check2-square"></i> Задачи</td><td>Список с исполнителями, приоритетами и статусами</td></tr>
+      <tr><td><i class="bi bi-clipboard2-data"></i> ВПК</td><td>Реестр отчётов по внутреннему контролю</td></tr>
+      <tr><td><i class="bi bi-card-checklist"></i> Адаптация</td><td>Excel-карточка по конкретному объекту</td></tr>
+      <tr><td><i class="bi bi-briefcase"></i> Исп. дашборд</td><td>PDF-отчёт для распечатки на совещание</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ── 18. Мобильная версия ──────────────────────────────── -->
+<div class="section" id="s18">
+  <div class="section-head">
+    <i class="bi bi-phone-fill"></i>
+    <h2>18. Мобильная версия</h2>
+    <span class="new-tag">НОВЫЙ РАЗДЕЛ</span>
+  </div>
+  <div class="section-body">
+    <p>Система полностью адаптирована для работы со смартфона — ничего устанавливать не нужно, достаточно открыть браузер.</p>
+
+    <h3>Нижняя навигация</h3>
+    <p>На телефоне в нижней части экрана постоянно видна панель быстрого доступа:</p>
+    <div class="badge-row">
+      <span class="badge b-gray"><i class="bi bi-speedometer2"></i> Дашборд</span>
+      <span class="badge b-gray"><i class="bi bi-clock-history"></i> Дедлайны</span>
+      <span class="badge b-gray"><i class="bi bi-clipboard2-check"></i> ВПК</span>
+      <span class="badge b-gray"><i class="bi bi-people"></i> Менеджеры</span>
+      <span class="badge b-gray"><i class="bi bi-bar-chart-steps"></i> СМР</span>
+    </div>
+
+    <h3>Боковое меню</h3>
+    <p>Нажмите иконку <i class="bi bi-list"></i> в верхнем левом углу — откроется полное меню со всеми разделами. Закройте свайпом влево или кнопкой ×.</p>
+
+    <h3>Добавить на рабочий стол</h3>
+    <ol class="steps">
+      <li>Откройте систему в браузере Chrome или Safari</li>
+      <li>Нажмите «Поделиться» (Safari) или «⋮» (Chrome) → «На главный экран»</li>
+      <li>Подтвердите добавление — иконка появится как приложение</li>
+      <li>Запускается без адресной строки, как нативное приложение</li>
+    </ol>
+    <div class="tip"><strong>Уведомления:</strong> если браузер запросит разрешение на уведомления — разрешите, чтобы получать оповещения о срочных дедлайнах.</div>
+  </div>
+</div>
+
+<!-- ── 19. Администратор ──────────────────────────────────── -->
+<div class="section" id="s19">
+  <div class="section-head"><i class="bi bi-gear-fill"></i><h2>19. Для администратора</h2></div>
+  <div class="section-body">
+    <div class="info"><strong>Доступ к этому разделу:</strong> Гаврин Игорь и Месмер Денис.</div>
+
+    <h3>Добавление пользователя</h3>
+    <ol class="steps">
+      <li>Меню → «Пользователи» (внизу боковой панели) → «Добавить»</li>
+      <li>Введите номер телефона нового сотрудника</li>
+      <li>Укажите отображаемое имя и уровень прав (admin / обычный)</li>
+      <li>Сохраните — сотрудник может войти сразу</li>
+    </ol>
+
+    <h3>Сброс пароля</h3>
+    <p>Список пользователей → кнопка «Сбросить пароль». При следующем входе сотрудник задаст новый пароль самостоятельно.</p>
+
+    <h3>Удаление доступа</h3>
+    <p>Удалите телефон из белого списка — пользователь немедленно теряет доступ к системе. Все его объекты остаются в базе.</p>
+    <div class="warn"><strong>Важно:</strong> перед удалением пользователя убедитесь, что его объекты переназначены другому менеджеру.</div>
+
+    <h3>Журнал действий</h3>
+    <p>Страница <strong>/admin/audit</strong> — полная история всех событий: входы, создание и удаление объектов, смены статусов с именем пользователя и IP-адресом.</p>
+
+    <h3>IP-ограничение для администраторов</h3>
+    <p>Страницы администратора (<strong>/admin/…</strong>) могут быть закрыты по IP-адресу — доступ только с разрешённых сетей. Настраивается через переменную окружения <code>ADMIN_IP_WHITELIST</code>. Обратитесь к разработчику при необходимости смены адресов.</p>
+
+    <h3>Шаблон карточки адаптации</h3>
+    <p>Страница <strong>/admin/adaptation-template</strong> — настройка состава полей и опций для карточек адаптации. Изменения применяются ко всем новым карточкам.</p>
+  </div>
+</div>
+
+<!-- ── 20. Поддержка ──────────────────────────────────────── -->
+<div class="section" id="s20">
+  <div class="section-head"><i class="bi bi-headset"></i><h2>20. Техническая поддержка</h2></div>
+  <div class="section-body">
+    <p>При технических проблемах, ошибках или вопросах по работе системы — обращайтесь:</p>
+    <div class="contacts-grid">
+      <div class="contact-card">
+        <img src="/static/img/raccoon_mesmer.jpg" alt="Месмер Денис"
+             onerror="this.outerHTML='<div class=\'ci\'>🦝</div>'">
+        <div class="contact-text">
+          <div class="role">Разработчик · Администратор</div>
+          <h3>Месмер Денис</h3>
+          <p>Ошибки, баги, доступ, новые возможности</p>
         </div>
-        <div class="contact-card" style="flex:1; min-width:240px">
-          <img src="/static/img/managers/gavrin.png" alt="Гаврин Игорь"
-               onerror="this.outerHTML='<div class=\'ci\'>👔</div>'">
-          <div class="contact-text">
-            <div class="role">Руководитель · Администратор</div>
-            <h3>Гаврин Игорь</h3>
-            <p>Вопросы доступа, прав, добавления сотрудников</p>
-          </div>
+      </div>
+      <div class="contact-card">
+        <img src="/static/img/managers/gavrin.png" alt="Гаврин Игорь"
+             onerror="this.outerHTML='<div class=\'ci\'>👔</div>'">
+        <div class="contact-text">
+          <div class="role">Руководитель · Администратор</div>
+          <h3>Гаврин Игорь</h3>
+          <p>Права доступа, добавление сотрудников</p>
         </div>
       </div>
     </div>
+    <div class="info" style="margin-top:16px">
+      <strong>Версия 2.0</strong> — обновлено Июнь 2026. Добавлены: карточки адаптации с мастером, интерактивная аналитика (7 графиков), глобальный поиск, двухфакторная аутентификация, мобильная версия.
+    </div>
   </div>
+</div>
 
-  <div class="footer">
-    <img src="/static/img/raccoon.png" style="height:24px;opacity:.4;vertical-align:middle;margin-right:8px"
-         onerror="this.style.display='none'">
-    Лента.PM · Внутренний документ · Не для распространения за пределами компании · Версия 1.0 · Июнь 2026
-  </div>
+<div class="footer">
+  <img src="/static/img/raccoon.png" style="height:24px;opacity:.4;vertical-align:middle;margin-right:8px"
+       onerror="this.style.display='none'">
+  Лента.PM · Руководство пользователя v2.0 · Внутренний документ · Не для распространения · Июнь 2026
+</div>
 
 </div>
 </body>

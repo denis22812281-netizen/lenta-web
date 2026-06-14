@@ -1,5 +1,6 @@
 """Страница интерактивной аналитики — графики по всем модулям."""
 import json
+import time as _time
 from collections import defaultdict
 from datetime import date, timedelta
 
@@ -13,6 +14,10 @@ from database import get_db
 from deps import require_login, templates
 
 router = APIRouter()
+
+_CACHE_TTL = 300  # секунд (5 минут)
+_cache_payload: dict | None = None
+_cache_ts: float = 0
 
 
 def _month_range(d: date):
@@ -56,6 +61,12 @@ async def analytics_page(
     db: Session = Depends(get_db),
     user: dict = Depends(require_login),
 ):
+    global _cache_payload, _cache_ts
+    if _cache_payload and (_time.time() - _cache_ts) < _CACHE_TTL:
+        return templates.TemplateResponse("analytics.html", {
+            "request": request, "user": user, **_cache_payload,
+        })
+
     today = date.today()
     months_12 = _last_n_months(12, today)
     month_labels = [m.strftime("%b %Y") for m in months_12]
@@ -141,9 +152,7 @@ async def analytics_page(
     sent_adapt  = db.query(models.AdaptationCard).filter(
         models.AdaptationCard.status == "sent").count()
 
-    return templates.TemplateResponse("analytics.html", {
-        "request": request,
-        "user": user,
+    _cache_payload = {
         # KPIs
         "total_projects": total_projects,
         "active_projects": active_projects,
@@ -172,4 +181,9 @@ async def analytics_page(
         "j_dl_labels": json.dumps(dl_labels),
         "j_dl_days":   json.dumps(dl_days),
         "j_dl_mgrs":   json.dumps(dl_mgrs),
+        "dl_count":    len(dl_labels),
+    }
+    _cache_ts = _time.time()
+    return templates.TemplateResponse("analytics.html", {
+        "request": request, "user": user, **_cache_payload,
     })

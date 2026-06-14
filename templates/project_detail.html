@@ -281,7 +281,139 @@
 .comment-del { opacity:.4;transition:opacity .15s; }
 .comment-del:hover { opacity:1; }
 .comment-input { resize:none;border-radius:10px; }
+/* history */
+.hist-row { display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.82rem; }
+.hist-row:last-child { border-bottom:none; }
+.hist-dot { width:8px;height:8px;border-radius:50%;background:#3CB34A;flex-shrink:0;margin-top:5px; }
+.hist-field { color:#94a3b8;min-width:110px;flex-shrink:0; }
+.hist-arrow { color:#475569;margin:0 4px; }
+.hist-val-old { color:#ef4444;text-decoration:line-through;opacity:.7; }
+.hist-val-new { color:#86efac;font-weight:600; }
+.hist-who { color:#64748b;font-size:.72rem;margin-left:auto;white-space:nowrap; }
 </style>
+
+<!-- ─── ИСТОРИЯ ИЗМЕНЕНИЙ ─────────────────────────────────────────────────── -->
+{% if project.history %}
+<div class="data-card mt-3" id="history">
+    <div class="data-card-header">
+        <span><i class="bi bi-clock-history me-2"></i>История изменений</span>
+        <span class="badge bg-secondary">{{ project.history|length }}</span>
+    </div>
+    <div class="px-3 py-2">
+    {% for h in project.history %}
+    <div class="hist-row">
+        <div class="hist-dot"></div>
+        <div class="hist-field">{{ h.field_label }}</div>
+        <div class="flex-fill d-flex flex-wrap align-items-center gap-1">
+            {% if h.old_value %}<span class="hist-val-old">{{ h.old_value[:40] }}</span><span class="hist-arrow">→</span>{% endif %}
+            <span class="hist-val-new">{{ h.new_value[:40] or '—' }}</span>
+        </div>
+        <div class="hist-who">{{ h.changed_by }}<br><span style="color:#334155">{{ h.changed_at.strftime('%d.%m %H:%M') }}</span></div>
+    </div>
+    {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- ─── ВЛОЖЕНИЯ ────────────────────────────────────────────────────────── -->
+<div class="data-card mt-3" id="attachments">
+    <div class="data-card-header">
+        <span><i class="bi bi-paperclip me-2 text-info"></i>Файлы и документы</span>
+        <span class="badge bg-secondary">{{ project.attachments|length }}</span>
+    </div>
+
+    {% if project.attachments %}
+    <div class="p-3">
+        {% set images = project.attachments | selectattr('file_type', 'equalto', 'image') | list %}
+        {% if images %}
+        <div class="row g-2 mb-3">
+        {% for a in images %}
+        <div class="col-6 col-sm-4 col-md-3 position-relative">
+            <a href="{{ a.file_url }}" target="_blank" class="d-block">
+                <img src="{{ a.file_url }}" class="attach-thumb img-fluid rounded"
+                     alt="{{ a.original_name }}"
+                     style="width:100%;height:120px;object-fit:cover;border-radius:8px">
+            </a>
+            <div class="text-muted" style="font-size:.68rem;margin-top:3px">
+                {{ a.original_name[:22] }} · {{ (a.file_size // 1024) }}KB
+            </div>
+            {% if user.is_admin or user.display_name == a.uploaded_by %}
+            <form method="post" action="/projects/{{ project.id }}/attachments/{{ a.id }}/delete"
+                  class="position-absolute top-0 end-0 m-1"
+                  onsubmit="return confirm('Удалить файл?')">
+                <button type="submit" class="btn btn-danger p-0"
+                        style="width:22px;height:22px;font-size:11px;line-height:1;border-radius:4px">
+                    <i class="bi bi-x"></i>
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        {% endfor %}
+        </div>
+        {% endif %}
+
+        {% set docs = project.attachments | rejectattr('file_type', 'equalto', 'image') | list %}
+        {% if docs %}
+        <ul class="list-group list-group-flush">
+        {% for a in docs %}
+        <li class="list-group-item d-flex align-items-center gap-2 py-2 px-0 bg-transparent border-secondary">
+            {% if a.file_type == 'pdf' %}<i class="bi bi-file-pdf text-danger fs-5"></i>
+            {% elif a.file_type in ('xls', 'xlsx') %}<i class="bi bi-file-earmark-spreadsheet text-success fs-5"></i>
+            {% elif a.file_type in ('doc', 'docx') %}<i class="bi bi-file-earmark-word text-primary fs-5"></i>
+            {% else %}<i class="bi bi-file-earmark text-muted fs-5"></i>{% endif %}
+            <a href="{{ a.file_url }}" target="_blank"
+               class="text-info text-decoration-none small flex-fill">{{ a.original_name }}</a>
+            <span class="text-muted" style="font-size:.72rem">{{ (a.file_size // 1024) }}KB</span>
+            {% if user.is_admin or user.display_name == a.uploaded_by %}
+            <form method="post" action="/projects/{{ project.id }}/attachments/{{ a.id }}/delete"
+                  onsubmit="return confirm('Удалить?')">
+                <button type="submit" class="btn btn-sm btn-link text-danger p-0">
+                    <i class="bi bi-trash3"></i>
+                </button>
+            </form>
+            {% endif %}
+        </li>
+        {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="px-3 py-3 text-muted small">
+        <i class="bi bi-paperclip me-2"></i>Файлы не прикреплены
+    </div>
+    {% endif %}
+
+    <div class="px-3 pb-3 pt-2 border-top mt-2">
+        <form method="post" action="/projects/{{ project.id }}/attachments/upload"
+              enctype="multipart/form-data">
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                <input type="file" name="file" id="attachFileInput"
+                       accept="image/*,.pdf,.xls,.xlsx,.doc,.docx"
+                       style="display:none" onchange="onAttachChange(this)">
+                <button type="button" class="btn btn-sm btn-outline-info"
+                        onclick="document.getElementById('attachFileInput').click()">
+                    <i class="bi bi-paperclip me-1"></i>Прикрепить файл
+                </button>
+                <span id="attachFileName" class="small text-muted"></span>
+                <button type="submit" id="attachSubmitBtn"
+                        class="btn btn-sm btn-info text-dark fw-bold" style="display:none">
+                    <i class="bi bi-upload me-1"></i>Загрузить
+                </button>
+            </div>
+            <div class="text-muted mt-1" style="font-size:.7rem">
+                Макс. 20 МБ · фото, PDF, Excel, Word
+            </div>
+        </form>
+    </div>
+</div>
+<style>.attach-thumb { transition:transform .15s;cursor:pointer; }.attach-thumb:hover { transform:scale(1.03); }</style>
+<script>
+function onAttachChange(inp) {
+    const f = inp.files[0];
+    document.getElementById('attachFileName').textContent = f ? f.name : '';
+    document.getElementById('attachSubmitBtn').style.display = f ? '' : 'none';
+}
+</script>
 
 <!-- Modal: Add Stage -->
 <div class="modal fade" id="modalAddStage" tabindex="-1">
@@ -332,148 +464,113 @@
 </div>
 
 <!-- ─── GANTT ДИАГРАММА ────────────────────────────────────────────────── -->
-{% set has_gantt = project.sid_start or project.zoning_start or project.closure_date or project.vpk_date or project.opening_date %}
-{% if has_gantt %}
-<div class="data-card mt-3">
+{% set gantt_stages = project.stages | selectattr('start_date') | list %}
+{% if gantt_stages %}
+<div class="data-card mt-3" id="gantt-section">
   <div class="data-card-header">
     <span><i class="bi bi-bar-chart-steps me-2 text-success"></i>График этапов</span>
+    <div class="d-flex align-items-center gap-2">
+      <span id="ganttSaveStatus" class="small text-muted"></span>
+      <div class="btn-group btn-group-sm" role="group">
+        <button class="btn btn-outline-secondary btn-xs active" onclick="setGanttView('Week',this)">Нед</button>
+        <button class="btn btn-outline-secondary btn-xs" onclick="setGanttView('Month',this)">Мес</button>
+        <button class="btn btn-outline-secondary btn-xs" onclick="setGanttView('Day',this)">День</button>
+      </div>
+    </div>
   </div>
-  <div style="padding:20px 24px 24px">
-    <canvas id="ganttChart" style="width:100%;height:auto"></canvas>
+  <div style="padding:12px 16px 20px;overflow-x:auto;background:#0f172a;border-radius:0 0 12px 12px">
+    <div id="ganttContainer"></div>
   </div>
 </div>
 
-<script src="/static/vendor/chartjs/chart.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
+<script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.umd.js"></script>
+<style>
+/* Dark theme for frappe-gantt */
+#ganttContainer svg { background: #0f172a; min-width: 560px; }
+#ganttContainer .grid-background { fill: #0f172a; }
+#ganttContainer .grid-row { fill: #0f172a; }
+#ganttContainer .grid-row:nth-child(even) { fill: #111827; }
+#ganttContainer .row-line { stroke: #1e293b; }
+#ganttContainer .tick { stroke: #1e293b; stroke-width:1; }
+#ganttContainer .today-highlight { fill: rgba(255,210,0,.08); }
+#ganttContainer .bar-label { fill: #e2e8f0 !important; font-size:11px; }
+#ganttContainer .bar-group .bar { fill: #3CB34A; rx: 4; }
+#ganttContainer .bar-group.status-done .bar { fill: #16a34a; }
+#ganttContainer .bar-group.status-active .bar { fill: #3b82f6; }
+#ganttContainer .bar-group.status-late .bar { fill: #ef4444; }
+#ganttContainer .bar-progress { fill: rgba(255,255,255,.25); }
+#ganttContainer .lower-text { fill: #94a3b8; font-size:11px; }
+#ganttContainer .upper-text { fill: #64748b; font-size:11px; }
+#ganttContainer .gantt-container { background: transparent; }
+#ganttContainer .popup-wrapper { background:#1e293b;border:1px solid #334155;border-radius:8px;padding:8px 12px;color:#e2e8f0;font-size:.82rem; }
+.btn-xs { padding:2px 7px;font-size:.72rem; }
+</style>
 <script>
 (function() {
-  const today = new Date('{{ today }}');
-
-  // Этапы: [название, цвет, начало, конец]
-  const raw = [
-    {% if project.sid_start %}
-    ['СИД', '#3b82f6',
-     '{{ project.sid_start }}',
-     '{{ project.sid_end or project.sid_start }}'],
-    {% endif %}
-    {% if project.zoning_start %}
-    ['Зонирование', '#8b5cf6',
-     '{{ project.zoning_start }}',
-     '{{ project.zoning_end or project.zoning_start }}'],
-    {% endif %}
-    {% if project.closure_date %}
-    ['Выход на СМР', '#f97316',
-     '{{ project.closure_date }}',
-     '{{ project.closure_date }}'],
-    {% endif %}
-    {% if project.vpk_date %}
-    ['ВПК1', '#ef4444',
-     '{{ project.vpk_date }}',
-     '{{ project.vpk_date }}'],
-    {% endif %}
-    {% if project.opening_date %}
-    ['Открытие', '#16a34a',
-     '{{ project.opening_date }}',
-     '{{ project.opening_date }}'],
-    {% endif %}
+  const tasks = [
+    {% for s in gantt_stages %}
+    {
+      id: 'stage_{{ s.id }}',
+      name: {{ s.name | tojson }},
+      start: '{{ s.start_date }}',
+      end: '{{ s.end_date or s.start_date }}',
+      progress: {% if s.status == 'Завершён' %}100{% elif s.status == 'В работе' %}50{% elif s.status == 'Просрочен' %}20{% else %}0{% endif %},
+      custom_class: '{% if s.status == "Завершён" %}status-done{% elif s.status == "В работе" %}status-active{% elif s.status == "Просрочен" %}status-late{% endif %}'
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
   ];
 
-  if (!raw.length) return;
+  const saveEl = document.getElementById('ganttSaveStatus');
+  let _t = null;
 
-  // Определяем диапазон дат (±7 дней запас)
-  const allDates = raw.flatMap(r => [new Date(r[2]), new Date(r[3])]);
-  const minDate  = new Date(Math.min(...allDates) - 7 * 86400000);
-  const maxDate  = new Date(Math.max(...allDates) + 7 * 86400000);
-  const span     = maxDate - minDate;
+  function saveStage(stageId, start, end) {
+    clearTimeout(_t);
+    saveEl.textContent = 'Сохранение…';
+    saveEl.className = 'small text-muted';
+    _t = setTimeout(() => {
+      fetch('/api/stages/' + stageId + '/dates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          start: start.toISOString().slice(0, 10),
+          end:   end.toISOString().slice(0, 10)
+        })
+      })
+      .then(r => r.json())
+      .then(() => {
+        saveEl.textContent = '✓ Сохранено';
+        saveEl.className = 'small text-success';
+        setTimeout(() => { saveEl.textContent = ''; }, 2500);
+      })
+      .catch(() => {
+        saveEl.textContent = '✗ Ошибка';
+        saveEl.className = 'small text-danger';
+      });
+    }, 700);
+  }
 
-  function toX(d) { return (new Date(d) - minDate) / span * 100; }
-  function toW(s, e) { return Math.max(0.5, toX(e) - toX(s)); }
-
-  const labels   = raw.map(r => r[0]);
-  const starts   = raw.map(r => toX(r[2]));
-  const widths   = raw.map(r => toW(r[2], r[3]));
-  const colors   = raw.map(r => r[1]);
-
-  // Позиция «сегодня»
-  const todayX = (today - minDate) / span * 100;
-
-  new Chart(document.getElementById('ganttChart'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        // Прозрачный отступ (для сдвига начала бара)
-        { data: starts, backgroundColor: 'transparent', borderWidth: 0 },
-        // Сами бары
-        { data: widths, backgroundColor: colors, borderRadius: 6,
-          borderSkipped: false, borderWidth: 0 }
-      ]
+  window._gantt = new Gantt('#ganttContainer', tasks, {
+    view_mode: 'Week',
+    date_format: 'YYYY-MM-DD',
+    on_date_change(task, start, end) {
+      saveStage(task.id.replace('stage_', ''), start, end);
     },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          stacked: true,
-          min: 0, max: 100,
-          ticks: {
-            callback: v => {
-              const d = new Date(minDate.getTime() + v / 100 * span);
-              return d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' });
-            },
-            maxTicksLimit: 8, font: { size: 11 }, color: '#888'
-          },
-          grid: { color: '#f0f0f0' },
-        },
-        y: { stacked: true, grid: { display: false },
-             ticks: { font: { size: 13, weight: '600' }, color: '#374151' } }
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: ctx => {
-              if (ctx.datasetIndex === 0) return null;
-              const r = raw[ctx.dataIndex];
-              const s = new Date(r[2]).toLocaleDateString('ru-RU', {day:'2-digit',month:'short',year:'numeric'});
-              const e = new Date(r[3]).toLocaleDateString('ru-RU', {day:'2-digit',month:'short',year:'numeric'});
-              return r[2] === r[3] ? ` ${s}` : ` ${s} — ${e}`;
-            },
-            title: ctx => ctx[0] ? raw[ctx[0].dataIndex][0] : ''
-          }
-        },
-        // Линия «сегодня»
-        annotation: null
-      },
-      layout: { padding: { right: 10 } }
-    },
-    plugins: [{
-      id: 'todayLine',
-      afterDraw(chart) {
-        if (todayX < 0 || todayX > 100) return;
-        const { ctx, chartArea, scales } = chart;
-        const x = scales.x.getPixelForValue(todayX);
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(x, chartArea.top);
-        ctx.lineTo(x, chartArea.bottom);
-        ctx.strokeStyle = '#FFD200';
-        ctx.lineWidth   = 2;
-        ctx.setLineDash([4, 3]);
-        ctx.stroke();
-        ctx.fillStyle   = '#1A5C22';
-        ctx.font        = 'bold 11px Segoe UI,Arial';
-        ctx.textAlign   = 'center';
-        ctx.fillRect(x - 22, chartArea.top - 18, 44, 16);
-        ctx.fillStyle = '#FFD200';
-        ctx.fillText('Сегодня', x, chartArea.top - 6);
-        ctx.restore();
-      }
-    }]
+    on_progress_change() {},
+    on_click() {},
+    popup_trigger: 'click',
+    custom_popup_html(task) {
+      const s = new Date(task._start).toLocaleDateString('ru-RU',{day:'2-digit',month:'short'});
+      const e = new Date(task._end).toLocaleDateString('ru-RU',{day:'2-digit',month:'short',year:'numeric'});
+      return `<div class="popup-wrapper"><strong>${task.name}</strong><br>${s} — ${e}<br>Прогресс: ${task.progress}%</div>`;
+    }
   });
 
-  // Подстраиваем высоту под количество этапов
-  document.getElementById('ganttChart').style.height = (raw.length * 52 + 40) + 'px';
+  window.setGanttView = function(mode, btn) {
+    window._gantt.change_view_mode(mode);
+    document.querySelectorAll('.btn-group .btn-xs').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  };
 })();
 </script>
 {% endif %}

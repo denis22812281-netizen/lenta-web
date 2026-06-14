@@ -102,6 +102,47 @@ async def project_detail(request: Request, project_id: int, db: Session = Depend
     })
 
 
+def _mgr_name(db, mid):
+    if not mid:
+        return ""
+    m = db.query(models.Manager).filter(models.Manager.id == mid).first()
+    return m.name if m else str(mid)
+
+
+def _track_changes(db, project, user, new_vals: dict):
+    """Записывает изменения полей в project_history."""
+    LABELS = {
+        "name":         "Название",
+        "tk_number":    "Номер ТК",
+        "city":         "Город",
+        "project_type": "Тип",
+        "status":       "Статус",
+        "stage":        "Этап",
+        "manager_id":   "Менеджер",
+        "start_date":   "Дата начала",
+        "end_date":     "Дата окончания",
+        "description":  "Описание",
+        "budget":       "Бюджет",
+    }
+    author = user.get("display_name", "")
+    for field, label in LABELS.items():
+        old = getattr(project, field, None)
+        new = new_vals.get(field)
+        old_s = str(old) if old is not None else ""
+        new_s = str(new) if new is not None else ""
+        if field == "manager_id":
+            old_s = _mgr_name(db, old)
+            new_s = _mgr_name(db, new)
+        if old_s != new_s:
+            db.add(models.ProjectHistory(
+                project_id=project.id,
+                changed_by=author,
+                field_label=label,
+                old_value=old_s,
+                new_value=new_s,
+            ))
+
+
 @router.post("/projects/{project_id}/update")
 async def update_project(project_id: int, request: Request, db: Session = Depends(get_db),
                          user: dict = Depends(require_login),
@@ -114,13 +155,23 @@ async def update_project(project_id: int, request: Request, db: Session = Depend
     p = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not p:
         raise HTTPException(status_code=404)
+    new_manager_id = int(manager_id) if manager_id else None
+    new_start = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
+    new_end = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+    new_budget = float(budget.replace(",", ".")) if budget else None
+    _track_changes(db, p, user, {
+        "name": name, "tk_number": tk_number, "city": city,
+        "project_type": project_type, "status": status, "stage": stage,
+        "manager_id": new_manager_id, "start_date": new_start,
+        "end_date": new_end, "description": description, "budget": new_budget,
+    })
     p.name = name; p.tk_number = tk_number; p.city = city
     p.project_type = project_type; p.status = status; p.stage = stage
-    p.manager_id = int(manager_id) if manager_id else None
-    p.start_date = datetime.strptime(start_date, "%Y-%m-%d").date() if start_date else None
-    p.end_date = datetime.strptime(end_date, "%Y-%m-%d").date() if end_date else None
+    p.manager_id = new_manager_id
+    p.start_date = new_start
+    p.end_date = new_end
     p.description = description
-    p.budget = float(budget.replace(",", ".")) if budget else None
+    p.budget = new_budget
     db.commit()
     return RedirectResponse(f"/projects/{project_id}", status_code=303)
 
@@ -262,6 +313,101 @@ async def delete_stage(stage_id: int, request: Request, db: Session = Depends(ge
         db.delete(s)
         db.commit()
     return RedirectResponse(f"/projects/{project_id}", status_code=303)
+
+
+@router.post("/api/stages/{stage_id}/dates")
+async def update_stage_dates(stage_id: int, request: Request, db: Session = Depends(get_db),
+                             user: dict = Depends(require_login)):
+    """Обновление дат этапа из интерактивного Gantt (AJAX)."""
+    from fastapi.responses import JSONResponse
+    body = await request.json()
+    s = db.query(models.ProjectStage).filter(models.ProjectStage.id == stage_id).first()
+    if not s:
+        return JSONResponse({"ok": False, "error": "not found"}, status_code=404)
+    try:
+        if body.get("start"):
+            s.start_date = datetime.strptime(body["start"][:10], "%Y-%m-%d").date()
+        if body.get("end"):
+            s.end_date = datetime.strptime(body["end"][:10], "%Y-%m-%d").date()
+        db.commit()
+        return JSONResponse({"ok": True})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=400)
+
+
+# ─── Вложения к проекту (файлы и фото) ───────────────────────────────────────
+
+_ALLOWED_MIME = {
+    "image/jpeg", "image/png", "image/webp", "image/gif",
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword",
+    "text/plain",
+}
+_MAX_ATTACH_SIZE = 20 * 1024 * 1024  # 20 МБ
+
+
+def _file_type(content_type: str, filename: str) -> str:
+    if content_type.startswith("image/"):
+        return "image"
+    ext = Path(filename).suffix.lower()
+    if ext in (".pdf",):
+        return "pdf"
+    if ext in (".xlsx", ".xls", ".csv"):
+        return "xls"
+    if ext in (".docx", ".doc"):
+        return "doc"
+    return "file"
+
+
+@router.post("/projects/{project_id}/attachments/upload")
+async def upload_attachment(project_id: int, request: Request, db: Session = Depends(get_db),
+                            user: dict = Depends(require_login),
+                            file: UploadFile = File(...)):
+    proj = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not proj:
+        raise HTTPException(status_code=404)
+    content = await file.read()
+    if len(content) > _MAX_ATTACH_SIZE:
+        return RedirectResponse(f"/projects/{project_id}?err=Файл+слишком+большой+(макс+20МБ)#attachments",
+                                status_code=303)
+    ct = file.content_type or ""
+    ftype = _file_type(ct, file.filename or "")
+    ext = Path(file.filename or "file").suffix.lower() or ".bin"
+    import uuid as _uuid
+    fname = f"{_uuid.uuid4().hex[:12]}{ext}"
+    folder = f"attachments/proj-{project_id}"
+    if ftype == "image":
+        url = upload_photo(content, folder, fname)
+    else:
+        url = upload_file(content, folder, fname, original_name=file.filename or "")
+    db.add(models.ProjectAttachment(
+        project_id=project_id,
+        original_name=file.filename or fname,
+        file_url=url,
+        file_type=ftype,
+        file_size=len(content),
+        uploaded_by=user.get("display_name", ""),
+    ))
+    db.commit()
+    return RedirectResponse(f"/projects/{project_id}#attachments", status_code=303)
+
+
+@router.post("/projects/{project_id}/attachments/{att_id}/delete")
+async def delete_attachment(project_id: int, att_id: int, request: Request,
+                            db: Session = Depends(get_db), user: dict = Depends(require_login)):
+    att = db.query(models.ProjectAttachment).filter(
+        models.ProjectAttachment.id == att_id,
+        models.ProjectAttachment.project_id == project_id,
+    ).first()
+    if att and (att.uploaded_by == user.get("display_name") or user.get("is_admin")):
+        from services.cloud_storage import delete_photo
+        delete_photo(att.file_url)
+        db.delete(att)
+        db.commit()
+    return RedirectResponse(f"/projects/{project_id}#attachments", status_code=303)
 
 
 # ─── Создание проекта из секции (Реконструкции / Констракшн) ──────────────────
