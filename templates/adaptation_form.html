@@ -1,0 +1,475 @@
+{% extends "base.html" %}
+{% block page_title %}Карточка адаптации{% endblock %}
+{% block title %}
+<i class="bi bi-card-checklist me-2"></i>
+Карточка адаптации{% if card and card.tk_number %} — ТК {{ card.tk_number }}{% endif %}
+{% endblock %}
+
+{% macro field(key, label, opts) %}
+<div class="col-12 col-sm-6 col-lg-4">
+    <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
+    {% if opts %}
+    <select name="{{ key }}" class="form-select form-select-sm">
+        <option value="">—</option>
+        {% for o in opts %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+    </select>
+    {% else %}
+    <input type="text" name="{{ key }}" class="form-control form-control-sm"
+           value="{{ card_data.get(key,'') }}">
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% block content %}
+
+{% if request.query_params.get('sent') %}
+<div class="alert alert-success d-flex align-items-center gap-2 mb-3">
+    <i class="bi bi-check-circle-fill fs-5"></i>
+    <div>Карточка отправлена на почту. Скачать Excel можно ниже.</div>
+</div>
+{% endif %}
+
+<!-- Верхняя панель -->
+<div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+    <a href="/adaptation" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i>Список
+    </a>
+    {% if card %}
+    <span class="badge {% if card.status == 'sent' %}bg-success{% else %}bg-warning text-dark{% endif %} ms-1">
+        {% if card.status == 'sent' %}Отправлена{% else %}Черновик{% endif %}
+    </span>
+    <div class="ms-auto d-flex gap-2 flex-wrap">
+        <a href="/adaptation/{{ card.id }}/download" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel-fill me-1"></i>Скачать Excel
+        </a>
+        <form method="post" action="/adaptation/{{ card.id }}/send" class="d-inline" id="sendForm">
+            <button type="button" class="btn btn-warning btn-sm fw-bold" onclick="confirmSend()">
+                <i class="bi bi-send-fill me-1"></i>Отправить на почту
+            </button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ФОРМА
+══════════════════════════════════════════════════════════════ -->
+<form method="post" action="/adaptation/save" id="adaptForm">
+    {% if card %}<input type="hidden" name="card_id" value="{{ card.id }}">{% endif %}
+
+    <!-- РАЗДЕЛ 1: ОБЩАЯ ИНФОРМАЦИЯ -->
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-primary text-white fw-bold d-flex align-items-center"
+             role="button" data-bs-toggle="collapse" data-bs-target="#sec1">
+            <i class="bi bi-info-circle-fill me-2"></i>1. Общая информация
+            <i class="bi bi-chevron-down ms-auto"></i>
+        </div>
+        <div class="collapse show" id="sec1">
+        <div class="card-body">
+        <div class="row g-3">
+
+            <div class="col-12 col-md-6">
+                <label class="form-label fw-semibold">Номер ТК <span class="text-danger">*</span></label>
+                <input type="text" name="tk_number" class="form-control"
+                       value="{{ card_data.get('tk_number','') }}" placeholder="Например: 610" required>
+            </div>
+
+            {{ field('recon_type','Суть проекта',['Реконструкция','Уплотнение','Изменение МП','Сокращение площадей','Реконструкция с сокращением площадей']) }}
+            {{ field('current_rto','Текущий РТО (дневной)',none) }}
+            {{ field('projected_rto','Прогнозируемый РТО (дневной)',none) }}
+            {{ field('zoning_dev','Разработка зонирования',['да','нет','иное']) }}
+            {{ field('zoning_wishes','Пожелания по зонированию',['да','нет','иное']) }}
+            {{ field('mp_revision','Пересмотр МП',['да','нет','иное']) }}
+            {{ field('real_estate','Недвижимость',['аренда','собственность']) }}
+            {{ field('open_facade','Открытый фасад',['да','нет','иное']) }}
+            {{ field('second_entrance','Второй вход',['да','нет','иное']) }}
+            {{ field('ho_type','Тип ХО',['Встройка','Вынос','Встройка+Вынос']) }}
+            {{ field('sign_change','Замена вывески',['да','нет','иное']) }}
+            {{ field('led_facade','Светодиодная лента на фасаде (неон)',['да','нет','иное']) }}
+            {{ field('light_structures','Световые конструкции',['да','нет','иное','полная замена','частичная замена','полный ремонт']) }}
+            {{ field('stela','Стелла',['да','нет','иное','полная замена','частичная замена','полный ремонт']) }}
+            {{ field('building_location','Строение',['отдельностоящее','внутри ТЦ','пристроенное к жилому дому']) }}
+            {{ field('ceiling_tz','Тип потолков ТЗ',['Подвесной армстронг','Грильято','Подвесной потолок отсутствует','Частично подвесной, частично отсутствует','Иное']) }}
+            {{ field('ceiling_bek','Тип потолков БЭК',['Подвесной армстронг','Грильято','Подвесной потолок отсутствует','Частично подвесной, частично отсутствует','Иное']) }}
+            {{ field('ceiling_height','Высота потолков',none) }}
+            {{ field('building_type','Тип здания',['МКД','ТЦ','жилой дом','пристроенное к жилому дому']) }}
+            {{ field('ownership_type','Тип собственности',['аренда','собственность']) }}
+            {{ field('online_zone','Зона онлайн',['да','нет']) }}
+            {{ field('wall_demolition','Демонтаж старого оформления стен/колонн',['да','нет','иное','полная замена','частичная замена','полный ремонт']) }}
+            {{ field('vitrage_prep','Подготовка витражей к новой оклейке',['да','нет','иное','полная замена','частичная замена','полный ремонт']) }}
+            {{ field('service_options','Сервисные опции в ТЗ',none) }}
+
+        </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- РАЗДЕЛ 2: ПРОИЗВОДСТВО / КУХНЯ -->
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-warning text-dark fw-bold d-flex align-items-center"
+             role="button" data-bs-toggle="collapse" data-bs-target="#sec2">
+            <i class="bi bi-egg-fried me-2"></i>2. Производство / Кухня (ГО + размер)
+            <i class="bi bi-chevron-down ms-auto"></i>
+        </div>
+        <div class="collapse show" id="sec2">
+        <div class="card-body">
+        <div class="row g-2">
+
+        {% set kitchen_items = [
+            ('bakery','bakery_size','Пекарня СП'),
+            ('tandyr','tandyr_size','Тандыр'),
+            ('grill','grill_size','Гриль'),
+            ('fish_fresh','fish_fresh_size','Рыба на льду'),
+            ('fish_smoked','fish_smoked_size','Рыба копчёная'),
+            ('meat_chilled','meat_chilled_size','Мясо охлаждённое'),
+            ('meat_shop','meat_shop_size','Мясная лавка'),
+            ('cheese','cheese_size','Сыр'),
+            ('sausage','sausage_size','Колбаса'),
+            ('salads','salads_size','Салаты / ГБ'),
+            ('pizza','pizza_size','Пицца'),
+            ('shawarma','shawarma_size','Шаверма'),
+            ('pancakes','pancakes_size','Блины'),
+            ('coffee','coffee_size','Кофе-машина'),
+            ('cafe_zone','cafe_zone_size','Зона кафе'),
+        ] %}
+
+        {% for key, size_key, label in kitchen_items %}
+        <div class="col-12 col-sm-6 col-xl-4">
+            <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
+            <div class="input-group input-group-sm">
+                <select name="{{ key }}" class="form-select">
+                    <option value="">—</option>
+                    {% for o in ['да','нет','иное'] %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+                </select>
+                <input type="text" name="{{ size_key }}" class="form-control" style="max-width:90px"
+                       placeholder="м²" value="{{ card_data.get(size_key,'') }}">
+            </div>
+        </div>
+        {% endfor %}
+
+        </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- РАЗДЕЛ 3: ОБОРУДОВАНИЕ ТЗ -->
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-info text-dark fw-bold d-flex align-items-center"
+             role="button" data-bs-toggle="collapse" data-bs-target="#sec3">
+            <i class="bi bi-archive-fill me-2"></i>3. Оборудование ТЗ
+            <i class="bi bi-chevron-down ms-auto"></i>
+        </div>
+        <div class="collapse show" id="sec3">
+        <div class="card-body">
+        <div class="row g-2">
+
+        {% set eq_tz = [
+            ('cash_tables','Кассовые столы'),('kso','КСО'),
+            ('marmite','Мармиты'),('grill_eq','Гриль (оборудование)'),
+            ('oven','Печь'),('convection_oven','Пароконвектомат'),
+            ('cool_shelves','Холодильные горки'),('cool_shelves_1500','Холодильные горки H 1500'),
+            ('cool_doors','Двери в холодильных горках'),('ho_ikra','ХО Икра'),
+            ('lari','Лари'),('vizory','Визоры'),
+            ('showcases','Витрины'),('bonety','Бонеты'),
+            ('freezer_cabinets','Морозильные шкафы'),
+            ('eq_bumpers','Отбойники оборудования'),
+            ('ldsp','ЛДСП'),('shelving','Стеллажное оборудование'),
+            ('shelving_sof','Стеллажное оборудование СОФ'),
+            ('shelving_bakery','Стеллажное оборудование Пекарня'),
+            ('shopping_carts','Тележки покупательские'),
+            ('price_holders','Замена ценникодержателей'),
+            ('shelving_recount','Пересчёт стеллажного оборудования (БУ)'),
+        ] %}
+
+        {% set OPTS_REPLACE = ['да','нет','иное','полная замена','частичная замена'] %}
+        {% for key, label in eq_tz %}
+        <div class="col-12 col-sm-6 col-lg-4">
+            <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
+            {% if key == 'price_holders' %}
+            <select name="{{ key }}" class="form-select form-select-sm">
+                <option value="да" selected>да</option>
+            </select>
+            {% elif key == 'shelving_recount' %}
+            <select name="{{ key }}" class="form-select form-select-sm">
+                <option value="">—</option>
+                {% for o in ['да','нет'] %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+            </select>
+            {% else %}
+            <select name="{{ key }}" class="form-select form-select-sm">
+                <option value="">—</option>
+                {% for o in OPTS_REPLACE %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+            </select>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- РАЗДЕЛ 4: ОБОРУДОВАНИЕ ИТ -->
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-secondary text-white fw-bold d-flex align-items-center"
+             role="button" data-bs-toggle="collapse" data-bs-target="#sec4">
+            <i class="bi bi-pc-display-horizontal me-2"></i>4. Оборудование ИТ
+            <i class="bi bi-chevron-down ms-auto"></i>
+        </div>
+        <div class="collapse show" id="sec4">
+        <div class="card-body">
+        <div class="row g-2">
+
+        {% set eq_it = [
+            ('ad_monitors','Рекламные мониторы над кассами'),
+            ('weight_equip','Весовое оборудование'),
+            ('price_checkers','Прайс-чекеры'),
+            ('sks','СКС'),
+            ('announcement','Система коммерческого оповещения'),
+            ('server_room','Серверная'),
+            ('kkt','Замена ККТ'),
+            ('sticker_printer','Принтер печати стикеров'),
+            ('cellular','Усиление сотовой связи'),
+            ('wifi','Вай-фай'),
+            ('computers','Компьютеры'),
+        ] %}
+        {% set OPTS_REPLACE = ['да','нет','иное','полная замена','частичная замена'] %}
+        {% for key, label in eq_it %}
+        <div class="col-12 col-sm-6 col-lg-4">
+            <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
+            <select name="{{ key }}" class="form-select form-select-sm">
+                <option value="">—</option>
+                {% for o in OPTS_REPLACE %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+            </select>
+        </div>
+        {% endfor %}
+
+        </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- РАЗДЕЛ 5: ОБОРУДОВАНИЕ БЭКОФИСА -->
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-dark text-white fw-bold d-flex align-items-center"
+             role="button" data-bs-toggle="collapse" data-bs-target="#sec5">
+            <i class="bi bi-box-seam-fill me-2"></i>5. Оборудование Бэкофиса
+            <i class="bi bi-chevron-down ms-auto"></i>
+        </div>
+        <div class="collapse show" id="sec5">
+        <div class="card-body">
+        <div class="row g-2">
+
+        {% set eq_bek = [
+            ('office_furniture','Мебель офиса'),
+            ('metal_furniture','Мебель металлическая'),
+            ('tech_equipment','Технологическое оборудование'),
+            ('bek_shelving','Стеллажное оборудование БЭК'),
+            ('cargo_shelving','Грузовые стеллажи в БЭК'),
+            ('defect_fridge','Холодильник для брака'),
+            ('cryo_coolers','Холодильные камеры (воздухоохладители)'),
+            ('cryo_panels','Холодильные камеры (панели)'),
+            ('cryo_doors','Двери и фурнитура холодильных камер'),
+            ('cryo_shelving','Стеллажи в холодильных камерах'),
+            ('chm_replace','ЦХМ замена'),
+            ('chm_relocate','ЦХМ изменение месторасположения'),
+            ('condenser','Конденсаторные блоки'),
+            ('cargo_scales_15','Грузовые весы 1,5 т.'),
+            ('cargo_scales_30','Грузовые весы до 30 кг'),
+            ('press','Пресс'),
+            ('hydraulic_carts','Гидравлические тележки'),
+        ] %}
+        {% set OPTS_REPLACE = ['да','нет','иное','полная замена','частичная замена'] %}
+        {% for key, label in eq_bek %}
+        <div class="col-12 col-sm-6 col-lg-4">
+            <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
+            <select name="{{ key }}" class="form-select form-select-sm">
+                <option value="">—</option>
+                {% for o in OPTS_REPLACE %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+            </select>
+        </div>
+        {% endfor %}
+
+        </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- РАЗДЕЛ 6: ПОМЕЩЕНИЯ БЭКОФИСА -->
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-danger text-white fw-bold d-flex align-items-center"
+             role="button" data-bs-toggle="collapse" data-bs-target="#sec6">
+            <i class="bi bi-door-open-fill me-2"></i>6. Помещения Бэкофиса
+            <i class="bi bi-chevron-down ms-auto"></i>
+        </div>
+        <div class="collapse show" id="sec6">
+        <div class="card-body">
+        <div class="row g-2">
+
+        {% set rooms_bek = [
+            ('room_receiving','Приёмка'),
+            ('room_dining','Комната приёма пищи'),
+            ('room_office','Офис'),
+            ('room_changing','Раздевалки'),
+            ('room_wc','Сан. узлы'),
+            ('room_floor','Напольное покрытие (бэк)'),
+            ('room_cashroom','Главная касса'),
+            ('room_bank_equip','Замена банковского оборудования'),
+        ] %}
+        {% set OPTS_FULL = ['да','нет','иное','полная замена','частичная замена','полный ремонт','локальный ремонт'] %}
+        {% for key, label in rooms_bek %}
+        <div class="col-12 col-sm-6 col-lg-4">
+            <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
+            <select name="{{ key }}" class="form-select form-select-sm">
+                <option value="">—</option>
+                {% for o in OPTS_FULL %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+            </select>
+        </div>
+        {% endfor %}
+
+        </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- РАЗДЕЛ 7: ПОМЕЩЕНИЕ ТЗ -->
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header fw-bold d-flex align-items-center text-white"
+             role="button" style="background:#2563eb;cursor:pointer"
+             data-bs-toggle="collapse" data-bs-target="#sec7">
+            <i class="bi bi-building-fill me-2"></i>7. Помещение ТЗ
+            <i class="bi bi-chevron-down ms-auto"></i>
+        </div>
+        <div class="collapse show" id="sec7">
+        <div class="card-body">
+        <div class="row g-2">
+
+        {% set rooms_tz = [
+            ('tz_floor','Напольное покрытие (ТЗ)'),
+            ('tz_lighting','Освещение'),
+            ('tz_accent_light','Акцентное освещение'),
+            ('tz_walls','Look & Feel (покраска стен)'),
+            ('tz_entrance_grp','Входная группа'),
+            ('tz_auto_doors','Входные автоматические двери'),
+            ('tz_mech_doors','Входные механические двери'),
+            ('tz_porch','Крыльцо'),
+            ('tz_parking','Парковка'),
+            ('tz_vitrages','Витражи (открытый фасад)'),
+            ('tz_imposty','Импосты открытого фасада'),
+            ('tz_ceiling','Потолок'),
+            ('tz_announcement','Система оповещения'),
+            ('tz_fire_alarm','Пожарная сигнализация'),
+            ('tz_smoke','Система дымоудаления'),
+            ('tz_aupt','АУПТ'),
+            ('tz_radiators','Радиаторное отопление'),
+            ('tz_heating','Система отопления'),
+            ('tz_conditioners','Кондиционеры'),
+            ('tz_partitions','Новые перегородки'),
+            ('tz_air_curtains','Тепловые завесы'),
+            ('tz_lift_tables','Подъёмные столы'),
+            ('tz_lifts','Лифты/подъёмники'),
+            ('tz_sectional_gates','Секционные ворота'),
+            ('tz_roller_gates','Рулонные ворота'),
+            ('tz_windows','Стеклопакеты'),
+            ('tz_mgn','Конструкции для МГН'),
+            ('tz_fire_doors','Противопожарные двери'),
+            ('tz_grshe','ГРЩ'),
+        ] %}
+        {% set OPTS_FULL = ['да','нет','иное','полная замена','частичная замена','полный ремонт','локальный ремонт'] %}
+        {% for key, label in rooms_tz %}
+        <div class="col-12 col-sm-6 col-lg-4">
+            <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
+            <select name="{{ key }}" class="form-select form-select-sm">
+                <option value="">—</option>
+                {% for o in OPTS_FULL %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+            </select>
+        </div>
+        {% endfor %}
+
+        <!-- Поломоечная машина/робот отдельно -->
+        <div class="col-12 col-sm-6 col-lg-4">
+            <label class="form-label form-label-sm fw-semibold">Поломоечная машина/робот</label>
+            <select name="tz_wash_robot" class="form-select form-select-sm">
+                <option value="">—</option>
+                {% for o in ['Робот','Поломоечная машина','нет'] %}
+                <option value="{{ o }}"{% if card_data.get('tz_wash_robot')==o %} selected{% endif %}>{{ o }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- РАЗДЕЛ 8: МАРКЕТИНГ -->
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header fw-bold d-flex align-items-center text-white"
+             role="button" style="background:#7c3aed;cursor:pointer"
+             data-bs-toggle="collapse" data-bs-target="#sec8">
+            <i class="bi bi-megaphone-fill me-2"></i>8. Маркетинг
+            <i class="bi bi-chevron-down ms-auto"></i>
+        </div>
+        <div class="collapse show" id="sec8">
+        <div class="card-body">
+        <div class="row g-2">
+
+        {% set mkt_items = [
+            ('mkt_facade_photos','Получены фото фасада и входной группы'),
+            ('mkt_trc_photos','Фото входной зоны ТРЦ (если в ТРЦ)'),
+            ('mkt_trc_navigation','Нужна доп. навигация внутри ТРЦ'),
+            ('mkt_pattern','Паттерн в ТЗ, нужно обновление?'),
+            ('mkt_ashel_mpc','Лёгкая ашель и МНЦ над промо бинами'),
+            ('mkt_ashel_sof','Сохранить ашель над СОФ'),
+            ('mkt_posm','Заказ POSM материалов'),
+        ] %}
+        {% for key, label in mkt_items %}
+        <div class="col-12 col-sm-6 col-lg-4">
+            <label class="form-label form-label-sm fw-semibold">{{ label }}</label>
+            <select name="{{ key }}" class="form-select form-select-sm">
+                <option value="">—</option>
+                {% for o in ['да','нет'] %}<option value="{{ o }}"{% if card_data.get(key)==o %} selected{% endif %}>{{ o }}</option>{% endfor %}
+            </select>
+        </div>
+        {% endfor %}
+
+        <div class="col-12 mt-2">
+            <label class="form-label fw-semibold">Иная важная информация / особенности стройки</label>
+            <textarea name="extra_info" class="form-control" rows="3"
+                      placeholder="Кто проводит демонтаж, особенности, дни работ и т.д.">{{ card_data.get('extra_info','') }}</textarea>
+        </div>
+
+        </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- Кнопки -->
+    <div class="d-flex gap-3 flex-wrap my-4">
+        <button type="submit" class="btn btn-primary px-4" id="saveBtn">
+            <i class="bi bi-floppy-fill me-1"></i>Сохранить черновик
+        </button>
+        {% if card %}
+        <a href="/adaptation/{{ card.id }}/download" class="btn btn-outline-success">
+            <i class="bi bi-file-earmark-excel-fill me-1"></i>Скачать Excel
+        </a>
+        {% endif %}
+        <a href="/adaptation" class="btn btn-outline-secondary">Отмена</a>
+    </div>
+
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmSend() {
+    if (!confirm('Отправить карточку на почту?\n\nЕё сначала нужно сохранить — нажмите «Сохранить черновик» если ещё не сохраняли.')) return;
+    document.getElementById('sendForm').submit();
+}
+
+document.getElementById('adaptForm')?.addEventListener('change', function() {
+    const btn = document.getElementById('saveBtn');
+    if (btn) { btn.textContent = ''; btn.innerHTML = '<i class="bi bi-floppy-fill me-1"></i>Сохранить черновик *'; btn.classList.add('btn-warning'); btn.classList.remove('btn-primary'); }
+});
+</script>
+{% endblock %}

@@ -163,6 +163,19 @@ _POSTGRES_MIGRATIONS = [
     "CREATE INDEX IF NOT EXISTS ix_audit_logs_user         ON audit_logs (user_name)",
     "CREATE INDEX IF NOT EXISTS ix_smr_tasks_schedule      ON smr_tasks (schedule_id)",
     "CREATE INDEX IF NOT EXISTS ix_smr_tasks_end_plan      ON smr_tasks (end_plan)",
+    """CREATE TABLE IF NOT EXISTS adaptation_cards (
+        id SERIAL PRIMARY KEY,
+        tk_number VARCHAR(50) DEFAULT '',
+        created_by VARCHAR(100) DEFAULT '',
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        status VARCHAR(20) DEFAULT 'draft',
+        sent_at TIMESTAMP,
+        recipient_email VARCHAR(200) DEFAULT '',
+        data JSONB DEFAULT '{}'
+    )""",
+    "CREATE INDEX IF NOT EXISTS ix_adaptation_tk ON adaptation_cards (tk_number)",
+    "CREATE INDEX IF NOT EXISTS ix_adaptation_created_by ON adaptation_cards (created_by)",
 ]
 
 _SQLITE_MIGRATIONS = [
@@ -247,6 +260,17 @@ _SQLITE_MIGRATIONS = [
         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""",
     "ALTER TABLE opening_photos ADD COLUMN is_featured INTEGER DEFAULT 0",
+    """CREATE TABLE IF NOT EXISTS adaptation_cards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tk_number VARCHAR(50) DEFAULT '',
+        created_by VARCHAR(100) DEFAULT '',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        status VARCHAR(20) DEFAULT 'draft',
+        sent_at TIMESTAMP,
+        recipient_email VARCHAR(200) DEFAULT '',
+        data TEXT DEFAULT '{}'
+    )""",
 ]
 
 

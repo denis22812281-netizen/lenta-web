@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block page_title %}Карточки адаптации — Лента{% endblock %}
+{% block title %}<i class="bi bi-card-checklist me-2"></i>Карточки адаптации{% endblock %}
+
+{% block content %}
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+    <div>
+        <span class="badge bg-secondary fs-6">{{ cards|length }} карточек</span>
+    </div>
+    <a href="/adaptation/new" class="btn btn-primary ms-auto">
+        <i class="bi bi-plus-lg me-1"></i>Новая карточка
+    </a>
+</div>
+
+<!-- Поиск -->
+<div class="mb-3">
+    <input type="text" id="searchInput" class="form-control" placeholder="Поиск по номеру ТК или автору...">
+</div>
+
+{% if not cards %}
+<div class="text-center text-muted py-5">
+    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+    Карточки ещё не созданы
+</div>
+{% else %}
+<div class="list-group" id="cardList">
+{% for card in cards %}
+<a href="/adaptation/{{ card.id }}/edit"
+   class="list-group-item list-group-item-action d-flex flex-wrap align-items-center gap-2 py-3 card-row"
+   data-search="{{ card.tk_number|lower }} {{ card.created_by|lower }}">
+
+    <div class="flex-grow-1">
+        <div class="fw-bold fs-6">ТК {{ card.tk_number or '—' }}</div>
+        <div class="text-muted small">
+            <i class="bi bi-person me-1"></i>{{ card.created_by }}
+            &nbsp;·&nbsp;
+            <i class="bi bi-calendar3 me-1"></i>{{ card.created_at.strftime('%d.%m.%Y %H:%M') }}
+        </div>
+        {% if card.sent_at %}
+        <div class="text-success small">
+            <i class="bi bi-send-check me-1"></i>Отправлена {{ card.sent_at.strftime('%d.%m.%Y %H:%M') }}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge {% if card.status == 'sent' %}bg-success{% else %}bg-warning text-dark{% endif %}">
+            {% if card.status == 'sent' %}Отправлена{% else %}Черновик{% endif %}
+        </span>
+        <a href="/adaptation/{{ card.id }}/download"
+           class="btn btn-outline-success btn-sm"
+           onclick="event.stopPropagation()">
+            <i class="bi bi-file-earmark-excel-fill"></i>
+        </a>
+    </div>
+
+</a>
+{% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const searchInput = document.getElementById('searchInput');
+searchInput?.addEventListener('input', function() {
+    const q = this.value.toLowerCase();
+    document.querySelectorAll('.card-row').forEach(row => {
+        row.style.display = row.dataset.search.includes(q) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}
