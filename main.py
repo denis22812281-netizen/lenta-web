@@ -140,6 +140,34 @@ class AdminIPWhitelistMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Добавляет security-заголовки ко всем ответам."""
+    _CSP = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
+        "img-src 'self' data: blob: res.cloudinary.com *.cloudinary.com "
+        "*.tile.openstreetmap.org *.basemaps.cartocdn.com; "
+        "connect-src 'self' fcm.googleapis.com *.googleapis.com; "
+        "font-src 'self' cdn.jsdelivr.net; "
+        "frame-ancestors 'none'; "
+        "object-src 'none';"
+    )
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        # CSP только для HTML-страниц (не для статики и API)
+        ct = response.headers.get("content-type", "")
+        if "text/html" in ct:
+            response.headers["Content-Security-Policy"] = self._CSP
+        return response
+
+
 class AuditMiddleware(BaseHTTPMiddleware):
     """Записывает посещения страниц авторизованными пользователями."""
     _SKIP_PREFIX = ("/static", "/api/ping", "/api/online", "/favicon", "/admin/audit")
@@ -190,6 +218,7 @@ async def server_error_handler(request: Request, exc):
 
 _ADMIN_IP_WHITELIST = [ip.strip() for ip in os.getenv("ADMIN_IP_WHITELIST", "").split(",") if ip.strip()]
 
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(AuditMiddleware)
 app.add_middleware(AdminIPWhitelistMiddleware, whitelist=_ADMIN_IP_WHITELIST)
 app.add_middleware(CSRFMiddleware)
@@ -235,13 +264,14 @@ from routes.reconstruction import router as reconstruction_router
 from routes.search         import router as search_router
 from routes.adaptation     import router as adaptation_router
 from routes.analytics      import router as analytics_router
+from routes.map            import router as map_router
 
 for r in [auth_router, dashboard_router, projects_router, sections_router,
           kso_router, tasks_router, managers_router, deadlines_router,
           vpk_router, stats_router, admin_router, chat_router,
           ai_router, api_router, sync_router, smr_router, leader_router,
           executive_router, help_router, case_router, reconstruction_router,
-          search_router, adaptation_router, analytics_router]:
+          search_router, adaptation_router, analytics_router, map_router]:
     app.include_router(r)
 
 

@@ -1,0 +1,14 @@
+.git
+.github
+__pycache__
+*.pyc
+*.pyo
+.env
+.env.local
+*.db
+*.db-journal
+venv
+.venv
+node_modules
+.pytest_cache
+test_lenta.db

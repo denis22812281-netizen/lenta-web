@@ -219,6 +219,31 @@
   </div>
 
 </div>
+<!-- ─── CALENDAR HEATMAP дедлайнов ──────────────────────────────────────── -->
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="data-card">
+      <div class="data-card-header">
+        <span>
+          <i class="bi bi-calendar3 me-2" style="color:#FFD200"></i>
+          Тепловая карта дедлайнов — следующие 90 дней
+        </span>
+        <a href="/deadlines" class="btn btn-sm btn-outline-secondary">Все →</a>
+      </div>
+      <div style="padding:8px 12px 12px">
+        <div id="calendarHeatmap" style="height:160px;width:100%"></div>
+        <div class="d-flex gap-3 mt-2 flex-wrap" style="font-size:11px;color:#94a3b8">
+          <span><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#1e3a2f;vertical-align:middle;margin-right:4px"></span>Нет дедлайнов</span>
+          <span><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#3CB34A;vertical-align:middle;margin-right:4px"></span>Мало (1–2)</span>
+          <span><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#FFD200;vertical-align:middle;margin-right:4px"></span>Средне (3–5)</span>
+          <span><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#ef4444;vertical-align:middle;margin-right:4px"></span>Высокая нагрузка (6+)</span>
+          <span class="ms-auto text-muted">Задачи + проекты (проект = 2 единицы)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% if user and user.is_admin %}
 <div class="mt-4">
     <details>
@@ -241,6 +266,7 @@
 
 {% block scripts %}
 <script src="/static/vendor/chartjs/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
 <script>
 Chart.defaults.font.family = "'Segoe UI', Arial, sans-serif";
 
@@ -333,6 +359,84 @@ new Chart(document.getElementById('chartMgrTasks'), {
     }
   }
 });
+
+// ── ECharts: Calendar Heatmap дедлайнов ──────────────────────────────────────
+(function() {
+  const heatmapData = {{ deadline_heatmap | tojson }};
+  const range = {{ heatmap_range | tojson }};
+  if (!heatmapData.length) return;
+
+  const isDark = document.getElementById('html-root')?.getAttribute('data-bs-theme') === 'dark';
+  const chart = echarts.init(document.getElementById('calendarHeatmap'), isDark ? 'dark' : null, {
+    renderer: 'canvas',
+    useDirtyRect: false,
+  });
+
+  const maxVal = Math.max(...heatmapData.map(d => d[1]), 1);
+
+  chart.setOption({
+    backgroundColor: 'transparent',
+    tooltip: {
+      formatter(p) {
+        if (!p.data) return p.value[0];
+        const [d, v] = p.data;
+        const dt = new Date(d);
+        const fmt = dt.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+        return `<b>${fmt}</b><br>Дедлайнов: <b>${v}</b>`;
+      },
+    },
+    visualMap: {
+      show: false,
+      min: 0,
+      max: Math.max(maxVal, 6),
+      inRange: {
+        color: isDark
+          ? ['#0d2b1a', '#1a5c22', '#3CB34A', '#FFD200', '#f97316', '#ef4444']
+          : ['#e8f5e9', '#a5d6a7', '#3CB34A', '#FFD200', '#f97316', '#ef4444'],
+      },
+    },
+    calendar: {
+      top: 10,
+      left: 28,
+      right: 8,
+      bottom: 8,
+      range: range,
+      cellSize: ['auto', 'auto'],
+      splitLine: { show: false },
+      itemStyle: {
+        borderColor: isDark ? '#0d1b12' : '#f0f0f0',
+        borderWidth: 2,
+        borderRadius: 3,
+      },
+      dayLabel: {
+        firstDay: 1,
+        nameMap: ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'],
+        color: isDark ? '#475569' : '#9ca3af',
+        fontSize: 10,
+      },
+      monthLabel: {
+        nameMap: ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'],
+        color: isDark ? '#64748b' : '#6b7280',
+        fontSize: 10,
+      },
+      yearLabel: { show: false },
+    },
+    series: [{
+      type: 'heatmap',
+      coordinateSystem: 'calendar',
+      data: heatmapData,
+      emphasis: {
+        itemStyle: { shadowBlur: 10, shadowColor: 'rgba(60,179,74,.5)' },
+      },
+    }],
+  });
+
+  // Ресайз при изменении окна
+  window.addEventListener('resize', () => chart.resize());
+
+  // Реакция на смену темы
+  document.getElementById('html-root')?.addEventListener('change', () => chart.dispose());
+})();
 </script>
 <style>
 .dash-banner {

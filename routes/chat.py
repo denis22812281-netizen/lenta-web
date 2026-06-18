@@ -1,8 +1,9 @@
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Request, Form, Depends, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Request, Form, Depends, UploadFile, File, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, RedirectResponse
+from services.ws_manager import ws_manager
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session
 
@@ -112,6 +113,26 @@ async def chat_messages(request: Request, db: Session = Depends(get_db),
     ]}
 
 
+@router.websocket("/ws/chat")
+async def chat_ws(websocket: WebSocket, partner: str = ""):
+    """WebSocket: держим соединение открытым, push приходит через ws_manager.broadcast."""
+    # Сессия доступна через scope (SessionMiddleware обрабатывает WS)
+    session = dict(websocket.scope.get("session", {}))
+    user = session.get("user")
+    if not user:
+        await websocket.close(code=4001)
+        return
+    my_name = user.get("display_name", "")
+    await ws_manager.connect(websocket, my_name, partner)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        await ws_manager.disconnect(websocket, my_name, partner)
+
+
 @router.post("/api/chat/send")
 async def chat_send(request: Request, background_tasks: BackgroundTasks,
                     db: Session = Depends(get_db)):
@@ -128,6 +149,11 @@ async def chat_send(request: Request, background_tasks: BackgroundTasks,
     db.add(msg)
     db.commit()
     db.refresh(msg)
+    payload = {
+        "id": msg.id, "sender": sender, "text": text,
+        "photo": "", "time": msg.created_at.strftime("%H:%M"),
+    }
+    await ws_manager.broadcast(payload, sender, receiver)
     background_tasks.add_task(_push_chat, db, sender, receiver, text)
     return {"id": msg.id, "time": msg.created_at.strftime("%H:%M")}
 
@@ -152,6 +178,11 @@ async def chat_send_photo(request: Request, background_tasks: BackgroundTasks,
     db.add(msg)
     db.commit()
     db.refresh(msg)
+    payload = {
+        "id": msg.id, "sender": sender, "text": text or "",
+        "photo": stored or "", "time": msg.created_at.strftime("%H:%M"),
+    }
+    await ws_manager.broadcast(payload, sender, partner)
     background_tasks.add_task(_push_chat, db, sender, partner, text or "📷 Фото")
     return {"id": msg.id, "time": msg.created_at.strftime("%H:%M"), "photo": msg.photo_path}
 

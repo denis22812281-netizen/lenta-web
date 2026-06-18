@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from config import STATUSES
-from deps import get_current_user, require_login
+from deps import get_current_user, require_login, require_api_user
 from services.online import ONLINE_USERS, ONLINE_TIMEOUT
 
 router = APIRouter()
@@ -50,7 +50,7 @@ async def ping(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/api/projects/bulk-update")
 async def bulk_update_projects(request: Request, db: Session = Depends(get_db),
-                               user: dict = Depends(require_login)):
+                               user: dict = Depends(require_api_user)):
     data = await request.json()
     ids = [int(i) for i in data.get("ids", []) if str(i).isdigit()]
     action = data.get("action", "")
@@ -233,7 +233,7 @@ async def reconstruct_notifications(request: Request, db: Session = Depends(get_
 
 @router.post("/api/push/subscribe")
 async def push_subscribe(request: Request, db: Session = Depends(get_db),
-                         user: dict = Depends(require_login)):
+                         user: dict = Depends(require_api_user)):
     """Сохраняет Push-подписку браузера пользователя."""
     body = await request.json()
     endpoint = body.get("endpoint", "")
@@ -258,7 +258,7 @@ async def push_subscribe(request: Request, db: Session = Depends(get_db),
 
 @router.delete("/api/push/subscribe")
 async def push_unsubscribe(request: Request, db: Session = Depends(get_db),
-                           user: dict = Depends(require_login)):
+                           user: dict = Depends(require_api_user)):
     body = await request.json()
     endpoint = body.get("endpoint", "")
     if endpoint:

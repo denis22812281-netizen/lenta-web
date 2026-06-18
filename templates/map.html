@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+{% block page_title %}Карта объектов — Лента.PM{% endblock %}
+{% block title %}<i class="bi bi-map-fill me-2"></i>Карта объектов{% endblock %}
+
+{% block content %}
+
+<!-- Счётчики сверху -->
+<div class="map-stats-bar mb-3">
+  <div class="map-stat opened">
+    <i class="bi bi-star-fill"></i>
+    <div><span class="map-stat-num">{{ stats.opened }}</span><div class="map-stat-label">Открыто</div></div>
+  </div>
+  <div class="map-stat active">
+    <i class="bi bi-circle-fill"></i>
+    <div><span class="map-stat-num">{{ stats.active }}</span><div class="map-stat-label">Активных</div></div>
+  </div>
+  <div class="map-stat urgent">
+    <i class="bi bi-clock-fill"></i>
+    <div><span class="map-stat-num">{{ stats.urgent }}</span><div class="map-stat-label">Срочных</div></div>
+  </div>
+  <div class="map-stat overdue">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <div><span class="map-stat-num">{{ stats.overdue }}</span><div class="map-stat-label">Просрочено</div></div>
+  </div>
+  <div class="map-stat done">
+    <i class="bi bi-check-circle-fill"></i>
+    <div><span class="map-stat-num">{{ stats.done }}</span><div class="map-stat-label">Завершено</div></div>
+  </div>
+  <div class="map-stat planning">
+    <i class="bi bi-calendar2-week-fill"></i>
+    <div><span class="map-stat-num">{{ stats.planning }}</span><div class="map-stat-label">Планирование</div></div>
+  </div>
+</div>
+
+<!-- Легенда + карта -->
+<div class="data-card p-0 overflow-hidden">
+
+  <!-- Легенда -->
+  <div class="map-legend d-flex flex-wrap gap-2 px-3 py-2 border-bottom">
+    <span class="map-legend-item"><span class="ml-dot" style="background:#FFD200;box-shadow:0 0 6px #FFD200"></span>Открыт</span>
+    <span class="map-legend-item"><span class="ml-dot" style="background:#3CB34A"></span>Активный</span>
+    <span class="map-legend-item"><span class="ml-dot" style="background:#f97316"></span>Срочный (≤14д)</span>
+    <span class="map-legend-item"><span class="ml-dot" style="background:#ef4444"></span>Просрочен</span>
+    <span class="map-legend-item"><span class="ml-dot" style="background:#3b82f6"></span>Планирование</span>
+    <span class="map-legend-item"><span class="ml-dot" style="background:#6b7280"></span>Завершён</span>
+    {% if stats.skipped > 0 %}
+    <span class="ms-auto text-muted small">{{ stats.skipped }} объектов без геоданных</span>
+    {% endif %}
+  </div>
+
+  <!-- Leaflet карта -->
+  <div id="map" style="height:calc(100vh - 260px);min-height:400px;width:100%"></div>
+</div>
+
+<!-- Панель деталей (попап снизу на мобиле) -->
+<div id="mapDetail" class="map-detail-panel" style="display:none">
+  <div class="map-detail-header">
+    <div>
+      <div class="map-detail-name" id="detailName"></div>
+      <div class="map-detail-sub" id="detailSub"></div>
+    </div>
+    <button class="btn btn-sm btn-outline-secondary" onclick="closeDetail()">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+  <div class="map-detail-body" id="detailBody"></div>
+  <a id="detailLink" href="#" class="btn btn-success btn-sm mt-2 w-100">
+    <i class="bi bi-box-arrow-up-right me-1"></i>Открыть проект
+  </a>
+</div>
+
+<style>
+/* ── Stats bar ── */
+.map-stats-bar {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+.map-stat {
+  background: var(--card-bg, #1e293b);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+}
+.map-stat.opened  { color: #FFD200; border: 1px solid rgba(255,210,0,.25); }
+.map-stat.active  { color: #3CB34A; border: 1px solid rgba(60,179,74,.25); }
+.map-stat.urgent  { color: #f97316; border: 1px solid rgba(249,115,22,.25); }
+.map-stat.overdue { color: #ef4444; border: 1px solid rgba(239,68,68,.25); }
+.map-stat.done    { color: #6b7280; border: 1px solid rgba(107,114,128,.25); }
+.map-stat.planning{ color: #3b82f6; border: 1px solid rgba(59,130,246,.25); }
+.map-stat-num  { font-size: 22px; font-weight: 900; line-height: 1; }
+.map-stat-label{ font-size: 10px; color: #94a3b8; }
+
+/* ── Legend ── */
+.map-legend { background: var(--card-bg, #fff); font-size: 12px; }
+.map-legend-item { display: flex; align-items: center; gap: 5px; }
+.ml-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+/* ── Detail panel (bottom sheet mobile) ── */
+.map-detail-panel {
+  position: fixed;
+  bottom: 72px; /* above bottom nav */
+  left: 12px; right: 12px;
+  background: var(--card-bg, #1e293b);
+  border-radius: 16px 16px 0 0;
+  border: 1px solid rgba(255,255,255,.1);
+  box-shadow: 0 -4px 30px rgba(0,0,0,.4);
+  padding: 16px;
+  z-index: 1000;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+.map-detail-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.map-detail-name { font-weight: 700; font-size: 15px; }
+.map-detail-sub  { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+.map-detail-body { font-size: 13px; }
+.map-detail-row  { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+.map-detail-row:last-child { border-bottom: none; }
+
+@media (min-width: 768px) {
+  .map-detail-panel {
+    position: absolute;
+    right: 24px; bottom: 100px; left: auto;
+    width: 320px;
+    border-radius: 16px;
+  }
+  .map-stats-bar { grid-template-columns: repeat(6, 1fr); }
+}
+
+@media (max-width: 576px) {
+  .map-stats-bar { grid-template-columns: repeat(3, 1fr); }
+  .map-stat { padding: 8px 10px; font-size: 18px; gap: 6px; }
+  .map-stat-num { font-size: 18px; }
+  #map { height: calc(100vh - 320px) !important; min-height: 300px !important; }
+}
+
+/* Leaflet тёмная тема */
+[data-bs-theme="dark"] .leaflet-popup-content-wrapper,
+[data-bs-theme="dark"] .leaflet-popup-tip { background: #1e293b; color: #e2e8f0; }
+[data-bs-theme="dark"] .leaflet-bar a { background: #1e293b; color: #e2e8f0; border-color: #334155; }
+[data-bs-theme="dark"] .leaflet-bar a:hover { background: #334155; }
+[data-bs-theme="dark"] .marker-cluster-small,
+[data-bs-theme="dark"] .marker-cluster-medium,
+[data-bs-theme="dark"] .marker-cluster-large { background-color: rgba(60,179,74,.4); }
+[data-bs-theme="dark"] .marker-cluster-small div,
+[data-bs-theme="dark"] .marker-cluster-medium div,
+[data-bs-theme="dark"] .marker-cluster-large div { background-color: rgba(60,179,74,.7); color: #fff; font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<!-- Leaflet CSS + JS (cdn.jsdelivr.net уже в CSP) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.min.js"></script>
+
+<script>
+const FEATURES = {{ features | tojson }};
+
+// ── Цвета и иконки маркеров ──────────────────────────────────────────────────
+const MARKER_CFG = {
+  opened:   { color: '#FFD200', glow: true,  icon: '★' },
+  active:   { color: '#3CB34A', glow: false, icon: '●' },
+  urgent:   { color: '#f97316', glow: false, icon: '⚑' },
+  overdue:  { color: '#ef4444', glow: false, icon: '!' },
+  planning: { color: '#3b82f6', glow: false, icon: '◆' },
+  done:     { color: '#6b7280', glow: false, icon: '✓' },
+};
+
+function makeIcon(type) {
+  const cfg = MARKER_CFG[type] || MARKER_CFG.active;
+  const glow = cfg.glow ? `box-shadow:0 0 12px 4px ${cfg.color},0 0 24px 8px ${cfg.color}44;` : '';
+  const html = `
+    <div style="
+      width:32px;height:32px;border-radius:50% 50% 50% 0;
+      transform:rotate(-45deg);
+      background:${cfg.color};
+      border:2px solid rgba(255,255,255,.8);
+      ${glow}
+      display:flex;align-items:center;justify-content:center;
+    ">
+      <span style="transform:rotate(45deg);font-size:14px;font-weight:900;
+                   color:${type === 'opened' ? '#000' : '#fff'}">
+        ${cfg.icon}
+      </span>
+    </div>`;
+  return L.divIcon({
+    html,
+    iconSize: [32, 40],
+    iconAnchor: [16, 40],
+    popupAnchor: [0, -42],
+    className: '',
+  });
+}
+
+// ── Инициализация карты ──────────────────────────────────────────────────────
+const isDark = document.getElementById('html-root')?.getAttribute('data-bs-theme') === 'dark';
+const tileUrl = isDark
+  ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+  : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const tileAttr = isDark
+  ? '&copy; <a href="https://carto.com/">CARTO</a>'
+  : '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>';
+
+const map = L.map('map', { zoomControl: true }).setView([60.0, 50.0], 4);
+L.tileLayer(tileUrl, { attribution: tileAttr, maxZoom: 18 }).addTo(map);
+
+// ── Кластеры ─────────────────────────────────────────────────────────────────
+const cluster = L.markerClusterGroup({
+  maxClusterRadius: 50,
+  spiderfyOnMaxZoom: true,
+  showCoverageOnHover: false,
+  iconCreateFunction(c) {
+    const n = c.getChildCount();
+    const sz = n > 20 ? 44 : n > 5 ? 38 : 32;
+    return L.divIcon({
+      html: `<div style="width:${sz}px;height:${sz}px;border-radius:50%;
+               background:rgba(60,179,74,.85);border:2px solid #fff;
+               display:flex;align-items:center;justify-content:center;
+               color:#fff;font-weight:900;font-size:${sz > 38 ? 14 : 12}px;
+               box-shadow:0 2px 8px rgba(0,0,0,.35)">${n}</div>`,
+      className: '',
+      iconSize: [sz, sz],
+      iconAnchor: [sz / 2, sz / 2],
+    });
+  },
+});
+
+// ── Маркеры ──────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function statusLabel(f) {
+  const labels = {
+    opened: '<span class="badge" style="background:#FFD200;color:#000">Открыт</span>',
+    active: '<span class="badge bg-success">Активный</span>',
+    urgent: '<span class="badge" style="background:#f97316">Срочный</span>',
+    overdue: '<span class="badge bg-danger">Просрочен</span>',
+    planning: '<span class="badge bg-primary">Планирование</span>',
+    done: '<span class="badge bg-secondary">Завершён</span>',
+  };
+  return labels[f.marker] || '';
+}
+
+FEATURES.forEach(f => {
+  if (!f.lat || !f.lng) return;
+  const m = L.marker([f.lat, f.lng], { icon: makeIcon(f.marker) });
+
+  // Desktop popup
+  const deadlineRow = f.opening_date
+    ? `<div class="map-detail-row"><span>Дата открытия</span><b style="color:#FFD200">${escHtml(f.opening_date)}</b></div>`
+    : f.deadline !== '—'
+      ? `<div class="map-detail-row"><span>Дедлайн</span><b>${escHtml(f.deadline)}${f.days !== null ? ` (${f.days >= 0 ? '+' : ''}${f.days}д)` : ''}</b></div>`
+      : '';
+  const popupHtml = `
+    <div style="min-width:200px;font-family:inherit">
+      <div style="font-weight:700;font-size:14px;margin-bottom:4px">${escHtml(f.name)}</div>
+      <div style="font-size:12px;color:#888;margin-bottom:8px">${escHtml(f.city)} · ${escHtml(f.type)}</div>
+      ${statusLabel(f)}
+      <div style="margin-top:8px;font-size:12px">
+        <div class="map-detail-row"><span>ТК</span><b>${escHtml(f.tk) || '—'}</b></div>
+        <div class="map-detail-row"><span>Менеджер</span><b>${escHtml(f.manager)}</b></div>
+        ${deadlineRow}
+      </div>
+      <a href="${escHtml(f.url)}" class="btn btn-sm btn-success mt-2 w-100" style="font-size:12px">
+        Открыть проект →
+      </a>
+    </div>`;
+  m.bindPopup(popupHtml, { maxWidth: 260 });
+
+  // Мобиле — нижняя панель вместо попапа
+  m.on('click', function() {
+    if (window.innerWidth < 768) {
+      m.closePopup();
+      showDetail(f);
+    }
+  });
+
+  cluster.addLayer(m);
+});
+
+map.addLayer(cluster);
+
+// ── Мобильная нижняя панель ──────────────────────────────────────────────────
+function showDetail(f) {
+  document.getElementById('detailName').textContent = f.name;
+  document.getElementById('detailSub').textContent = `${f.city} · ${f.type}`;
+  const deadlineRow = f.opening_date
+    ? `<div class="map-detail-row"><span>Дата открытия</span><b style="color:#FFD200">${f.opening_date}</b></div>`
+    : f.deadline !== '—'
+      ? `<div class="map-detail-row"><span>Дедлайн</span><b>${f.deadline}${f.days !== null ? ` (${f.days >= 0 ? '+' : ''}${f.days}д)` : ''}</b></div>`
+      : '';
+  document.getElementById('detailBody').innerHTML = `
+    ${statusLabel(f)}
+    <div class="mt-2">
+      <div class="map-detail-row"><span>ТК</span><b>${f.tk || '—'}</b></div>
+      <div class="map-detail-row"><span>Менеджер</span><b>${f.manager}</b></div>
+      ${deadlineRow}
+    </div>`;
+  document.getElementById('detailLink').href = f.url;
+  document.getElementById('mapDetail').style.display = 'block';
+}
+
+function closeDetail() {
+  document.getElementById('mapDetail').style.display = 'none';
+}
+
+// Закрывать панель при клике по карте
+map.on('click', closeDetail);
+
+// Подгоняем карту под маркеры если они есть
+if (FEATURES.length > 0) {
+  const bounds = L.latLngBounds(FEATURES.filter(f => f.lat).map(f => [f.lat, f.lng]));
+  if (bounds.isValid()) {
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 10 });
+  }
+}
+</script>
+{% endblock %}

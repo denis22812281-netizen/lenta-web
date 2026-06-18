@@ -403,7 +403,63 @@ setInterval(ping, 30000);
 setInterval(updateOnline, 15000);
 
 loadMessages();
-setInterval(pollMessages, 3000);
+
+// ── WebSocket (основной канал) + polling fallback ─────────────────────────────
+let ws = null;
+let wsRetryTimer = null;
+let pollTimer = null;
+
+function startPollingFallback() {
+    if (pollTimer) return;
+    pollTimer = setInterval(pollMessages, 3000);
+}
+
+function stopPollingFallback() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+function connectWS() {
+    if (ws && ws.readyState === WebSocket.OPEN) return;
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    try {
+        ws = new WebSocket(`${proto}//${location.host}/ws/chat?partner=${encodeURIComponent(PARTNER)}`);
+
+        ws.onopen = function() {
+            stopPollingFallback();
+            if (wsRetryTimer) { clearTimeout(wsRetryTimer); wsRetryTimer = null; }
+            // keepalive ping каждые 25 секунд
+            ws._ping = setInterval(() => { if (ws.readyState === WebSocket.OPEN) ws.send('ping'); }, 25000);
+        };
+
+        ws.onmessage = function(e) {
+            if (e.data === 'pong') return;
+            try {
+                const msg = JSON.parse(e.data);
+                if (msg.id && msg.id > lastId) {
+                    const incoming = msg.sender !== MY_NAME;
+                    renderMessages([msg], false);
+                    if (incoming) playChatSound();
+                }
+            } catch(_) {}
+        };
+
+        ws.onclose = function() {
+            if (ws._ping) clearInterval(ws._ping);
+            ws = null;
+            startPollingFallback();
+            // переподключение через 4 секунды
+            wsRetryTimer = setTimeout(connectWS, 4000);
+        };
+
+        ws.onerror = function() {
+            ws && ws.close();
+        };
+    } catch(_) {
+        startPollingFallback();
+    }
+}
+
+connectWS();
 
 // Keyboard resize — keeps input visible when virtual keyboard opens
 if (window.visualViewport) {

@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from collections import defaultdict
 
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse
@@ -65,6 +66,26 @@ async def dashboard(request: Request, db: Session = Depends(get_db),
              .limit(8).all()
         ]
 
+        # Calendar heatmap: плотность дедлайнов по дням (следующие 90 дней)
+        heatmap: dict[str, int] = defaultdict(int)
+        end_range = today + timedelta(days=90)
+        for t in db.query(models.Task.deadline).filter(
+            models.Task.deadline >= today,
+            models.Task.deadline <= end_range,
+            models.Task.status != "Завершена",
+        ).all():
+            if t.deadline:
+                heatmap[t.deadline.isoformat()] += 1
+        for p in db.query(models.Project.end_date).filter(
+            models.Project.end_date >= today,
+            models.Project.end_date <= end_range,
+            models.Project.status == "Активный",
+        ).all():
+            if p.end_date:
+                heatmap[p.end_date.isoformat()] += 2  # проекты весят больше
+
+        deadline_heatmap = [[k, v] for k, v in sorted(heatmap.items())]
+
         stats = {
             "total_projects": total_projects,
             "active_projects": active_projects,
@@ -74,6 +95,8 @@ async def dashboard(request: Request, db: Session = Depends(get_db),
             "proj_by_type": proj_by_type,
             "task_by_status": task_by_status,
             "tasks_per_mgr": tasks_per_mgr,
+            "deadline_heatmap": deadline_heatmap,
+            "heatmap_range": [today.isoformat(), end_range.isoformat()],
         }
         await cache_set(cache_key, stats, ttl=_STATS_TTL)
 
@@ -103,4 +126,6 @@ async def dashboard(request: Request, db: Session = Depends(get_db),
         "proj_by_type": stats["proj_by_type"],
         "task_by_status": stats["task_by_status"],
         "tasks_per_mgr": stats["tasks_per_mgr"],
+        "deadline_heatmap": stats.get("deadline_heatmap", []),
+        "heatmap_range": stats.get("heatmap_range", [today.isoformat(), (today + timedelta(days=90)).isoformat()]),
     })

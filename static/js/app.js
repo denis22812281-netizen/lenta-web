@@ -252,3 +252,54 @@ async function checkDeadlines(force = false) {
 
     } catch (_) {}
 }
+
+// ── Прогресс-индикатор для длинных форм ──────────────────────────────────────
+(function() {
+    document.addEventListener('DOMContentLoaded', function() {
+        var forms = [];
+        document.querySelectorAll('form').forEach(function(form) {
+            if (form.offsetHeight > 500 && !form.classList.contains('no-progress')) {
+                forms.push(form);
+            }
+        });
+
+        forms.forEach(function(form) {
+            if (form._progressInited) return;
+            form._progressInited = true;
+
+            var bar = document.createElement('div');
+            bar.className = 'form-progress-bar';
+            var fill = document.createElement('div');
+            fill.className = 'form-progress-fill';
+            fill.style.width = '0%';
+            bar.appendChild(fill);
+            form.insertBefore(bar, form.firstChild);
+
+            var fields = form.querySelectorAll(
+                'input:not([type=hidden]):not([type=submit]):not([type=button]), textarea, select'
+            );
+            var total = fields.length;
+            if (total === 0) return;
+
+            function updateProgress() {
+                var filled = 0;
+                fields.forEach(function(f) {
+                    if (f.type === 'checkbox' || f.type === 'radio') {
+                        if (f.checked) filled++;
+                    } else if ((f.value || '').trim() !== '') {
+                        filled++;
+                    }
+                });
+                var pct = Math.round((filled / total) * 100);
+                fill.style.width = pct + '%';
+                fill.style.background = pct < 40 ? '#ef4444' : pct < 80 ? '#f59e0b' : '#22c55e';
+            }
+
+            fields.forEach(function(f) {
+                f.addEventListener('input', updateProgress);
+                f.addEventListener('change', updateProgress);
+            });
+            updateProgress();
+        });
+    });
+})();

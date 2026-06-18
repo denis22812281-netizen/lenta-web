@@ -17,7 +17,7 @@
     </script>
     <link href="/static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
     <link href="/static/vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="/static/css/style.css?v=20260609b" rel="stylesheet">
+    <link href="/static/css/style.css?v=20260618" rel="stylesheet">
     <meta name="csrf-token" content="{{ csrf_token(request) }}">
 </head>
 <body>
@@ -82,6 +82,9 @@
             </a>
             <a href="/construction" class="nav-item {% if '/construction' in request.url.path %}active{% endif %}">
                 <i class="bi bi-buildings-fill"></i><span>Констракшн</span>
+            </a>
+            <a href="/map" class="nav-item {% if '/map' in request.url.path %}active{% endif %}">
+                <i class="bi bi-map-fill"></i><span>Карта объектов</span>
             </a>
             <a href="/kso" class="nav-item {% if '/kso' in request.url.path %}active{% endif %}">
                 <i class="bi bi-file-earmark-check-fill"></i><span>КСО</span>
@@ -721,5 +724,109 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 })();
 </script>
+
+{% if user %}
+<script>
+/* ── Онбординг-тур для новых пользователей ── */
+(function() {
+    const TOUR_KEY = 'lenta_tour_v2';
+    if (localStorage.getItem(TOUR_KEY)) return;
+
+    const steps = [
+        {
+            icon: 'bi-speedometer2',
+            title: 'Добро пожаловать в Лента.PM!',
+            text: 'Это ваш центр управления проектами. Здесь всё — от статусов ТК до ВПК-отчётов и графика СМР.'
+        },
+        {
+            icon: 'bi-clock-history',
+            title: 'Дедлайны',
+            text: 'Раздел «Дедлайны» — единый экран всех сроков по проектам и задачам. Просроченные выделены красным, горящие — оранжевым.'
+        },
+        {
+            icon: 'bi-clipboard2-check-fill',
+            title: 'ВПК-отчёты',
+            text: 'Создавайте ВПК-1 и ВПК-2 прямо со смартфона. Фото, комментарии и экспорт в Excel — всё в одном месте.'
+        },
+        {
+            icon: 'bi-bell-fill',
+            title: 'Push-уведомления',
+            text: 'Включите уведомления (кнопка в сайдбаре) — и получайте оповещения о дедлайнах даже когда приложение закрыто.'
+        },
+        {
+            icon: 'bi-robot',
+            title: 'ИИ Ассистент',
+            text: 'В разделе «ИИ Ассистент» можно задать любой вопрос — система использует Claude и Groq для ответов в контексте ваших проектов.'
+        },
+    ];
+
+    let cur = 0;
+
+    function render() {
+        const s = steps[cur];
+        document.getElementById('tour-icon').className = 'bi ' + s.icon;
+        document.getElementById('tour-title').textContent = s.title;
+        document.getElementById('tour-text').textContent = s.text;
+        document.getElementById('tour-step').textContent = (cur + 1) + ' / ' + steps.length;
+        const dots = document.querySelectorAll('.onboard-dot');
+        dots.forEach(function(d, i) { d.classList.toggle('active', i === cur); });
+        document.getElementById('tour-prev').style.visibility = cur === 0 ? 'hidden' : 'visible';
+        const nextBtn = document.getElementById('tour-next');
+        nextBtn.textContent = cur === steps.length - 1 ? 'Начать работу' : 'Далее →';
+    }
+
+    function closeTour() {
+        const overlay = document.getElementById('tour-overlay');
+        const card = document.getElementById('tour-card');
+        if (overlay) overlay.remove();
+        if (card) card.remove();
+        localStorage.setItem(TOUR_KEY, '1');
+    }
+
+    // Создаём HTML
+    const overlay = document.createElement('div');
+    overlay.id = 'tour-overlay';
+    overlay.className = 'onboard-overlay';
+    overlay.onclick = closeTour;
+
+    const dots = steps.map(function(_, i) {
+        return '<span class="onboard-dot' + (i === 0 ? ' active' : '') + '"></span>';
+    }).join('');
+
+    const card = document.createElement('div');
+    card.id = 'tour-card';
+    card.className = 'onboard-card';
+    card.innerHTML =
+        '<div style="text-align:center;margin-bottom:16px">' +
+            '<div style="width:56px;height:56px;border-radius:16px;background:rgba(60,179,74,.15);' +
+                'display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px">' +
+                '<i id="tour-icon" class="bi bi-speedometer2" style="font-size:26px;color:#3CB34A"></i>' +
+            '</div>' +
+            '<h5 id="tour-title" style="font-weight:800;margin:0 0 8px">Добро пожаловать!</h5>' +
+            '<p id="tour-text" style="color:#94a3b8;font-size:14px;line-height:1.5;margin:0"></p>' +
+        '</div>' +
+        '<div class="onboard-step-dots">' + dots + '</div>' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px">' +
+            '<button id="tour-prev" class="btn btn-sm btn-outline-secondary" style="visibility:hidden">← Назад</button>' +
+            '<small id="tour-step" style="color:#64748b">1 / ' + steps.length + '</small>' +
+            '<button id="tour-next" class="btn btn-sm btn-success">Далее →</button>' +
+        '</div>' +
+        '<button onclick="document.getElementById(\'tour-overlay\').remove();document.getElementById(\'tour-card\').remove();localStorage.setItem(\'' + TOUR_KEY + '\',\'1\')" ' +
+            'style="position:absolute;top:12px;right:12px;background:none;border:none;color:#64748b;font-size:18px;cursor:pointer;padding:4px">×</button>';
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(card);
+    render();
+
+    document.getElementById('tour-next').onclick = function() {
+        if (cur < steps.length - 1) { cur++; render(); }
+        else { closeTour(); }
+    };
+    document.getElementById('tour-prev').onclick = function() {
+        if (cur > 0) { cur--; render(); }
+    };
+})();
+</script>
+{% endif %}
 </body>
 </html>

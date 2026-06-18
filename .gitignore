@@ -17,3 +17,6 @@ debug_*.py
 make_demo_*.py
 read_plan.py
 .claude/
+.env.local
+load_results*.csv
+

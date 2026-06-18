@@ -1,5 +1,5 @@
 from fastapi import Request, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -75,6 +75,17 @@ def require_executive(request: Request) -> dict:
     except Exception:
         pass
     raise HTTPException(status_code=302, headers={"Location": "/"})
+
+
+def require_api_user(request: Request) -> dict:
+    """Dependency для API-эндпоинтов: возвращает 401 JSON вместо 302 redirect."""
+    user = request.session.get("user")
+    if not user:
+        raise HTTPException(
+            status_code=401,
+            detail={"ok": False, "error": "Unauthorized", "redirect": "/login"},
+        )
+    return user
 
 
 def write_audit(request: Request, path: str | None = None):
