@@ -11,7 +11,7 @@ import models
 from database import get_db
 from deps import templates, get_current_user, require_login
 from services.online import ONLINE_USERS, ONLINE_TIMEOUT
-from services.cloud_storage import upload_photo, media_url
+from services.cloud_storage import upload_photo, upload_audio, media_url
 
 router = APIRouter()
 
@@ -185,6 +185,36 @@ async def chat_send_photo(request: Request, background_tasks: BackgroundTasks,
     await ws_manager.broadcast(payload, sender, partner)
     background_tasks.add_task(_push_chat, db, sender, partner, text or "📷 Фото")
     return {"id": msg.id, "time": msg.created_at.strftime("%H:%M"), "photo": msg.photo_path}
+
+
+@router.post("/api/chat/send-voice")
+async def chat_send_voice(request: Request, background_tasks: BackgroundTasks,
+                          db: Session = Depends(get_db),
+                          file: UploadFile = File(...),
+                          partner: str = Form("")):
+    user = get_current_user(request)
+    if not user:
+        return {"error": "Не авторизован"}
+    ext = Path(file.filename).suffix.lower() if file.filename else ".webm"
+    if ext not in ('.webm', '.ogg', '.mp3', '.wav', '.m4a'):
+        ext = '.webm'
+    fname = (f"{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_"
+             f"{user.get('display_name','u').replace(' ','_')}{ext}")
+    stored = upload_audio(await file.read(), "voice", fname)
+    sender = user.get("display_name", "")
+    msg = models.ChatMessage(sender_name=sender, receiver_name=partner,
+                             text="", photo_path=stored)
+    db.add(msg)
+    db.commit()
+    db.refresh(msg)
+    payload = {
+        "id": msg.id, "sender": sender, "text": "",
+        "photo": stored, "time": msg.created_at.strftime("%H:%M"),
+        "is_voice": True,
+    }
+    await ws_manager.broadcast(payload, sender, partner)
+    background_tasks.add_task(_push_chat, db, sender, partner, "🎤 Голосовое сообщение")
+    return {"id": msg.id, "time": msg.created_at.strftime("%H:%M"), "photo": stored}
 
 
 @router.get("/api/chat/unread")

@@ -107,6 +107,27 @@ def delete_photo(path_or_url: str, folder: str = ""):
             pass
 
 
+def upload_audio(content: bytes, folder: str, filename: str) -> str:
+    """Загружает аудиофайл. Cloudinary resource_type=video (обрабатывает аудио тоже)."""
+    if _USE_CLOUD:
+        try:
+            result = cloudinary.uploader.upload(
+                content,
+                folder=f"lenta/{folder}",
+                resource_type="video",
+                public_id=filename.rsplit(".", 1)[0],
+                overwrite=True,
+            )
+            return result["secure_url"]
+        except Exception as e:
+            logger.error("cloud_storage upload_audio error: %s — fallback to local", e)
+
+    save_dir = Path(f"static/uploads/{folder}")
+    save_dir.mkdir(parents=True, exist_ok=True)
+    (save_dir / filename).write_bytes(content)
+    return f"uploads/{folder}/{filename}"
+
+
 def media_url(path: str) -> str:
     """Конвертирует путь в URL для использования в шаблонах и API."""
     if not path:

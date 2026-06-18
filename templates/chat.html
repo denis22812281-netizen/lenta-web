@@ -75,6 +75,12 @@
             <div class="emoji-grid" id="emojiGrid"></div>
         </div>
 
+        <!-- Запись голосового -->
+        <div class="voice-rec-bar" id="voiceRecBar">
+            <span class="voice-rec-dot"></span>
+            <span class="small fw-semibold text-danger">Запись...</span>
+            <span id="voiceRecTime" class="small text-muted ms-auto">0:00</span>
+        </div>
         <!-- Предпросмотр фото -->
         <div id="photoPreview" class="photo-preview-bar" style="display:none">
             <img id="photoPreviewImg" src="" alt="">
@@ -88,6 +94,10 @@
             <!-- Смайлики -->
             <button type="button" class="chat-tool-btn" id="btnEmoji" onclick="toggleEmoji()" title="Смайлики">
                 <i class="bi bi-emoji-smile"></i>
+            </button>
+            <!-- Голосовое -->
+            <button type="button" class="chat-tool-btn" id="btnMic" onpointerdown="startRecord()" onpointerup="stopRecord()" ontouchstart="startRecord()" ontouchend="stopRecord()" title="Удержи для записи">
+                <i class="bi bi-mic-fill"></i>
             </button>
             <!-- Фото -->
             <button type="button" class="chat-tool-btn" onclick="document.getElementById('photoInput').click()" title="Прикрепить фото">
@@ -151,6 +161,14 @@
 /* Photo preview */
 .photo-preview-bar { display:flex;align-items:center;padding:8px 14px;background:#f0fdf4;border-top:1px solid #bbf7d0; }
 .photo-preview-bar img { height:48px;width:48px;object-fit:cover;border-radius:8px;border:1px solid #86efac; }
+/* Voice recording */
+#btnMic.recording { background:#fee2e2;color:#dc2626;animation:pulse-mic .6s infinite alternate; }
+@keyframes pulse-mic { from{transform:scale(1)} to{transform:scale(1.2)} }
+.voice-rec-bar { display:none;align-items:center;gap:8px;padding:8px 14px;background:#fef2f2;border-top:1px solid #fecaca; }
+.voice-rec-bar.active { display:flex; }
+.voice-rec-dot { width:10px;height:10px;border-radius:50%;background:#dc2626;animation:pulse-mic .6s infinite alternate;flex-shrink:0; }
+/* Audio player in chat */
+.chat-audio { max-width:220px;border-radius:10px;outline:none;height:36px; }
 
 /* ── Мобильная адаптация ─────────────────────────────────────── */
 @media (max-width: 768px) {
@@ -364,7 +382,13 @@ function renderMessages(msgs, clear) {
         let bubbleContent = '';
         if (m.text) bubbleContent += escHtml(m.text);
         if (m.photo) {
-            bubbleContent += `<img src="${escHtml(m.photo)}" class="chat-photo" onclick="openLightbox('${escHtml(m.photo)}')" alt="фото">`;
+            const isAudio = m.is_voice || /\.(webm|ogg|mp3|wav|m4a)(\?|$)/i.test(m.photo);
+            if (isAudio) {
+                const src = m.photo.startsWith('http') ? m.photo : `/static/${m.photo}`;
+                bubbleContent += `<audio controls class="chat-audio" src="${escHtml(src)}"></audio>`;
+            } else {
+                bubbleContent += `<img src="${escHtml(m.photo)}" class="chat-photo" onclick="openLightbox('${escHtml(m.photo)}')" alt="фото">`;
+            }
         }
 
         div.innerHTML = senderHtml +
@@ -471,6 +495,61 @@ function connectWS() {
 }
 
 connectWS();
+
+// ── Voice recording ──────────────────────────────────────────────────────────
+let _mediaRecorder = null;
+let _recChunks = [];
+let _recTimer = null;
+let _recSecs = 0;
+
+async function startRecord() {
+    if (_mediaRecorder) return;
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        _mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg' });
+        _recChunks = [];
+        _mediaRecorder.ondataavailable = e => { if (e.data.size) _recChunks.push(e.data); };
+        _mediaRecorder.onstop = () => {
+            stream.getTracks().forEach(t => t.stop());
+            _sendVoice(new Blob(_recChunks, { type: _mediaRecorder.mimeType }));
+        };
+        _mediaRecorder.start(200);
+        document.getElementById('btnMic').classList.add('recording');
+        document.getElementById('voiceRecBar').classList.add('active');
+        _recSecs = 0;
+        _recTimer = setInterval(() => {
+            _recSecs++;
+            const m = Math.floor(_recSecs / 60), s = _recSecs % 60;
+            document.getElementById('voiceRecTime').textContent = `${m}:${String(s).padStart(2,'0')}`;
+        }, 1000);
+    } catch(e) {
+        alert('Нет доступа к микрофону');
+    }
+}
+
+function stopRecord() {
+    if (!_mediaRecorder || _mediaRecorder.state === 'inactive') return;
+    _mediaRecorder.stop();
+    _mediaRecorder = null;
+    clearInterval(_recTimer);
+    document.getElementById('btnMic').classList.remove('recording');
+    document.getElementById('voiceRecBar').classList.remove('active');
+}
+
+async function _sendVoice(blob) {
+    if (blob.size < 1000) return; // слишком короткое
+    const ext = blob.type.includes('ogg') ? '.ogg' : '.webm';
+    const fd = new FormData();
+    fd.append('file', blob, `voice${ext}`);
+    fd.append('partner', PARTNER);
+    try {
+        const r = await fetch('/api/chat/send-voice', { method: 'POST', body: fd });
+        const data = await r.json();
+        if (data.id) {
+            renderMessages([{ id: data.id, sender: MY_NAME, text: '', photo: data.photo, time: data.time, mine: true, is_voice: true }], false);
+        }
+    } catch(e) {}
+}
 
 // Keyboard resize — keeps input visible when virtual keyboard opens
 if (window.visualViewport) {

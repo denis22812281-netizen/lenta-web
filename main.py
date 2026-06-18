@@ -265,13 +265,16 @@ from routes.search         import router as search_router
 from routes.adaptation     import router as adaptation_router
 from routes.analytics      import router as analytics_router
 from routes.map            import router as map_router
+from routes.kanban         import router as kanban_router
+from routes.presence       import router as presence_router
 
 for r in [auth_router, dashboard_router, projects_router, sections_router,
           kso_router, tasks_router, managers_router, deadlines_router,
           vpk_router, stats_router, admin_router, chat_router,
           ai_router, api_router, sync_router, smr_router, leader_router,
           executive_router, help_router, case_router, reconstruction_router,
-          search_router, adaptation_router, analytics_router, map_router]:
+          search_router, adaptation_router, analytics_router, map_router,
+          kanban_router, presence_router]:
     app.include_router(r)
 
 
