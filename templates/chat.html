@@ -154,17 +154,28 @@
 
 /* ── Мобильная адаптация ─────────────────────────────────────── */
 @media (max-width: 768px) {
-    .chat-wrap { height:calc(100dvh - 110px); border-radius:10px; }
-    /* Показываем только список если нет открытого чата */
+    /* Чат — от края до края, без скруглений */
+    .chat-wrap {
+        height: calc(100dvh - 56px - 58px - env(safe-area-inset-bottom));
+        border-radius: 0;
+        margin: -8px -12px 0;
+        width: calc(100% + 24px);
+    }
+    /* Список контактов — на всю ширину */
     .chat-sidebar { width:100%; min-width:0; border-right:none; }
+    /* По умолчанию скрываем правую панель */
     .chat-main { display:none; }
-    /* Если открыт чат — скрываем список, показываем чат */
+    /* Если открыт чат — только правая панель, полноэкранная */
     .in-conversation .chat-sidebar { display:none; }
     .in-conversation .chat-main { display:flex; width:100%; }
-    /* Поле ввода на мобиле */
-    .chat-input { font-size:16px; } /* 16px чтобы iOS не зумировал */
+    /* Поле ввода 16px — iOS не зумирует */
+    .chat-input { font-size:16px; }
     .emoji-picker { width:calc(100vw - 30px); left:8px; }
     .chat-msg { max-width:88%; }
+    /* Пузыри чуть крупнее */
+    .chat-bubble { font-size:15px; }
+    /* Заголовок чата — back кнопка заметнее */
+    .chat-header { padding:10px 12px; }
 }
 
 /* ── DARK THEME ── */
