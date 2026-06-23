@@ -715,17 +715,23 @@ async function _sendVoice(blob) {
 }
 
 // Keyboard resize — keeps input visible when virtual keyboard opens
-if (window.visualViewport) {
-    const chatWrap = document.querySelector('.chat-wrap');
-    const onVVResize = () => {
-        if (!chatWrap || window.innerWidth > 768) return;
-        const top = chatWrap.getBoundingClientRect().top + window.pageYOffset;
-        chatWrap.style.height = Math.max(300, window.visualViewport.height - top - 10) + 'px';
-        // keep messages scrolled to bottom
-        const box = document.getElementById('chatMessages');
-        if (box) box.scrollTop = box.scrollHeight;
-    };
-    window.visualViewport.addEventListener('resize', onVVResize);
-}
+// VisualViewport: пересчитываем высоту чата при открытии клавиатуры
+// getBoundingClientRect().top ненадёжен после keyboard push-up,
+// поэтому считаем просто: vv.height - высота топбара (56px).
+// Боттом-нав (58px) уходит под клавиатуру и не нужен в вычитании.
+(function() {
+    var chatWrap = document.querySelector('.chat-wrap');
+    if (!chatWrap || !window.visualViewport) return;
+    function _resize() {
+        if (window.innerWidth > 900) return; // только мобилка
+        var vv = window.visualViewport;
+        var h = Math.max(200, vv.height - 56);
+        chatWrap.style.height = h + 'px';
+        var msgs = document.getElementById('chatMessages');
+        if (msgs) setTimeout(function() { msgs.scrollTop = msgs.scrollHeight; }, 30);
+    }
+    window.visualViewport.addEventListener('resize', _resize);
+    window.visualViewport.addEventListener('scroll', _resize);
+})();
 </script>
 {% endblock %}

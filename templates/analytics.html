@@ -298,160 +298,181 @@ function makeDonut(id, labels, values, colors) {
     });
 }
 
-// ── 1. Открытия по месяцам (line) ───────────────────────────────────────────
+// ── Данные (парсим сразу, до layout) ────────────────────────────────────────
 const monthLabels = {{ j_month_labels }};
 const monthCounts = {{ j_month_counts }};
-
-new Chart(document.getElementById('chartMonthly'), {
-    type: 'line',
-    data: {
-        labels: monthLabels,
-        datasets: [{
-            label: 'Открытий ТК',
-            data: monthCounts,
-            borderColor: P.green,
-            backgroundColor: 'rgba(60,179,74,.12)',
-            pointBackgroundColor: P.green,
-            pointRadius: 5, pointHoverRadius: 7,
-            tension: 0.4, fill: true, borderWidth: 2.5,
-        }]
-    },
-    options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: { label: ctx => ` ${ctx.raw} ТК открыто` } }
-        },
-        scales: {
-            x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { maxRotation: 30 } },
-            y: { grid: { color: 'rgba(255,255,255,.04)' }, beginAtZero: true,
-                 ticks: { precision: 0 } }
-        }
-    }
-});
-
-// ── 2. Итоги открытий (donut) ────────────────────────────────────────────────
-const resLabels = {{ j_result_labels }};
-const resValues = {{ j_result_values }};
-const resColors = [P.green, P.blue, P.red];
-if (resValues.reduce((a,b)=>a+b,0) === 0) {
-    document.getElementById('chartResults').closest('.an-chart-wrap').innerHTML =
-        '<div class="text-center text-muted py-4"><i class="bi bi-pie-chart" style="font-size:2.5rem;opacity:.25;display:block;margin-bottom:8px"></i><div class="small">Нет открытых объектов<br>с заполненной датой открытия</div></div>';
-} else {
-    makeDonut('chartResults', resLabels, resValues, resColors);
-    makeLegend('legendResults', resLabels, resColors, resValues);
-}
-
-// ── 3. Менеджеры (stacked horizontal bar) ────────────────────────────────────
-const mgrNames  = {{ j_mgr_names }};
-const mgrEarly  = {{ j_mgr_early }};
-const mgrOntime = {{ j_mgr_ontime }};
-const mgrLate   = {{ j_mgr_late }};
-
-new Chart(document.getElementById('chartManagers'), {
-    type: 'bar',
-    data: {
-        labels: mgrNames,
-        datasets: [
-            { label: 'Раньше срока', data: mgrEarly,  backgroundColor: P.green,   borderRadius: 0 },
-            { label: 'Вовремя',      data: mgrOntime, backgroundColor: P.blue,    borderRadius: 0 },
-            { label: 'С опозданием', data: mgrLate,   backgroundColor: P.red,     borderRadius: 4 },
-        ]
-    },
-    options: {
-        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 14 } },
-            tooltip: { mode: 'index' }
-        },
-        scales: {
-            x: { stacked: true, grid: { color: 'rgba(255,255,255,.04)' }, ticks: { precision: 0 } },
-            y: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } }
-        }
-    }
-});
-
-// ── 4. Задачи по статусам (donut) ────────────────────────────────────────────
-const taskLabels = {{ j_task_labels }};
-const taskValues = {{ j_task_values }};
-const taskTotal  = taskValues.reduce((a, b) => a + b, 0);
-document.getElementById('taskTotal').textContent = taskTotal;
-
-const TASK_COLORS = { 'Открытая': P.gray, 'В работе': P.blue,
-                      'На проверке': P.yellow, 'Завершена': P.green };
-const taskColors = taskLabels.map(l => TASK_COLORS[l] || P.ltGray);
-makeDonut('chartTasks', taskLabels, taskValues, taskColors);
-makeLegend('legendTasks', taskLabels, taskColors, taskValues);
-
-// ── 5. Карточки адаптации (grouped bar) ──────────────────────────────────────
+const resLabels   = {{ j_result_labels }};
+const resValues   = {{ j_result_values }};
+const resColors   = [P.green, P.blue, P.red];
+const mgrNames    = {{ j_mgr_names }};
+const mgrEarly    = {{ j_mgr_early }};
+const mgrOntime   = {{ j_mgr_ontime }};
+const mgrLate     = {{ j_mgr_late }};
+const taskLabels  = {{ j_task_labels }};
+const taskValues  = {{ j_task_values }};
 const adaptLabels = {{ j_adapt_labels }};
 const adaptDraft  = {{ j_adapt_draft }};
 const adaptSent   = {{ j_adapt_sent }};
+const typeLabels  = {{ j_type_labels }};
+const typeValues  = {{ j_type_values }};
+const dlLabels    = {{ j_dl_labels }};
+const dlDays      = {{ j_dl_days }};
+const dlMgrs      = {{ j_dl_mgrs }};
 
-new Chart(document.getElementById('chartAdapt'), {
-    type: 'bar',
-    data: {
-        labels: adaptLabels,
-        datasets: [
-            { label: 'Черновики', data: adaptDraft,
-              backgroundColor: 'rgba(245,158,11,.6)', borderRadius: 5 },
-            { label: 'Отправлено', data: adaptSent,
-              backgroundColor: P.green, borderRadius: 5 },
-        ]
-    },
-    options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 12 } },
-        },
-        scales: {
-            x: { grid: { display: false } },
-            y: { grid: { color: 'rgba(255,255,255,.04)' }, beginAtZero: true, ticks: { precision: 0 } }
-        }
-    }
-});
+// taskTotal можно обновить сразу (не зависит от layout)
+const taskTotal = taskValues.reduce(function(a, b) { return a + b; }, 0);
+var _tt = document.getElementById('taskTotal');
+if (_tt) _tt.textContent = taskTotal;
 
-// ── 6. Типы проектов (donut) ─────────────────────────────────────────────────
-const typeLabels = {{ j_type_labels }};
-const typeValues = {{ j_type_values }};
-const typeColors = [P.green, P.blue, P.purple, P.yellow, P.red, P.gray];
-makeDonut('chartTypes', typeLabels, typeValues, typeColors);
-makeLegend('legendTypes', typeLabels, typeColors, typeValues);
-
-// ── 7. Дедлайны (horizontal bar) ─────────────────────────────────────────────
-const dlLabels = {{ j_dl_labels }};
-const dlDays   = {{ j_dl_days }};
-const dlMgrs   = {{ j_dl_mgrs }};
-
-if (dlLabels.length) {
-    new Chart(document.getElementById('chartDeadlines'), {
-        type: 'bar',
-        data: {
-            labels: dlLabels,
-            datasets: [{
-                label: 'Дней до дедлайна',
-                data: dlDays,
-                backgroundColor: dlDays.map(d =>
-                    d <= 7 ? P.red : d <= 14 ? P.yellow : P.blue),
-                borderRadius: 5,
-            }]
-        },
-        options: {
-            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: { callbacks: { label: (ctx) => {
-                    const mgr = dlMgrs[ctx.dataIndex] || '—';
-                    return [` ${ctx.raw} дней`, ` Менеджер: ${mgr}`];
-                }}}
+// ── Инициализация графиков — DEFER через двойной rAF ────────────────────────
+// Двойной requestAnimationFrame гарантирует, что Bootstrap grid полностью
+// просчитал размеры блоков до того как Chart.js спросит размер canvas.
+function _initCharts() {
+    // 1. Открытия по месяцам
+    try {
+        new Chart(document.getElementById('chartMonthly'), {
+            type: 'line',
+            data: {
+                labels: monthLabels,
+                datasets: [{
+                    label: 'Открытий ТК',
+                    data: monthCounts,
+                    borderColor: P.green,
+                    backgroundColor: 'rgba(60,179,74,.12)',
+                    pointBackgroundColor: P.green,
+                    pointRadius: 5, pointHoverRadius: 7,
+                    tension: 0.4, fill: true, borderWidth: 2.5,
+                }]
             },
-            scales: {
-                x: { grid: { color: 'rgba(255,255,255,.04)' }, beginAtZero: true,
-                     ticks: { callback: v => v + ' д' } },
-                y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: function(ctx) { return ' ' + ctx.raw + ' ТК открыто'; } } }
+                },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { maxRotation: 30 } },
+                    y: { grid: { color: 'rgba(255,255,255,.04)' }, beginAtZero: true, ticks: { precision: 0 } }
+                }
             }
+        });
+    } catch(e) {}
+
+    // 2. Итоги открытий
+    try {
+        if (resValues.reduce(function(a,b){return a+b;},0) === 0) {
+            var el = document.getElementById('chartResults');
+            if (el) el.closest('.an-chart-wrap').innerHTML =
+                '<div class="text-center text-muted py-4"><i class="bi bi-pie-chart" style="font-size:2.5rem;opacity:.25;display:block;margin-bottom:8px"></i><div class="small">Нет открытых объектов<br>с заполненной датой открытия</div></div>';
+        } else {
+            makeDonut('chartResults', resLabels, resValues, resColors);
+            makeLegend('legendResults', resLabels, resColors, resValues);
         }
-    });
+    } catch(e) {}
+
+    // 3. Менеджеры
+    try {
+        new Chart(document.getElementById('chartManagers'), {
+            type: 'bar',
+            data: {
+                labels: mgrNames,
+                datasets: [
+                    { label: 'Раньше срока', data: mgrEarly,  backgroundColor: P.green,  borderRadius: 0 },
+                    { label: 'Вовремя',      data: mgrOntime, backgroundColor: P.blue,   borderRadius: 0 },
+                    { label: 'С опозданием', data: mgrLate,   backgroundColor: P.red,    borderRadius: 4 },
+                ]
+            },
+            options: {
+                indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 14 } },
+                    tooltip: { mode: 'index' }
+                },
+                scales: {
+                    x: { stacked: true, grid: { color: 'rgba(255,255,255,.04)' }, ticks: { precision: 0 } },
+                    y: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } }
+                }
+            }
+        });
+    } catch(e) {}
+
+    // 4. Задачи по статусам
+    try {
+        var TASK_COLORS = { 'Открытая': P.gray, 'В работе': P.blue, 'На проверке': P.yellow, 'Завершена': P.green };
+        var taskColors = taskLabels.map(function(l) { return TASK_COLORS[l] || P.ltGray; });
+        makeDonut('chartTasks', taskLabels, taskValues, taskColors);
+        makeLegend('legendTasks', taskLabels, taskColors, taskValues);
+    } catch(e) {}
+
+    // 5. Карточки адаптации
+    try {
+        new Chart(document.getElementById('chartAdapt'), {
+            type: 'bar',
+            data: {
+                labels: adaptLabels,
+                datasets: [
+                    { label: 'Черновики',  data: adaptDraft, backgroundColor: 'rgba(245,158,11,.6)', borderRadius: 5 },
+                    { label: 'Отправлено', data: adaptSent,  backgroundColor: P.green, borderRadius: 5 },
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 12 } } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { grid: { color: 'rgba(255,255,255,.04)' }, beginAtZero: true, ticks: { precision: 0 } }
+                }
+            }
+        });
+    } catch(e) {}
+
+    // 6. Типы проектов
+    try {
+        var typeColors = [P.green, P.blue, P.purple, P.yellow, P.red, P.gray];
+        makeDonut('chartTypes', typeLabels, typeValues, typeColors);
+        makeLegend('legendTypes', typeLabels, typeColors, typeValues);
+    } catch(e) {}
+
+    // 7. Дедлайны
+    if (dlLabels.length) {
+        try {
+            new Chart(document.getElementById('chartDeadlines'), {
+                type: 'bar',
+                data: {
+                    labels: dlLabels,
+                    datasets: [{
+                        label: 'Дней до дедлайна',
+                        data: dlDays,
+                        backgroundColor: dlDays.map(function(d) {
+                            return d <= 7 ? P.red : d <= 14 ? P.yellow : P.blue;
+                        }),
+                        borderRadius: 5,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: function(ctx) {
+                            var mgr = dlMgrs[ctx.dataIndex] || '—';
+                            return [' ' + ctx.raw + ' дней', ' Менеджер: ' + mgr];
+                        }}}
+                    },
+                    scales: {
+                        x: { grid: { color: 'rgba(255,255,255,.04)' }, beginAtZero: true,
+                             ticks: { callback: function(v) { return v + ' д'; } } },
+                        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+                    }
+                }
+            });
+        } catch(e) {}
+    }
 }
+
+// Двойной rAF: первый — «поставить в очередь после текущего paint»,
+// второй — «после следующего paint», когда grid уже сформирован.
+requestAnimationFrame(function() {
+    requestAnimationFrame(_initCharts);
+});
 </script>
 {% endblock %}
