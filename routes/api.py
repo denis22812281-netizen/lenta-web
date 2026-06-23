@@ -275,3 +275,37 @@ async def vapid_public_key():
     import os as _os
     key = _os.getenv("VAPID_PUBLIC_KEY", "")
     return {"key": key, "enabled": bool(key)}
+
+
+@router.get("/api/projects/cache-data")
+async def projects_cache_data(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_api_user),
+):
+    """Компактный JSON всех проектов для IndexedDB offline-кэша."""
+    from sqlalchemy.orm import joinedload
+    projects = (
+        db.query(models.Project)
+        .options(joinedload(models.Project.manager))
+        .filter(models.Project.status != "Завершён")
+        .all()
+    )
+    today = date.today()
+    data = []
+    for p in projects:
+        end_days = (p.end_date - today).days if p.end_date else None
+        data.append({
+            "id":        p.id,
+            "tk":        p.tk_number or "",
+            "name":      p.name or "",
+            "city":      p.city or "",
+            "type":      p.project_type or "",
+            "status":    p.status or "",
+            "stage":     p.stage or "",
+            "manager":   p.manager.name if p.manager else "",
+            "end_date":  p.end_date.isoformat() if p.end_date else None,
+            "end_days":  end_days,
+            "opened":    bool(p.opening_date and p.opening_date <= today),
+        })
+    return JSONResponse({"projects": data, "count": len(data), "cached_at": today.isoformat()})

@@ -326,6 +326,7 @@ window.showToast = function(msg, type, duration, undoFn) {
 
 <script src="/static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
 <script src="/static/js/app.js"></script>
+<script src="/static/js/offline-db.js"></script>
 {% block scripts %}{% endblock %}
 <script>
 // Авто-инжект CSRF-токена во все POST-формы на странице
@@ -825,6 +826,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!('serviceWorker' in navigator)) return;
 
     navigator.serviceWorker.register('/sw.js', {scope: '/'}).then(function(reg) {
+        // Кэшируем данные проектов в IndexedDB при первом посещении
+        setTimeout(function() {
+            fetch('/api/projects/cache-data', { credentials: 'same-origin' })
+                .then(function(r) { return r.ok ? r.json() : null; })
+                .then(function(d) {
+                    if (d && d.projects && window.OfflineDB) {
+                        OfflineDB.set('projects_list', d).catch(function(){});
+                    }
+                }).catch(function(){});
+        }, 8000); // после основного контента
         // Проверяем поддержку Push
         if (!('PushManager' in window)) return;
 
@@ -997,6 +1008,93 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 </script>
 {% endif %}
+
+<!-- ── Offline sync badge + queue flush ── -->
+<div id="sync-badge" style="display:none;position:fixed;bottom:calc(58px + env(safe-area-inset-bottom) + 8px);
+     left:12px;z-index:1001;background:#f59e0b;color:#fff;border-radius:20px;
+     padding:5px 12px;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.25);
+     align-items:center;gap:6px;cursor:pointer" onclick="window._flushQueue && window._flushQueue()">
+    <i class="bi bi-arrow-repeat"></i>
+    <span id="sync-badge-count">0</span> изм. в очереди
+</div>
+<script>
+/* ── Sync queue manager ── */
+(function() {
+    var SYNC_URL = '/api/projects/{id}/field';
+
+    async function updateBadge() {
+        if (!window.OfflineDB) return;
+        try {
+            const n = await OfflineDB.queueCount();
+            const badge = document.getElementById('sync-badge');
+            const countEl = document.getElementById('sync-badge-count');
+            if (!badge) return;
+            if (n > 0) {
+                badge.style.display = 'flex';
+                if (countEl) countEl.textContent = n;
+            } else {
+                badge.style.display = 'none';
+            }
+        } catch(e) {}
+    }
+
+    async function flushQueue() {
+        if (!window.OfflineDB) return;
+        if (!navigator.onLine) {
+            showToast('Нет подключения — синхронизация невозможна', 'warn', 3000);
+            return;
+        }
+        const items = await OfflineDB.queueAll();
+        if (!items.length) return;
+
+        const badge = document.getElementById('sync-badge');
+        if (badge) badge.innerHTML = '<i class="bi bi-arrow-repeat spin-me"></i> Синхронизация…';
+
+        let ok = 0, fail = 0;
+        for (const item of items) {
+            try {
+                const r = await fetch(item.url, {
+                    method:  item.method || 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify(item.body),
+                });
+                if (r.ok) { await OfflineDB.queueDelete(item.id); ok++; }
+                else fail++;
+            } catch(_) { fail++; }
+        }
+
+        if (ok)   showToast('✓ Синхронизировано ' + ok + ' изменений', 'success', 3000);
+        if (fail) showToast('✗ ' + fail + ' изменений не удалось синхронизировать', 'error', 5000);
+        updateBadge();
+    }
+
+    window._flushQueue = flushQueue;
+
+    // Авто-flush при восстановлении сети
+    window.addEventListener('online', function() {
+        setTimeout(flushQueue, 1000);
+    });
+
+    // Слушаем SW: SYNC_COMPLETE (Background Sync API)
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', function(e) {
+            if (e.data && e.data.type === 'SYNC_COMPLETE') {
+                updateBadge();
+                showToast('✓ Данные синхронизированы', 'success', 2500);
+            }
+        });
+    }
+
+    // Первичное обновление бейджа
+    document.addEventListener('DOMContentLoaded', updateBadge);
+    // Периодическая проверка
+    setInterval(updateBadge, 30000);
+})();
+</script>
+<style>
+@keyframes spin-me { to { transform: rotate(360deg); } }
+.spin-me { display:inline-block; animation: spin-me .7s linear infinite; }
+</style>
 
 {% if user %}
 <!-- ── Presence bar: кто сейчас на этой странице ── -->

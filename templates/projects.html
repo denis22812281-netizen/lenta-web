@@ -263,6 +263,65 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+/* ── Офлайн: загружаем данные из IndexedDB если нет сети ── */
+(function() {
+    if (navigator.onLine) return;
+    if (!window.OfflineDB) return;
+
+    OfflineDB.get('projects_list').then(function(cached) {
+        if (!cached || !cached.value || !cached.value.projects) return;
+        const projects = cached.value.projects;
+        const savedAt  = new Date(cached.savedAt).toLocaleString('ru-RU', {
+            day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'
+        });
+
+        // Показываем баннер
+        var banner = document.createElement('div');
+        banner.className = 'alert alert-warning d-flex align-items-center gap-2 mb-3';
+        banner.innerHTML = '<i class="bi bi-database-fill me-1"></i>' +
+            '<span>Офлайн-режим — данные из кэша (<b>' + savedAt + '</b>). ' +
+            projects.length + ' проектов. При подключении страница обновится.</span>';
+        var content = document.querySelector('.page-body');
+        if (content) content.prepend(banner);
+
+        // Прячем серверную таблицу и показываем офлайн
+        var tableCard = document.querySelector('.data-card');
+        if (!tableCard) return;
+        tableCard.innerHTML = '<div class="table-responsive"><table class="table table-hover mb-0 align-middle">' +
+            '<thead class="table-head"><tr>' +
+            '<th>ТК №</th><th>Название / Город</th><th>Тип</th><th>Менеджер</th><th>Статус</th><th>Окончание</th><th>Дней</th>' +
+            '</tr></thead><tbody id="offline-tbody"></tbody></table></div>';
+
+        var tbody = document.getElementById('offline-tbody');
+        projects.forEach(function(p) {
+            var daysHtml = p.end_days !== null && p.end_days !== undefined
+                ? '<span class="dl-badge ' + (p.end_days < 0 ? 'dl-over' : p.end_days <= 7 ? 'dl-warn' : 'dl-ok') + '">' +
+                  (p.end_days >= 0 ? '+' : '') + p.end_days + ' д</span>'
+                : '—';
+            var statusHtml = p.opened
+                ? '<span class="badge bg-success">Открыт</span>'
+                : '<span class="badge bg-' + (p.status === 'Завершён' ? 'secondary' : 'success') + '">' + (p.status || 'Активный') + '</span>';
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+                '<td class="text-muted small">' + (p.tk || '—') + '</td>' +
+                '<td><a href="/projects/' + p.id + '" class="fw-semibold text-decoration-none">' + (p.name || p.city || '—') + '</a>' +
+                (p.city ? '<br><small class="text-muted"><i class="bi bi-geo-alt"></i> ' + p.city + '</small>' : '') + '</td>' +
+                '<td><span class="badge bg-light text-dark border">' + (p.type || '—') + '</span></td>' +
+                '<td class="small">' + (p.manager ? p.manager.split(' ')[0] : '—') + '</td>' +
+                '<td>' + statusHtml + '</td>' +
+                '<td class="small">' + (p.end_date ? p.end_date.split('-').reverse().join('.') : '—') + '</td>' +
+                '<td>' + daysHtml + '</td>';
+            tbody.appendChild(tr);
+        });
+    }).catch(function(){});
+
+    // Обновляем при восстановлении сети
+    window.addEventListener('online', function() {
+        location.reload();
+    });
+})();
+</script>
 <style>
 .sortable-th { cursor: pointer; user-select: none; white-space: nowrap; }
 .sortable-th:hover { background: rgba(0,0,0,.05); }

@@ -728,6 +728,7 @@ function confirmDelete() {
         const type     = dd.dataset.type;
         const curVal   = dd.dataset.val || '';
         const origHTML = dd.innerHTML;
+        const origVal  = curVal;
 
         var input;
         if (type === 'select') {
@@ -767,45 +768,102 @@ function confirmDelete() {
         function cancel() {
             dd.innerHTML = origHTML;
         }
+        function formatDisplay(field, val) {
+            if (!val) return '—';
+            if (field === 'budget') {
+                return parseFloat(val).toLocaleString('ru-RU', {maximumFractionDigits:0}) + ' руб.';
+            }
+            if (field === 'start_date' || field === 'end_date') {
+                var parts = val.split('-');
+                return parts[2] + '.' + parts[1] + '.' + parts[0];
+            }
+            if (field === 'status') {
+                var colors = {'Завершён':'bg-secondary','Приостановлен':'bg-warning text-dark'};
+                var cls = colors[val] || 'bg-success';
+                return '<span class="badge ' + cls + '">' + val + '</span>';
+            }
+            return val;
+        }
+
         function save() {
             var val = input.value.trim();
             dd.classList.add('ie-saving');
-            fetch('/api/projects/' + PROJECT_ID + '/field', {
+
+            // Оптимистичное обновление UI сразу
+            dd.dataset.val = val;
+            dd.innerHTML = formatDisplay(field, val);
+
+            var reqUrl  = '/api/projects/' + PROJECT_ID + '/field';
+            var reqBody = { field: field, value: val };
+
+            if (!navigator.onLine) {
+                // Офлайн: добавляем в очередь
+                if (window.OfflineDB) {
+                    OfflineDB.queueAdd({
+                        url:    reqUrl,
+                        method: 'POST',
+                        body:   reqBody,
+                        label:  'Поле «' + field + '» = ' + (val || '—'),
+                    }).then(function() {
+                        // Регистрируем Background Sync если доступно
+                        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                            navigator.serviceWorker.ready.then(function(reg) {
+                                if (reg.sync) reg.sync.register('lenta-sync-queue').catch(function(){});
+                            });
+                        }
+                        showToast(
+                            '<i class="bi bi-clock me-1"></i>Сохранено в очередь — синхронизируется при подключении',
+                            'warn', 4000
+                        );
+                        // Обновляем бейдж
+                        if (window._flushQueue) {
+                            OfflineDB.queueCount().then(function(n) {
+                                var badge = document.getElementById('sync-badge');
+                                var countEl = document.getElementById('sync-badge-count');
+                                if (badge && n > 0) {
+                                    badge.style.display = 'flex';
+                                    if (countEl) countEl.textContent = n;
+                                }
+                            });
+                        }
+                    }).catch(function() {
+                        showToast('Ошибка сохранения в очередь', 'error', 3000);
+                    });
+                } else {
+                    showToast('Офлайн: изменение не будет сохранено', 'error', 4000);
+                }
+                dd.classList.remove('ie-saving');
+                return;
+            }
+
+            // Онлайн: обычный запрос
+            fetch(reqUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({ field: field, value: val })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(reqBody),
             })
             .then(function(r) { return r.json(); })
             .then(function(d) {
                 dd.classList.remove('ie-saving');
                 if (d.ok) {
-                    dd.dataset.val = val;
-                    // Обновляем отображение
-                    var display = val || '—';
-                    if (field === 'budget' && val) {
-                        display = parseFloat(val).toLocaleString('ru-RU', {maximumFractionDigits:0}) + ' руб.';
-                    } else if ((field === 'start_date' || field === 'end_date') && val) {
-                        var parts = val.split('-');
-                        display = parts[2] + '.' + parts[1] + '.' + parts[0];
-                    } else if (field === 'status' && val) {
-                        var colors = {'Завершён':'bg-secondary','Приостановлен':'bg-warning text-dark'};
-                        var cls = colors[val] || 'bg-success';
-                        display = '<span class="badge ' + cls + '">' + val + '</span>';
-                    }
-                    dd.innerHTML = display;
-                    showToast('Поле обновлено', 'success', 2500);
+                    showToast('Сохранено', 'success', 2000);
                 } else {
                     dd.innerHTML = origHTML;
+                    dd.dataset.val = origVal;
                     showToast('Ошибка сохранения', 'error', 3000);
                 }
             })
             .catch(function() {
                 dd.classList.remove('ie-saving');
-                dd.innerHTML = origHTML;
-                showToast('Ошибка сети', 'error', 3000);
+                // Упал запрос — добавляем в очередь (потеря связи в процессе)
+                if (window.OfflineDB) {
+                    OfflineDB.queueAdd({ url: reqUrl, method: 'POST', body: reqBody,
+                        label: 'Поле «' + field + '»' });
+                    showToast('Сохранено в очередь (связь прервана)', 'warn', 3500);
+                } else {
+                    dd.innerHTML = origHTML;
+                    showToast('Ошибка сети', 'error', 3000);
+                }
             });
         }
 

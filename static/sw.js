@@ -1,27 +1,31 @@
-/* Лента.PM — Service Worker v3 */
-const CACHE_STATIC  = 'lenta-static-v3';
-const CACHE_PAGES   = 'lenta-pages-v3';
-const CACHE_API     = 'lenta-api-v3';
+/* Лента.PM — Service Worker v4 */
+const CACHE_STATIC = 'lenta-static-v4';
+const CACHE_PAGES  = 'lenta-pages-v4';
+const CACHE_API    = 'lenta-api-v4';
 
-// Статика — кэшируем при установке
 const PRECACHE = [
     '/static/css/style.css',
     '/static/vendor/bootstrap-icons/bootstrap-icons.min.css',
     '/static/img/raccoon.png',
     '/static/vendor/bootstrap/bootstrap.bundle.min.js',
     '/static/vendor/bootstrap/bootstrap.min.css',
+    '/static/js/app.js',
+    '/static/js/offline-db.js',
 ];
 
-// API-маршруты для offline-кэша (только GET, TTL 5 минут)
-const CACHE_API_ROUTES = [
+// API маршруты с коротким TTL (5 мин)
+const API_CACHE_ROUTES = [
     '/api/online',
-    '/api/notifications/construction',
-    '/api/notifications/reconstruct',
     '/api/vpk/unread',
     '/api/chat/unread',
+    '/api/notifications/construction',
+    '/api/notifications/reconstruct',
 ];
+const API_TTL = 5 * 60 * 1000;
 
-const API_TTL_MS = 5 * 60 * 1000; // 5 мин
+// Данные проектов — долгий TTL (30 мин)
+const PROJECTS_DATA_URL = '/api/projects/cache-data';
+const PROJECTS_TTL = 30 * 60 * 1000;
 
 self.addEventListener('install', e => {
     self.skipWaiting();
@@ -44,10 +48,9 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
     const req = e.request;
     if (req.method !== 'GET') return;
-
     const url = new URL(req.url);
 
-    // 1. Статика — cache-first
+    // ── Статика: cache-first ──────────────────────────────────────────────────
     if (url.pathname.startsWith('/static/')) {
         e.respondWith(
             caches.open(CACHE_STATIC).then(async cache => {
@@ -61,41 +64,22 @@ self.addEventListener('fetch', e => {
         return;
     }
 
-    // 2. API — network-first с offline-fallback (только разрешённые роуты)
-    if (url.pathname.startsWith('/api/')) {
-        const shouldCache = CACHE_API_ROUTES.some(r => url.pathname.startsWith(r));
-        if (!shouldCache) return;
-        e.respondWith(
-            fetch(req).then(async res => {
-                if (res.ok) {
-                    const cache = await caches.open(CACHE_API);
-                    const r = res.clone();
-                    // Добавляем timestamp в заголовок для TTL
-                    const headers = new Headers(r.headers);
-                    headers.set('x-sw-cached-at', Date.now().toString());
-                    const timed = new Response(await r.blob(), { headers });
-                    cache.put(req, timed);
-                }
-                return res;
-            }).catch(async () => {
-                const cache = await caches.open(CACHE_API);
-                const hit = await cache.match(req);
-                if (!hit) return new Response(JSON.stringify({ offline: true }), {
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                const cachedAt = parseInt(hit.headers.get('x-sw-cached-at') || '0');
-                if (Date.now() - cachedAt > API_TTL_MS) {
-                    return new Response(JSON.stringify({ offline: true }), {
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-                }
-                return hit;
-            })
-        );
+    // ── Данные проектов: network-first с длинным TTL ─────────────────────────
+    if (url.pathname === PROJECTS_DATA_URL) {
+        e.respondWith(networkFirstWithTTL(req, CACHE_API, PROJECTS_TTL));
         return;
     }
 
-    // 3. HTML-страницы — network-first, fallback на кэш
+    // ── Прочие API: network-first с коротким TTL ─────────────────────────────
+    if (url.pathname.startsWith('/api/')) {
+        const shouldCache = API_CACHE_ROUTES.some(r => url.pathname.startsWith(r));
+        if (shouldCache) {
+            e.respondWith(networkFirstWithTTL(req, CACHE_API, API_TTL));
+        }
+        return;
+    }
+
+    // ── HTML-страницы: network-first, offline fallback ────────────────────────
     if (req.headers.get('accept')?.includes('text/html')) {
         e.respondWith(
             fetch(req).then(async res => {
@@ -106,11 +90,17 @@ self.addEventListener('fetch', e => {
                 return res;
             }).catch(async () => {
                 const cache = await caches.open(CACHE_PAGES);
-                const hit = await cache.match(req);
+                const hit   = await cache.match(req);
                 if (hit) return hit;
-                // Если нет кэша — отдаём главную страницу
-                return caches.match('/') || new Response(
-                    '<h2>Нет подключения</h2><p>Страница недоступна в офлайн-режиме. <a href="/">На главную</a></p>',
+                const root = await caches.match('/');
+                if (root) return root;
+                return new Response(
+                    '<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>Офлайн</title>' +
+                    '<meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="font-family:sans-serif;padding:32px;text-align:center">' +
+                    '<h2>📵 Нет подключения</h2>' +
+                    '<p>Страница недоступна в офлайн-режиме.</p>' +
+                    '<a href="/" style="color:#3CB34A;font-weight:700">← На главную</a>' +
+                    '</body></html>',
                     { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
                 );
             })
@@ -118,6 +108,77 @@ self.addEventListener('fetch', e => {
         return;
     }
 });
+
+async function networkFirstWithTTL(req, cacheName, ttl) {
+    try {
+        const res = await fetch(req);
+        if (res.ok) {
+            const cache = await caches.open(cacheName);
+            const headers = new Headers(res.headers);
+            headers.set('x-sw-cached-at', Date.now().toString());
+            const timed = new Response(await res.clone().blob(), { status: res.status, headers });
+            cache.put(req, timed);
+        }
+        return res;
+    } catch (_) {
+        const cache = await caches.open(cacheName);
+        const hit   = await cache.match(req);
+        if (!hit) return new Response(JSON.stringify({ offline: true, cached: false }),
+            { headers: { 'Content-Type': 'application/json' } });
+        const age = Date.now() - parseInt(hit.headers.get('x-sw-cached-at') || '0');
+        if (age > ttl) return new Response(JSON.stringify({ offline: true, stale: true }),
+            { headers: { 'Content-Type': 'application/json' } });
+        return hit;
+    }
+}
+
+/* ── Background Sync — проигрываем очередь при восстановлении сети ── */
+self.addEventListener('sync', e => {
+    if (e.tag === 'lenta-sync-queue') {
+        e.waitUntil(flushSyncQueue());
+    }
+});
+
+async function flushSyncQueue() {
+    // Читаем очередь из IndexedDB
+    const DB_NAME = 'lenta-offline-v1';
+    const db = await new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onsuccess = e => resolve(e.target.result);
+        req.onerror   = e => reject(e.target.error);
+    }).catch(() => null);
+
+    if (!db) return;
+
+    const items = await new Promise((resolve, reject) => {
+        const tx  = db.transaction('queue', 'readonly');
+        const req = tx.objectStore('queue').getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror   = e => reject(e.target.error);
+    }).catch(() => []);
+
+    for (const item of items) {
+        try {
+            const res = await fetch(item.url, {
+                method:  item.method || 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(item.body),
+            });
+            if (res.ok) {
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction('queue', 'readwrite');
+                    tx.objectStore('queue').delete(item.id);
+                    tx.oncomplete = resolve;
+                    tx.onerror    = e => reject(e.target.error);
+                });
+            }
+        } catch (_) {}
+    }
+
+    // Уведомляем все вкладки о завершении синхронизации
+    const clients = await self.clients.matchAll({ type: 'window' });
+    clients.forEach(c => c.postMessage({ type: 'SYNC_COMPLETE' }));
+}
 
 /* ── Push уведомления ── */
 self.addEventListener('push', e => {
@@ -128,7 +189,7 @@ self.addEventListener('push', e => {
             body: data.body,
             icon: '/static/img/raccoon.png',
             badge: '/static/img/raccoon.png',
-            tag: data.tag || 'lenta-notif',
+            tag:  data.tag || 'lenta-notif',
             requireInteraction: data.urgent || false,
             data: { url: data.url },
         })
