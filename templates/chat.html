@@ -226,12 +226,25 @@
     .chat-sidebar { width:100%; min-width:0; border-right:none; }
     .chat-main { display:none; }
     .in-conversation .chat-sidebar { display:none; }
-    .in-conversation .chat-main { display:flex; width:100%; }
+    .in-conversation .chat-main { display:flex; width:100%; position:relative; }
     .chat-input { font-size:16px; }
-    .emoji-picker { width:calc(100vw - 30px); left:8px; }
+    .emoji-picker { width:calc(100vw - 30px); left:8px; bottom:auto; top:auto; }
     .chat-msg { max-width:88%; }
     .chat-bubble { font-size:15px; }
     .chat-header { padding:10px 12px; }
+    /* Инпут всегда внизу chat-main — абсолютное позиционирование,
+       не зависит от flex-распределения высоты */
+    .in-conversation .chat-input-wrap {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 2;
+    }
+    /* Отступ снизу чтобы последние сообщения не перекрывались инпутом */
+    .in-conversation .chat-messages {
+        padding-bottom: 70px;
+    }
 }
 
 /* ── DARK THEME ── */
