@@ -24,17 +24,18 @@
                 </div>
             </div>
             <div class="p-3">
-                <dl class="row mb-0 small">
+                <dl class="row mb-0 small" id="projectFields">
                     <dt class="col-5 text-muted">ТК №</dt>
-                    <dd class="col-7 fw-semibold">{{ project.tk_number or '—' }}</dd>
+                    <dd class="col-7 fw-semibold ie-field" data-field="tk_number" data-type="text" data-val="{{ project.tk_number or '' }}">{{ project.tk_number or '—' }}</dd>
                     <dt class="col-5 text-muted">Город</dt>
-                    <dd class="col-7">{{ project.city or '—' }}</dd>
+                    <dd class="col-7 ie-field" data-field="city" data-type="text" data-val="{{ project.city or '' }}">{{ project.city or '—' }}</dd>
                     <dt class="col-5 text-muted">Тип</dt>
                     <dd class="col-7"><span class="badge bg-light text-dark border">{{ project.project_type or '—' }}</span></dd>
                     <dt class="col-5 text-muted">Менеджер</dt>
                     <dd class="col-7 fw-semibold">{{ project.manager.name if project.manager else '—' }}</dd>
                     <dt class="col-5 text-muted">Статус</dt>
-                    <dd class="col-7">
+                    <dd class="col-7 ie-field" data-field="status" data-type="select"
+                        data-options="{{ statuses|join(',') }}" data-val="{{ project.status or 'Активный' }}">
                         {% set is_opened = project.opening_date and project.opening_date <= today %}
                         {% if is_opened %}
                         <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Открыт</span>
@@ -43,15 +44,15 @@
                         {% elif project.status == 'Завершён' %}
                         <span class="badge bg-secondary">{{ project.status }}</span>
                         {% else %}
-                        <span class="badge bg-success">Активный</span>
+                        <span class="badge bg-success">{{ project.status or 'Активный' }}</span>
                         {% endif %}
                     </dd>
                     <dt class="col-5 text-muted">Этап</dt>
-                    <dd class="col-7">{{ project.stage or '—' }}</dd>
+                    <dd class="col-7 ie-field" data-field="stage" data-type="text" data-val="{{ project.stage or '' }}">{{ project.stage or '—' }}</dd>
                     <dt class="col-5 text-muted">Дата начала</dt>
-                    <dd class="col-7">{{ project.start_date.strftime('%d.%m.%Y') if project.start_date else '—' }}</dd>
+                    <dd class="col-7 ie-field" data-field="start_date" data-type="date" data-val="{{ project.start_date or '' }}">{{ project.start_date.strftime('%d.%m.%Y') if project.start_date else '—' }}</dd>
                     <dt class="col-5 text-muted">Дата окончания</dt>
-                    <dd class="col-7 fw-semibold">
+                    <dd class="col-7 fw-semibold ie-field" data-field="end_date" data-type="date" data-val="{{ project.end_date or '' }}" id="ie-end-date">
                         {% if project.end_date %}
                         {% set days = (project.end_date - today).days %}
                         {{ project.end_date.strftime('%d.%m.%Y') }}
@@ -61,16 +62,15 @@
                         {% else %}—{% endif %}
                     </dd>
                     <dt class="col-5 text-muted">Бюджет</dt>
-                    <dd class="col-7">
-                        {% if project.budget %}
-                        {{ "{:,.0f}".format(project.budget) }} руб.
-                        {% else %}—{% endif %}
+                    <dd class="col-7 ie-field" data-field="budget" data-type="number" data-val="{{ project.budget or '' }}">
+                        {% if project.budget %}{{ "{:,.0f}".format(project.budget) }} руб.{% else %}—{% endif %}
                     </dd>
-                    {% if project.description %}
                     <dt class="col-5 text-muted">Описание</dt>
-                    <dd class="col-7">{{ project.description }}</dd>
-                    {% endif %}
+                    <dd class="col-7 ie-field" data-field="description" data-type="textarea" data-val="{{ project.description or '' }}">{{ project.description or '—' }}</dd>
                 </dl>
+                <div class="mt-2 px-0" style="font-size:11px;color:#64748b;opacity:.7">
+                    <i class="bi bi-pencil me-1"></i>Нажмите на поле для быстрого редактирования
+                </div>
             </div>
 
             <!-- Edit form (collapsed) -->
@@ -668,5 +668,155 @@ function confirmDelete() {
 }
 </script>
 {% endif %}
+
+<style>
+/* ── Inline editing ── */
+.ie-field {
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background .15s;
+    padding: 1px 4px;
+    margin: -1px -4px;
+    position: relative;
+}
+.ie-field:hover::after {
+    content: '✎';
+    font-size: 10px;
+    color: #3CB34A;
+    margin-left: 5px;
+    opacity: .7;
+}
+.ie-field:hover { background: rgba(60,179,74,.08); }
+.ie-field.ie-saving { opacity: .6; pointer-events: none; }
+.ie-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+.ie-input-wrap input,
+.ie-input-wrap select,
+.ie-input-wrap textarea {
+    flex: 1;
+    font-size: 12px;
+    padding: 3px 7px;
+    border: 1px solid #3CB34A;
+    border-radius: 5px;
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    outline: none;
+    min-width: 80px;
+}
+.ie-input-wrap textarea { resize: vertical; min-height: 50px; }
+.ie-ok  { background:#3CB34A;color:#fff;border:none;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;font-weight:700; }
+.ie-cancel { background:none;border:none;color:#64748b;font-size:16px;cursor:pointer;padding:0 3px; }
+</style>
+<script>
+(function() {
+    const PROJECT_ID = {{ project.id }};
+
+    document.querySelectorAll('.ie-field').forEach(function(dd) {
+        dd.addEventListener('click', function(e) {
+            if (dd.querySelector('.ie-input-wrap')) return; // уже открыт
+            e.stopPropagation();
+            openInline(dd);
+        });
+    });
+
+    function openInline(dd) {
+        const field    = dd.dataset.field;
+        const type     = dd.dataset.type;
+        const curVal   = dd.dataset.val || '';
+        const origHTML = dd.innerHTML;
+
+        var input;
+        if (type === 'select') {
+            input = document.createElement('select');
+            (dd.dataset.options || '').split(',').forEach(function(opt) {
+                var o = document.createElement('option');
+                o.value = opt.trim(); o.textContent = opt.trim();
+                if (opt.trim() === curVal) o.selected = true;
+                input.appendChild(o);
+            });
+        } else if (type === 'textarea') {
+            input = document.createElement('textarea');
+            input.value = curVal;
+            input.rows = 2;
+        } else {
+            input = document.createElement('input');
+            input.type = type === 'date' ? 'date' : (type === 'number' ? 'number' : 'text');
+            input.value = curVal;
+        }
+
+        var wrap   = document.createElement('div');
+        wrap.className = 'ie-input-wrap';
+        var okBtn  = document.createElement('button');
+        okBtn.className = 'ie-ok'; okBtn.textContent = '✓';
+        var cancelBtn = document.createElement('button');
+        cancelBtn.className = 'ie-cancel'; cancelBtn.textContent = '×';
+
+        wrap.appendChild(input);
+        wrap.appendChild(okBtn);
+        wrap.appendChild(cancelBtn);
+
+        dd.innerHTML = '';
+        dd.appendChild(wrap);
+        input.focus();
+        if (input.select && type !== 'date') input.select();
+
+        function cancel() {
+            dd.innerHTML = origHTML;
+        }
+        function save() {
+            var val = input.value.trim();
+            dd.classList.add('ie-saving');
+            fetch('/api/projects/' + PROJECT_ID + '/field', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ field: field, value: val })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                dd.classList.remove('ie-saving');
+                if (d.ok) {
+                    dd.dataset.val = val;
+                    // Обновляем отображение
+                    var display = val || '—';
+                    if (field === 'budget' && val) {
+                        display = parseFloat(val).toLocaleString('ru-RU', {maximumFractionDigits:0}) + ' руб.';
+                    } else if ((field === 'start_date' || field === 'end_date') && val) {
+                        var parts = val.split('-');
+                        display = parts[2] + '.' + parts[1] + '.' + parts[0];
+                    } else if (field === 'status' && val) {
+                        var colors = {'Завершён':'bg-secondary','Приостановлен':'bg-warning text-dark'};
+                        var cls = colors[val] || 'bg-success';
+                        display = '<span class="badge ' + cls + '">' + val + '</span>';
+                    }
+                    dd.innerHTML = display;
+                    showToast('Поле обновлено', 'success', 2500);
+                } else {
+                    dd.innerHTML = origHTML;
+                    showToast('Ошибка сохранения', 'error', 3000);
+                }
+            })
+            .catch(function() {
+                dd.classList.remove('ie-saving');
+                dd.innerHTML = origHTML;
+                showToast('Ошибка сети', 'error', 3000);
+            });
+        }
+
+        okBtn.onclick = function(e) { e.stopPropagation(); save(); };
+        cancelBtn.onclick = function(e) { e.stopPropagation(); cancel(); };
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && type !== 'textarea') { e.preventDefault(); save(); }
+            if (e.key === 'Escape') cancel();
+        });
+    }
+})();
+</script>
 
 {% endblock %}

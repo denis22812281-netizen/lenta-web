@@ -54,15 +54,15 @@
     <table class="table table-hover mb-0 align-middle">
         <thead class="table-head">
             <tr>
-                <th class="d-none d-sm-table-cell">ТК №</th>
-                <th>Название / Город</th>
-                <th class="d-none d-sm-table-cell">Тип</th>
-                <th>Менеджер</th>
+                <th class="d-none d-sm-table-cell sortable-th" data-col="0" onclick="sortTable(0)">ТК № <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                <th class="sortable-th" data-col="1" onclick="sortTable(1)">Название / Город <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                <th class="d-none d-sm-table-cell sortable-th" data-col="2" onclick="sortTable(2)">Тип <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                <th class="sortable-th" data-col="3" onclick="sortTable(3)">Менеджер <i class="bi bi-arrow-down-up sort-icon"></i></th>
                 <th class="d-none d-md-table-cell">Статус</th>
                 <th class="d-none d-lg-table-cell">Этап</th>
                 <th class="d-none d-md-table-cell">Начало</th>
-                <th>Окончание</th>
-                <th>Дней</th>
+                <th class="sortable-th" data-col="7" onclick="sortTable(7)">Окончание <i class="bi bi-arrow-down-up sort-icon"></i></th>
+                <th class="sortable-th" data-col="8" onclick="sortTable(8)">Дней <i class="bi bi-arrow-down-up sort-icon"></i></th>
                 <th></th>
             </tr>
         </thead>
@@ -260,4 +260,55 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.sortable-th { cursor: pointer; user-select: none; white-space: nowrap; }
+.sortable-th:hover { background: rgba(0,0,0,.05); }
+[data-bs-theme="dark"] .sortable-th:hover { background: rgba(255,255,255,.05); }
+.sort-icon { font-size: 10px; opacity: .4; margin-left: 3px; }
+.sortable-th.sort-asc .sort-icon  { opacity: 1; color: #3CB34A; }
+.sortable-th.sort-desc .sort-icon { opacity: 1; color: #3CB34A; }
+</style>
+<script>
+let _sortCol = -1, _sortDir = 1;
+
+function sortTable(col) {
+    const table = document.querySelector('table');
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    const rows  = Array.from(tbody.querySelectorAll('tr'));
+
+    if (_sortCol === col) _sortDir *= -1;
+    else { _sortCol = col; _sortDir = 1; }
+
+    table.querySelectorAll('.sortable-th').forEach(function(th) {
+        th.classList.remove('sort-asc', 'sort-desc');
+        const icon = th.querySelector('.sort-icon');
+        if (icon) icon.className = 'bi bi-arrow-down-up sort-icon';
+        if (parseInt(th.dataset.col) === col) {
+            th.classList.add(_sortDir === 1 ? 'sort-asc' : 'sort-desc');
+            if (icon) icon.className = 'bi ' + (_sortDir === 1 ? 'bi-arrow-up' : 'bi-arrow-down') + ' sort-icon';
+        }
+    });
+
+    rows.sort(function(a, b) {
+        const cells_a = a.querySelectorAll('td');
+        const cells_b = b.querySelectorAll('td');
+        const va = (cells_a[col] ? cells_a[col].textContent.trim() : '');
+        const vb = (cells_b[col] ? cells_b[col].textContent.trim() : '');
+        const na = parseFloat(va.replace(/[^0-9.-]/g,''));
+        const nb = parseFloat(vb.replace(/[^0-9.-]/g,''));
+        if (!isNaN(na) && !isNaN(nb)) return (na - nb) * _sortDir;
+        if (/\d{2}\.\d{2}\.\d{4}/.test(va)) {
+            const pa = va.split('.').reverse().join('-');
+            const pb = vb.split('.').reverse().join('-');
+            return (pa < pb ? -1 : pa > pb ? 1 : 0) * _sortDir;
+        }
+        return va.localeCompare(vb, 'ru') * _sortDir;
+    });
+    rows.forEach(function(r) { tbody.appendChild(r); });
+}
+</script>
 {% endblock %}

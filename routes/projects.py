@@ -189,6 +189,49 @@ async def delete_project(project_id: int, request: Request, db: Session = Depend
     return RedirectResponse("/projects", status_code=303)
 
 
+@router.post("/api/projects/{project_id}/field")
+async def update_project_field(
+    project_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_login),
+):
+    """Inline-редактирование одного поля проекта (JSON API)."""
+    from fastapi.responses import JSONResponse
+    _ALLOWED = {"name", "city", "status", "stage", "end_date", "start_date", "description", "budget", "tk_number"}
+    data = await request.json()
+    field = str(data.get("field", "")).strip()
+    value = data.get("value", "")
+
+    if field not in _ALLOWED:
+        return JSONResponse({"ok": False, "error": "field not allowed"}, status_code=400)
+
+    p = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not p:
+        return JSONResponse({"ok": False}, status_code=404)
+
+    if field in ("end_date", "start_date"):
+        try:
+            parsed = datetime.strptime(str(value), "%Y-%m-%d").date() if value else None
+        except ValueError:
+            return JSONResponse({"ok": False, "error": "invalid date"}, status_code=400)
+        _track_changes(db, p, user, {field: parsed})
+        setattr(p, field, parsed)
+    elif field == "budget":
+        try:
+            parsed_b = float(str(value).replace(",", ".")) if value else None
+        except ValueError:
+            return JSONResponse({"ok": False, "error": "invalid budget"}, status_code=400)
+        _track_changes(db, p, user, {field: parsed_b})
+        setattr(p, field, parsed_b)
+    else:
+        _track_changes(db, p, user, {field: value or None})
+        setattr(p, field, value or None)
+
+    db.commit()
+    return JSONResponse({"ok": True})
+
+
 # ─── Комментарии к проекту ───────────────────────────────────────────────────
 
 @router.post("/projects/{project_id}/comments/add")

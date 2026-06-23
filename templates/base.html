@@ -240,6 +240,89 @@
 </nav>
 
 <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-box" style="z-index:9999"></div>
+<style>
+.lpm-toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #1e293b;
+    color: #e2e8f0;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-top: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,.35);
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 220px;
+    max-width: 340px;
+    animation: toastIn .25s ease;
+    pointer-events: auto;
+}
+.lpm-toast.success { border-left: 3px solid #3CB34A; }
+.lpm-toast.error   { border-left: 3px solid #dc2626; }
+.lpm-toast.info    { border-left: 3px solid #0ea5e9; }
+.lpm-toast.warn    { border-left: 3px solid #f59e0b; }
+.lpm-toast-msg { flex: 1; }
+.lpm-toast-undo {
+    background: rgba(255,255,255,.15);
+    border: none;
+    color: #fff;
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.lpm-toast-undo:hover { background: rgba(255,255,255,.25); }
+.lpm-toast-close {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,.4);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 2px;
+}
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(16px); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes toastOut {
+    to { opacity: 0; transform: translateX(16px); max-height: 0; padding: 0; margin: 0; }
+}
+[data-bs-theme="light"] .lpm-toast { background: #fff; color: #1e293b; box-shadow: 0 4px 20px rgba(0,0,0,.15); }
+[data-bs-theme="light"] .lpm-toast-undo { background: rgba(0,0,0,.1); color: #1e293b; }
+[data-bs-theme="light"] .lpm-toast-close { color: rgba(0,0,0,.3); }
+</style>
+<script>
+/* ── Глобальная система toast с поддержкой Undo ── */
+window.showToast = function(msg, type, duration, undoFn) {
+    type = type || 'success';
+    duration = duration || 3500;
+    var box = document.getElementById('toast-box');
+    var t = document.createElement('div');
+    t.className = 'lpm-toast ' + type;
+    t.innerHTML =
+        '<span class="lpm-toast-msg">' + msg + '</span>' +
+        (undoFn ? '<button class="lpm-toast-undo">Отменить</button>' : '') +
+        '<button class="lpm-toast-close">×</button>';
+
+    if (undoFn) {
+        t.querySelector('.lpm-toast-undo').onclick = function() {
+            undoFn();
+            dismiss();
+        };
+    }
+    function dismiss() {
+        t.style.animation = 'toastOut .2s ease forwards';
+        setTimeout(function() { t.parentNode && t.parentNode.removeChild(t); }, 220);
+    }
+    t.querySelector('.lpm-toast-close').onclick = dismiss;
+    box.appendChild(t);
+    setTimeout(dismiss, duration);
+};
+</script>
 
 <script src="/static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
 <script src="/static/js/app.js"></script>
@@ -512,7 +595,93 @@
     from { opacity: 0; }
     to   { opacity: 1; }
 }
+/* ── Page transition ─────────────────────────────────────────────── */
+.page-body {
+    animation: pageIn .22s ease both;
+}
+@keyframes pageIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* ── Skeleton shimmer ─────────────────────────────────────────────── */
+.skeleton {
+    background: linear-gradient(90deg,
+        rgba(0,0,0,.06) 25%,
+        rgba(0,0,0,.12) 50%,
+        rgba(0,0,0,.06) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 6px;
+    color: transparent !important;
+    pointer-events: none;
+    user-select: none;
+}
+[data-bs-theme="dark"] .skeleton {
+    background: linear-gradient(90deg,
+        rgba(255,255,255,.06) 25%,
+        rgba(255,255,255,.12) 50%,
+        rgba(255,255,255,.06) 75%);
+    background-size: 200% 100%;
+}
+@keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+.skeleton-row {
+    height: 18px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+}
+.skeleton-card {
+    border-radius: 12px;
+    height: 90px;
+    margin-bottom: 10px;
+}
+
+/* ── Offline banner ─────────────────────────────────────────────── */
+#offline-banner {
+    position: fixed;
+    top: 56px;
+    left: 0; right: 0;
+    background: #b91c1c;
+    color: #fff;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 12px;
+    z-index: 9990;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+#offline-banner.visible { display: flex; }
+body.offline .page-body { opacity: .85; }
 </style>
+
+<!-- Offline banner -->
+<div id="offline-banner">
+    <i class="bi bi-wifi-off"></i>
+    Нет подключения к интернету — отображаются кэшированные данные
+</div>
+<script>
+(function() {
+    var banner = document.getElementById('offline-banner');
+    function update() {
+        if (navigator.onLine) {
+            banner.classList.remove('visible');
+            document.body.classList.remove('offline');
+        } else {
+            banner.classList.add('visible');
+            document.body.classList.add('offline');
+        }
+    }
+    window.addEventListener('online',  update);
+    window.addEventListener('offline', update);
+    update();
+})();
+</script>
 
 <script>
 /* ── Уведомления по задачам ── */

@@ -295,18 +295,39 @@ document.querySelectorAll('.kanban-cards').forEach(col => {
         ghostClass: 'dragging',
         dragClass: 'dragging',
         onEnd(evt) {
-            const cardEl  = evt.item;
-            const newCol  = evt.to;
+            const cardEl    = evt.item;
+            const newCol    = evt.to;
+            const oldCol    = evt.from;
+            const oldIndex  = evt.oldIndex;
             const projectId = parseInt(cardEl.dataset.id);
             const newStatus = newCol.dataset.status;
+            const oldStatus = oldCol.dataset.status;
             updateCounts();
+
+            if (newStatus === oldStatus) return;
 
             fetch('/api/kanban/move', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: projectId, status: newStatus }),
             }).then(r => r.json()).then(d => {
-                if (!d.ok) revert(evt);
+                if (!d.ok) { revert(evt); return; }
+                const tkEl = cardEl.querySelector('.kanban-card-tk');
+                const tk   = tkEl ? tkEl.textContent.trim() : 'Проект';
+                showToast(
+                    `${tk} → <b>${newStatus}</b>`,
+                    'success', 4000,
+                    function() {
+                        // Undo: возвращаем в старую колонку
+                        oldCol.insertBefore(cardEl, oldCol.children[oldIndex] || null);
+                        updateCounts();
+                        fetch('/api/kanban/move', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: projectId, status: oldStatus }),
+                        }).catch(function(){});
+                    }
+                );
             }).catch(() => revert(evt));
         },
         onStart() {
