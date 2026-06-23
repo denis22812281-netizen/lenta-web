@@ -3,6 +3,36 @@
 {% block title %}<i class="bi bi-kanban-fill me-2"></i>Канбан{% endblock %}
 
 {% block content %}
+
+{# ── Тулбар с фильтрами ──────────────────────────────────────────────── #}
+<div class="kanban-toolbar">
+    <div class="kanban-toolbar-left">
+        <span class="kanban-total-badge">{{ total }} проект{{ 'ов' if total % 100 in (11,12,13,14) else ('а' if total % 10 in (2,3,4) else '') }}</span>
+        <span class="text-muted small ms-1 d-none d-sm-inline">— перетащите карточку чтобы изменить статус</span>
+    </div>
+    <div class="kanban-toolbar-right">
+        {# Фильтр по типу #}
+        {% if project_types|length > 1 %}
+        <div class="btn-group btn-group-sm me-2" role="group">
+            <a href="/kanban?show_done={{ 1 if show_done else 0 }}"
+               class="btn btn-outline-secondary {% if not ptype %}active{% endif %}">Все</a>
+            {% for t in project_types %}
+            <a href="/kanban?ptype={{ t }}&show_done={{ 1 if show_done else 0 }}"
+               class="btn btn-outline-secondary {% if ptype == t %}active{% endif %}">{{ t[:10] }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {# Переключатель Завершён #}
+        <a href="/kanban?ptype={{ ptype }}&show_done={{ 0 if show_done else 1 }}"
+           class="btn btn-sm {% if show_done %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+            <i class="bi bi-check2-all me-1"></i>
+            <span class="d-none d-sm-inline">Завершён</span>
+            <span class="d-sm-none">✓</span>
+        </a>
+    </div>
+</div>
+
+{# ── Доска ───────────────────────────────────────────────────────────── #}
 <div class="kanban-board" id="kanbanBoard">
     {% for status, projects in columns.items() %}
     {% set col_color = status_color.get(status, 'secondary') %}
@@ -14,7 +44,14 @@
         <div class="kanban-cards" id="col-{{ status|replace(' ','_') }}" data-status="{{ status }}">
             {% for p in projects %}
             <div class="kanban-card" data-id="{{ p.id }}">
-                <div class="kanban-card-tk">ТК {{ p.tk_number }}</div>
+                <div class="d-flex align-items-start justify-content-between mb-1">
+                    <span class="kanban-card-tk">ТК {{ p.tk_number }}</span>
+                    {% if p.project_type %}
+                    <span class="kanban-type-badge kanban-type-badge--{{ 'recon' if 'кон' in p.project_type|lower else 'const' }}">
+                        {{ p.project_type[:3] }}
+                    </span>
+                    {% endif %}
+                </div>
                 <div class="kanban-card-name">{{ p.name or p.city or '—' }}</div>
                 {% if p.manager %}
                 <div class="kanban-card-meta">
@@ -26,6 +63,7 @@
                 <div class="kanban-card-meta {% if p.end_date < today %}kanban-overdue{% endif %}">
                     <i class="bi bi-calendar-event"></i>
                     {{ p.end_date.strftime('%d.%m.%y') }}
+                    {% if p.end_date < today %}<span class="kanban-overdue-label">просрочен</span>{% endif %}
                 </div>
                 {% endif %}
                 <a href="/projects/{{ p.id }}" class="kanban-card-link" onclick="event.stopPropagation()">
@@ -33,43 +71,84 @@
                 </a>
             </div>
             {% endfor %}
+            {% if not projects %}
+            <div class="kanban-empty-col">
+                <i class="bi bi-inbox" style="font-size:20px;opacity:.3;"></i>
+                <div style="font-size:11px;opacity:.4;margin-top:4px;">Пусто</div>
+            </div>
+            {% endif %}
         </div>
     </div>
     {% endfor %}
+
+    {% if not columns %}
+    <div class="w-100 text-center text-muted py-5">
+        <i class="bi bi-kanban" style="font-size:48px;opacity:.2;"></i>
+        <div class="mt-2">Нет активных проектов</div>
+    </div>
+    {% endif %}
 </div>
 
 <style>
+/* ── Тулбар ────────────────────────────────────────────────────────── */
+.kanban-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.kanban-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.kanban-total-badge {
+    font-weight: 700;
+    font-size: 14px;
+    color: #1e293b;
+}
+[data-bs-theme="dark"] .kanban-total-badge { color: #e2e8f0; }
+
 /* ── Доска ─────────────────────────────────────────────────────────── */
 .kanban-board {
     display: flex;
-    gap: 14px;
+    gap: 12px;
     overflow-x: auto;
-    padding: 4px 0 16px;
-    min-height: calc(100vh - 160px);
+    padding: 4px 0 calc(80px + env(safe-area-inset-bottom));
+    min-height: calc(100dvh - 180px);
     align-items: flex-start;
     -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
 }
-.kanban-board::-webkit-scrollbar { height: 6px; }
-.kanban-board::-webkit-scrollbar-thumb { background: #3CB34A44; border-radius: 3px; }
+.kanban-board::-webkit-scrollbar { height: 4px; }
+.kanban-board::-webkit-scrollbar-thumb { background: #3CB34A55; border-radius: 3px; }
 
 /* ── Колонка ───────────────────────────────────────────────────────── */
 .kanban-col {
-    flex: 0 0 280px;
-    min-width: 260px;
-    max-width: 300px;
+    flex: 0 0 260px;
+    min-width: 240px;
+    max-width: 280px;
     background: #f8fafc;
     border-radius: 14px;
     overflow: hidden;
     box-shadow: 0 1px 6px rgba(0,0,0,.07);
+    scroll-snap-align: start;
+    max-height: calc(100dvh - 180px);
+    display: flex;
+    flex-direction: column;
 }
 .kanban-col-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
+    padding: 11px 14px;
     font-weight: 700;
-    font-size: 13px;
+    font-size: 12px;
     letter-spacing: .3px;
+    flex-shrink: 0;
 }
 .kanban-col-header--primary  { background: #dbeafe; color: #1d4ed8; }
 .kanban-col-header--success  { background: #dcfce7; color: #15803d; }
@@ -81,34 +160,43 @@
     background: rgba(0,0,0,.12);
     border-radius: 20px;
     padding: 1px 8px;
-    font-size: 12px;
+    font-size: 11px;
+    font-weight: 700;
 }
 
 /* ── Список карточек ───────────────────────────────────────────────── */
 .kanban-cards {
     padding: 8px;
-    min-height: 60px;
+    overflow-y: auto;
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 7px;
+    -webkit-overflow-scrolling: touch;
 }
-/* Drop-зона при перетаскивании */
+.kanban-cards::-webkit-scrollbar { width: 3px; }
+.kanban-cards::-webkit-scrollbar-thumb { background: #3CB34A44; border-radius: 3px; }
 .kanban-cards.drag-over {
     background: #f0fdf4;
     border-radius: 8px;
     outline: 2px dashed #3CB34A;
+}
+.kanban-empty-col {
+    text-align: center;
+    padding: 20px 0;
 }
 
 /* ── Карточка ──────────────────────────────────────────────────────── */
 .kanban-card {
     background: #fff;
     border-radius: 10px;
-    padding: 12px 14px;
+    padding: 11px 13px;
     box-shadow: 0 1px 4px rgba(0,0,0,.08);
     cursor: grab;
     transition: box-shadow .15s, transform .15s;
     position: relative;
     user-select: none;
+    flex-shrink: 0;
 }
 .kanban-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,.13); }
 .kanban-card.dragging { opacity: .5; cursor: grabbing; transform: rotate(2deg); }
@@ -116,26 +204,44 @@
     font-size: 11px;
     font-weight: 700;
     color: #3CB34A;
-    margin-bottom: 4px;
     letter-spacing: .5px;
 }
+.kanban-type-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    letter-spacing: .3px;
+    flex-shrink: 0;
+}
+.kanban-type-badge--recon { background: #f0fdf4; color: #15803d; }
+.kanban-type-badge--const { background: #eff6ff; color: #1d4ed8; }
 .kanban-card-name {
     font-weight: 600;
-    font-size: 13px;
+    font-size: 12px;
     color: #1e293b;
-    margin-bottom: 6px;
-    line-height: 1.3;
+    margin: 4px 0 5px;
+    line-height: 1.35;
 }
 .kanban-card-meta {
     font-size: 11px;
     color: #64748b;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
 }
 .kanban-card-meta i { margin-right: 3px; }
 .kanban-overdue { color: #dc2626 !important; font-weight: 600; }
+.kanban-overdue-label {
+    font-size: 9px;
+    background: #fee2e2;
+    color: #b91c1c;
+    border-radius: 3px;
+    padding: 0 4px;
+    margin-left: 4px;
+    font-weight: 700;
+}
 .kanban-card-link {
     display: inline-block;
-    margin-top: 8px;
+    margin-top: 7px;
     font-size: 11px;
     font-weight: 600;
     color: #3CB34A;
@@ -155,11 +261,26 @@
 [data-bs-theme="dark"] .kanban-card { background: #1e293b; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
 [data-bs-theme="dark"] .kanban-card-name { color: #e2e8f0; }
 [data-bs-theme="dark"] .kanban-card-meta { color: #64748b; }
+[data-bs-theme="dark"] .kanban-type-badge--recon { background: #0d2b1a; color: #4ade80; }
+[data-bs-theme="dark"] .kanban-type-badge--const { background: #1e3a5f; color: #93c5fd; }
 
 /* ── Мобилка ───────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-    .kanban-col { flex: 0 0 240px; min-width: 220px; }
-    .kanban-board { gap: 10px; padding-bottom: 80px; }
+    .kanban-col { flex: 0 0 220px; min-width: 200px; }
+    .kanban-board {
+        gap: 8px;
+        padding-bottom: calc(90px + env(safe-area-inset-bottom));
+        min-height: calc(100dvh - 170px);
+    }
+    .kanban-col { max-height: calc(100dvh - 170px); }
+    .kanban-toolbar { margin-bottom: 8px; }
+    .kanban-total-badge { font-size: 13px; }
+}
+@media (max-width: 480px) {
+    .kanban-col { flex: 0 0 195px; min-width: 185px; }
+    .kanban-board { gap: 6px; }
+    .kanban-card { padding: 9px 11px; }
+    .kanban-col-header { padding: 9px 12px; }
 }
 </style>
 {% endblock %}
@@ -167,39 +288,28 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
-// Инициализируем Sortable для каждой колонки
 document.querySelectorAll('.kanban-cards').forEach(col => {
     Sortable.create(col, {
-        group: 'kanban',          // перетаскивание между колонками
+        group: 'kanban',
         animation: 150,
         ghostClass: 'dragging',
         dragClass: 'dragging',
         onEnd(evt) {
-            const cardEl = evt.item;
-            const newCol = evt.to;
+            const cardEl  = evt.item;
+            const newCol  = evt.to;
             const projectId = parseInt(cardEl.dataset.id);
             const newStatus = newCol.dataset.status;
-
-            // Обновляем счётчики
             updateCounts();
 
-            // Сохраняем на сервере
             fetch('/api/kanban/move', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: projectId, status: newStatus }),
             }).then(r => r.json()).then(d => {
-                if (!d.ok) {
-                    // Откатить если ошибка
-                    evt.from.insertBefore(cardEl, evt.from.children[evt.oldIndex] || null);
-                    updateCounts();
-                }
-            }).catch(() => {
-                evt.from.insertBefore(cardEl, evt.from.children[evt.oldIndex] || null);
-                updateCounts();
-            });
+                if (!d.ok) revert(evt);
+            }).catch(() => revert(evt));
         },
-        onStart(evt) {
+        onStart() {
             document.querySelectorAll('.kanban-cards').forEach(c => c.classList.add('drag-over'));
         },
         onUnchoose() {
@@ -208,12 +318,25 @@ document.querySelectorAll('.kanban-cards').forEach(col => {
     });
 });
 
+function revert(evt) {
+    evt.from.insertBefore(evt.item, evt.from.children[evt.oldIndex] || null);
+    updateCounts();
+}
+
 function updateCounts() {
     document.querySelectorAll('.kanban-cards').forEach(col => {
         const status = col.dataset.status.replace(/ /g, '_');
-        const countEl = document.getElementById('count-' + status);
-        if (countEl) countEl.textContent = col.querySelectorAll('.kanban-card').length;
+        const el = document.getElementById('count-' + status);
+        if (el) el.textContent = col.querySelectorAll('.kanban-card').length;
     });
+    // Обновляем total
+    let total = 0;
+    document.querySelectorAll('.kanban-count').forEach(el => total += parseInt(el.textContent) || 0);
+    const tb = document.querySelector('.kanban-total-badge');
+    if (tb) {
+        const endings = {1:'проект',2:'проекта',3:'проекта',4:'проекта'};
+        tb.textContent = total + ' ' + (endings[total % 10] || 'проектов');
+    }
 }
 </script>
 {% endblock %}

@@ -334,8 +334,13 @@ new Chart(document.getElementById('chartMonthly'), {
 const resLabels = {{ j_result_labels }};
 const resValues = {{ j_result_values }};
 const resColors = [P.green, P.blue, P.red];
-makeDonut('chartResults', resLabels, resValues, resColors);
-makeLegend('legendResults', resLabels, resColors, resValues);
+if (resValues.reduce((a,b)=>a+b,0) === 0) {
+    document.getElementById('chartResults').closest('.an-chart-wrap').innerHTML =
+        '<div class="text-center text-muted py-4"><i class="bi bi-pie-chart" style="font-size:2.5rem;opacity:.25;display:block;margin-bottom:8px"></i><div class="small">Нет открытых объектов<br>с заполненной датой открытия</div></div>';
+} else {
+    makeDonut('chartResults', resLabels, resValues, resColors);
+    makeLegend('legendResults', resLabels, resColors, resValues);
+}
 
 // ── 3. Менеджеры (stacked horizontal bar) ────────────────────────────────────
 const mgrNames  = {{ j_mgr_names }};

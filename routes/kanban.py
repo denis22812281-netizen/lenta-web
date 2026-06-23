@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request, Depends, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.orm import Session, joinedload
 
@@ -34,13 +34,33 @@ async def kanban_page(
     request: Request,
     db: Session = Depends(get_db),
     user: dict = Depends(require_login),
+    show_done: bool = Query(False),
+    ptype: str = Query(""),
 ):
     today = date.today()
-    projects = (
-        db.query(models.Project)
-        .options(joinedload(models.Project.manager))
-        .all()
-    )
+
+    q = db.query(models.Project).options(joinedload(models.Project.manager))
+
+    # Тип проекта (фильтр)
+    if ptype:
+        q = q.filter(models.Project.project_type == ptype)
+
+    # По умолчанию скрываем Завершён — их обычно сотни
+    if not show_done:
+        q = q.filter(models.Project.status != "Завершён")
+
+    projects = q.all()
+
+    # Авто-проставляем "Просрочен" для активных с истёкшим дедлайном
+    for p in projects:
+        if (
+            p.end_date
+            and p.end_date < today
+            and p.status in ("Активный", "В работе", "Планирование")
+            and not p.opening_date
+        ):
+            p.status = "Просрочен"
+    db.commit()
 
     all_statuses = set(p.status for p in projects if p.status)
     ordered = [s for s in _STATUS_ORDER if s in all_statuses]
@@ -54,12 +74,27 @@ async def kanban_page(
             columns[s] = []
         columns[s].append(p)
 
+    # Уникальные типы для фильтра
+    ptypes = (
+        db.query(models.Project.project_type)
+        .filter(models.Project.project_type.isnot(None), models.Project.project_type != "")
+        .distinct()
+        .all()
+    )
+    project_types = sorted(set(r[0] for r in ptypes))
+
+    total = sum(len(v) for v in columns.values())
+
     return templates.TemplateResponse("kanban.html", {
         "request": request,
         "user": user,
         "columns": columns,
         "status_color": _STATUS_COLOR,
         "today": today,
+        "show_done": show_done,
+        "ptype": ptype,
+        "project_types": project_types,
+        "total": total,
     })
 
 

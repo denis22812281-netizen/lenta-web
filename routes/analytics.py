@@ -15,7 +15,7 @@ from deps import require_login, templates
 
 router = APIRouter()
 
-_CACHE_TTL = 300  # секунд (5 минут)
+_CACHE_TTL = 120  # секунд (2 минуты)
 _cache_payload: dict | None = None
 _cache_ts: float = 0
 
@@ -71,20 +71,18 @@ async def analytics_page(
     months_12 = _last_n_months(12, today)
     month_labels = [m.strftime("%b %Y") for m in months_12]
 
-    # ── 1. Открытия ТК по месяцам (Констракшн) ──────────────────────────────
+    # ── 1. Открытия ТК по месяцам (все типы) ────────────────────────────────
     month_counts = []
     for m in months_12:
         start, end = _month_range(m)
         cnt = db.query(models.Project).filter(
-            models.Project.project_type == "Констракшн",
             models.Project.opening_date >= start,
             models.Project.opening_date < end,
         ).count()
         month_counts.append(cnt)
 
-    # ── 2. Итоги открытий (раньше / вовремя / позже) ────────────────────────
+    # ── 2. Итоги открытий (раньше / вовремя / позже) — все типы проектов ───
     completed = db.query(models.Project).filter(
-        models.Project.project_type == "Констракшн",
         models.Project.opening_date.isnot(None),
     ).all()
     early_cnt  = sum(1 for p in completed if p.end_date and p.opening_date < p.end_date)
