@@ -708,43 +708,50 @@ async function _sendVoice(blob) {
     } catch(e) {}
 }
 
-// Мобильный чат: position:fixed через JS, overflow:visible предотвращает схлопывание высоты.
-// Определяем реальную высоту топбара, различаем resize/scroll поведение клавиатуры.
+// Мобильный чат: position:fixed, высота из реального DOM.
+// getBoundingClientRect() замеряет точно где заканчивается топбар и начинается нав.
 (function() {
     if (window.innerWidth > 900) return;
     var chatWrap = document.querySelector('.chat-wrap');
     if (!chatWrap) return;
 
-    // Реальная высота топбара (не хардкод)
-    var topbarEl = document.querySelector('.topbar');
-    var TOPBAR = topbarEl ? Math.ceil(topbarEl.offsetHeight) : 56;
-    var BNAV = 58;
-    var _baseH = window.innerHeight; // высота ДО открытия клавиатуры
-
     function _apply() {
         if (window.innerWidth > 900) { chatWrap.style.cssText = ''; return; }
-        var innerH = window.innerHeight;
-        var vpH    = window.visualViewport ? Math.round(window.visualViewport.height) : innerH;
-        var keyboardH = Math.max(0, _baseH - vpH);
 
-        // resize-behaviour: браузер уменьшает innerHeight вместе с vpH
-        // в этом случае bottom-nav остаётся виден → нужно резервировать BNAV
-        var isResize = (_baseH - innerH) > 100;
-        var reservedBottom = (keyboardH <= 50 || isResize) ? BNAV : 0;
-        var h = Math.max(150, vpH - TOPBAR - reservedBottom);
+        var topbarEl = document.querySelector('.topbar');
+        var bnavEl   = document.querySelector('.bottom-nav-mobile');
+        var vpH = window.visualViewport
+                ? Math.round(window.visualViewport.height)
+                : window.innerHeight;
 
-        chatWrap.style.position    = 'fixed';
-        chatWrap.style.top         = TOPBAR + 'px';
-        chatWrap.style.left        = '0';
-        chatWrap.style.right       = '0';
-        chatWrap.style.width       = '100%';
-        chatWrap.style.height      = h + 'px';
-        chatWrap.style.bottom      = '';        // не конфликтует с height
-        chatWrap.style.margin      = '0';
+        // Точная нижняя граница топбара в координатах viewport
+        var chatTop = topbarEl
+                ? Math.ceil(topbarEl.getBoundingClientRect().bottom)
+                : 56;
+
+        // Точная верхняя граница навбара; если нав ушёл за клавиатуру — ограничиваем vpH
+        var bnavTop = bnavEl
+                ? Math.round(bnavEl.getBoundingClientRect().top)
+                : (vpH - 58);
+        var chatBottom = Math.min(bnavTop, vpH);
+
+        var h = Math.max(150, chatBottom - chatTop);
+
+        chatWrap.style.position     = 'fixed';
+        chatWrap.style.top          = chatTop + 'px';
+        chatWrap.style.left         = '0';
+        chatWrap.style.right        = '0';
+        chatWrap.style.width        = '100%';
+        chatWrap.style.height       = h + 'px';
+        chatWrap.style.bottom       = '';
+        chatWrap.style.margin       = '0';
         chatWrap.style.borderRadius = '0';
-        chatWrap.style.zIndex      = '10';
-        // overflow:visible — иначе overflow:hidden создаёт BFC и схлопывает height:auto
-        chatWrap.style.overflow    = 'visible';
+        chatWrap.style.zIndex       = '10';
+        chatWrap.style.overflow     = 'visible';
+
+        // Явно задаём высоту chat-main чтобы flex:1 на chatMessages работал
+        var chatMain = chatWrap.querySelector('.chat-main');
+        if (chatMain) chatMain.style.height = h + 'px';
 
         var msgs = document.getElementById('chatMessages');
         if (msgs) setTimeout(function() { msgs.scrollTop = msgs.scrollHeight; }, 80);
