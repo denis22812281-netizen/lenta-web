@@ -715,23 +715,40 @@ async function _sendVoice(blob) {
 }
 
 // Keyboard resize — keeps input visible when virtual keyboard opens
-// VisualViewport: пересчитываем высоту чата при открытии клавиатуры
-// getBoundingClientRect().top ненадёжен после keyboard push-up,
-// поэтому считаем просто: vv.height - высота топбара (56px).
-// Боттом-нав (58px) уходит под клавиатуру и не нужен в вычитании.
+// Мобильный чат: position:fixed вырывает чат из потока страницы,
+// поэтому браузер не может "проскроллить" его за экран при открытии клавиатуры.
+// VisualViewport API даёт точную высоту видимой области (без клавиатуры).
 (function() {
     var chatWrap = document.querySelector('.chat-wrap');
-    if (!chatWrap || !window.visualViewport) return;
-    function _resize() {
-        if (window.innerWidth > 900) return; // только мобилка
-        var vv = window.visualViewport;
-        var h = Math.max(200, vv.height - 56);
+    if (!chatWrap || window.innerWidth > 900) return;
+    var TOPBAR = 56, BNAV = 58;
+
+    function _update() {
+        if (window.innerWidth > 900) {
+            // Сброс на десктопе при повороте
+            chatWrap.style.cssText = '';
+            return;
+        }
+        var vpH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        var h = Math.max(200, Math.round(vpH) - TOPBAR - BNAV);
+        chatWrap.style.position = 'fixed';
+        chatWrap.style.top = TOPBAR + 'px';
+        chatWrap.style.left = '0';
+        chatWrap.style.right = '0';
+        chatWrap.style.width = '100%';
         chatWrap.style.height = h + 'px';
+        chatWrap.style.borderRadius = '0';
+        chatWrap.style.margin = '0';
+        chatWrap.style.zIndex = '10';
         var msgs = document.getElementById('chatMessages');
-        if (msgs) setTimeout(function() { msgs.scrollTop = msgs.scrollHeight; }, 30);
+        if (msgs) setTimeout(function() { msgs.scrollTop = msgs.scrollHeight; }, 50);
     }
-    window.visualViewport.addEventListener('resize', _resize);
-    window.visualViewport.addEventListener('scroll', _resize);
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', _update);
+    }
+    window.addEventListener('resize', _update);
+    _update();
 })();
 </script>
 {% endblock %}
