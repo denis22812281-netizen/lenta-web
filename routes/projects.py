@@ -13,7 +13,7 @@ from openpyxl.styles import PatternFill, Font, Alignment
 
 import models
 from database import get_db
-from deps import templates, require_login, limiter
+from deps import templates, require_login, require_api_user, limiter
 from config import PROJECT_TYPES, STATUSES, STAGE_NAMES
 from services.excel_import import parse_excel_file, import_reconstruct_excel, import_construction_excel
 from services.cloud_storage import upload_photo
@@ -194,7 +194,7 @@ async def update_project_field(
     project_id: int,
     request: Request,
     db: Session = Depends(get_db),
-    user: dict = Depends(require_login),
+    user: dict = Depends(require_api_user),
 ):
     """Inline-редактирование одного поля проекта (JSON API)."""
     from fastapi.responses import JSONResponse

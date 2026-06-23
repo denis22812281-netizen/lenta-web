@@ -367,11 +367,21 @@ function _insertMention(name) {
     _closeMentionDropdown();
 }
 
-// Подсветка @упоминаний в тексте
+// Подсветка @упоминаний — строим regex из реальных имён (longest first)
+(function() {
+    const names = MENTION_USERS.map(u => u.name)
+        .sort((a, b) => b.length - a.length)
+        .map(n => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    window._mentionRe = names.length
+        ? new RegExp('@(' + names.join('|') + ')', 'g')
+        : null;
+})();
+
 function highlightMentions(text, isMine) {
-    return text.replace(/@([\wА-яёЁ\s]+?)(?=\s|$|[.,!?])/gu, function(m, name) {
-        const cls = isMine ? 'chat-mention-tag mine' : 'chat-mention-tag';
-        return `<span class="${cls}">${m}</span>`;
+    if (!window._mentionRe) return text;
+    const cls = isMine ? 'chat-mention-tag mine' : 'chat-mention-tag';
+    return text.replace(window._mentionRe, function(m) {
+        return '<span class="' + cls + '">' + m + '</span>';
     });
 }
 let lastId = 0;

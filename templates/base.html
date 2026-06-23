@@ -240,6 +240,9 @@
 </nav>
 
 <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-box" style="z-index:9999"></div>
+
+<script src="/static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+<script src="/static/js/app.js"></script>
 <style>
 .lpm-toast {
     display: flex;
@@ -296,9 +299,10 @@
 [data-bs-theme="light"] .lpm-toast-close { color: rgba(0,0,0,.3); }
 </style>
 <script>
-/* ── Глобальная система toast с поддержкой Undo ── */
+/* ── Глобальная система toast с поддержкой Undo (переопределяет app.js) ── */
 window.showToast = function(msg, type, duration, undoFn) {
-    type = type || 'success';
+    var _map = { warning: 'warn', danger: 'error', primary: 'info' };
+    type = _map[type] || type || 'success';
     duration = duration || 3500;
     var box = document.getElementById('toast-box');
     var t = document.createElement('div');
@@ -323,9 +327,6 @@ window.showToast = function(msg, type, duration, undoFn) {
     setTimeout(dismiss, duration);
 };
 </script>
-
-<script src="/static/vendor/bootstrap/bootstrap.bundle.min.js"></script>
-<script src="/static/js/app.js"></script>
 <script src="/static/js/offline-db.js"></script>
 {% block scripts %}{% endblock %}
 <script>
@@ -596,15 +597,6 @@ window.showToast = function(msg, type, duration, undoFn) {
     from { opacity: 0; }
     to   { opacity: 1; }
 }
-/* ── Page transition ─────────────────────────────────────────────── */
-.page-body {
-    animation: pageIn .22s ease both;
-}
-@keyframes pageIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: none; }
-}
-
 /* ── Skeleton shimmer ─────────────────────────────────────────────── */
 .skeleton {
     background: linear-gradient(90deg,
@@ -1020,8 +1012,6 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 /* ── Sync queue manager ── */
 (function() {
-    var SYNC_URL = '/api/projects/{id}/field';
-
     async function updateBadge() {
         if (!window.OfflineDB) return;
         try {

@@ -7,7 +7,7 @@
 {# ── Тулбар с фильтрами ──────────────────────────────────────────────── #}
 <div class="kanban-toolbar">
     <div class="kanban-toolbar-left">
-        <span class="kanban-total-badge">{{ total }} проект{{ 'ов' if total % 100 in (11,12,13,14) else ('а' if total % 10 in (2,3,4) else '') }}</span>
+        <span class="kanban-total-badge">{{ total }} проект{{ 'ов' if total % 100 in (11,12,13,14) else ('а' if total % 10 in (2,3,4) else ('ов' if total % 10 in (5,6,7,8,9,0) else '')) }}</span>
         <span class="text-muted small ms-1 d-none d-sm-inline">— перетащите карточку чтобы изменить статус</span>
     </div>
     <div class="kanban-toolbar-right">
@@ -47,7 +47,7 @@
                 <div class="d-flex align-items-start justify-content-between mb-1">
                     <span class="kanban-card-tk">ТК {{ p.tk_number }}</span>
                     {% if p.project_type %}
-                    <span class="kanban-type-badge kanban-type-badge--{{ 'recon' if 'кон' in p.project_type|lower else 'const' }}">
+                    <span class="kanban-type-badge kanban-type-badge--{{ 'recon' if 'реконстр' in p.project_type|lower else 'const' }}">
                         {{ p.project_type[:3] }}
                     </span>
                     {% endif %}
@@ -355,8 +355,12 @@ function updateCounts() {
     document.querySelectorAll('.kanban-count').forEach(el => total += parseInt(el.textContent) || 0);
     const tb = document.querySelector('.kanban-total-badge');
     if (tb) {
-        const endings = {1:'проект',2:'проекта',3:'проекта',4:'проекта'};
-        tb.textContent = total + ' ' + (endings[total % 10] || 'проектов');
+        const last2 = total % 100, last1 = total % 10;
+        const suf = (last2 >= 11 && last2 <= 14) ? 'проектов'
+                  : last1 === 1 ? 'проект'
+                  : (last1 >= 2 && last1 <= 4) ? 'проекта'
+                  : 'проектов';
+        tb.textContent = total + ' ' + suf;
     }
 }
 </script>

@@ -52,6 +52,7 @@ async def kanban_page(
     projects = q.all()
 
     # Авто-проставляем "Просрочен" для активных с истёкшим дедлайном
+    changed = False
     for p in projects:
         if (
             p.end_date
@@ -60,7 +61,9 @@ async def kanban_page(
             and not p.opening_date
         ):
             p.status = "Просрочен"
-    db.commit()
+            changed = True
+    if changed:
+        db.commit()
 
     all_statuses = set(p.status for p in projects if p.status)
     ordered = [s for s in _STATUS_ORDER if s in all_statuses]
