@@ -216,19 +216,12 @@
 
 /* ── Мобильная адаптация ─────────────────────────────────────── */
 @media (max-width: 768px) {
-    /* position:fixed вырывает чат из потока — клавиатура не может его прокрутить.
-       bottom:58px держит чат над навбаром; JS обновляет bottom когда открывается клавиатура. */
+    /* Базовая высота; JS переопределяет через position:fixed при запуске */
     .chat-wrap {
-        position: fixed;
-        top: 56px;
-        left: 0;
-        right: 0;
-        width: 100%;
-        bottom: 58px;
-        height: auto;
+        height: calc(100dvh - 56px - 58px - env(safe-area-inset-bottom, 0px));
         border-radius: 0;
-        margin: 0;
-        z-index: 10;
+        margin: -8px -12px 0;
+        width: calc(100% + 24px);
     }
     .chat-sidebar { width:100%; min-width:0; border-right:none; }
     .chat-main { display:none; }
@@ -715,32 +708,51 @@ async function _sendVoice(blob) {
     } catch(e) {}
 }
 
-// Мобильный чат: CSS задаёт position:fixed и bottom:58px.
-// JS обновляет только bottom когда открывается клавиатура, чтобы инпут всегда был виден.
+// Мобильный чат: position:fixed через JS, overflow:visible предотвращает схлопывание высоты.
+// Определяем реальную высоту топбара, различаем resize/scroll поведение клавиатуры.
 (function() {
-    if (!window.visualViewport || window.innerWidth > 900) return;
+    if (window.innerWidth > 900) return;
     var chatWrap = document.querySelector('.chat-wrap');
     if (!chatWrap) return;
 
-    function _update() {
-        if (window.innerWidth > 900) {
-            chatWrap.style.bottom = '';
-            return;
-        }
-        var vpH   = Math.round(window.visualViewport.height);
+    // Реальная высота топбара (не хардкод)
+    var topbarEl = document.querySelector('.topbar');
+    var TOPBAR = topbarEl ? Math.ceil(topbarEl.offsetHeight) : 56;
+    var BNAV = 58;
+    var _baseH = window.innerHeight; // высота ДО открытия клавиатуры
+
+    function _apply() {
+        if (window.innerWidth > 900) { chatWrap.style.cssText = ''; return; }
         var innerH = window.innerHeight;
-        // keyboardH > 0 когда клавиатура открыта (scroll-behaviour браузера)
-        var keyboardH = Math.max(0, innerH - vpH);
-        // bottom двигается вверх на высоту клавиатуры + высоту нава
-        chatWrap.style.bottom = (keyboardH + 58) + 'px';
+        var vpH    = window.visualViewport ? Math.round(window.visualViewport.height) : innerH;
+        var keyboardH = Math.max(0, _baseH - vpH);
+
+        // resize-behaviour: браузер уменьшает innerHeight вместе с vpH
+        // в этом случае bottom-nav остаётся виден → нужно резервировать BNAV
+        var isResize = (_baseH - innerH) > 100;
+        var reservedBottom = (keyboardH <= 50 || isResize) ? BNAV : 0;
+        var h = Math.max(150, vpH - TOPBAR - reservedBottom);
+
+        chatWrap.style.position    = 'fixed';
+        chatWrap.style.top         = TOPBAR + 'px';
+        chatWrap.style.left        = '0';
+        chatWrap.style.right       = '0';
+        chatWrap.style.width       = '100%';
+        chatWrap.style.height      = h + 'px';
+        chatWrap.style.bottom      = '';        // не конфликтует с height
+        chatWrap.style.margin      = '0';
+        chatWrap.style.borderRadius = '0';
+        chatWrap.style.zIndex      = '10';
+        // overflow:visible — иначе overflow:hidden создаёт BFC и схлопывает height:auto
+        chatWrap.style.overflow    = 'visible';
 
         var msgs = document.getElementById('chatMessages');
         if (msgs) setTimeout(function() { msgs.scrollTop = msgs.scrollHeight; }, 80);
     }
 
-    window.visualViewport.addEventListener('resize', _update);
-    window.addEventListener('resize', _update);
-    _update();
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', _apply);
+    window.addEventListener('resize', _apply);
+    _apply();
 })();
 </script>
 {% endblock %}
