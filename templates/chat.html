@@ -216,27 +216,28 @@
 
 /* ── Мобильная адаптация ─────────────────────────────────────── */
 @media (max-width: 768px) {
-    /* Чат — от края до края, без скруглений */
+    /* position:fixed вырывает чат из потока — клавиатура не может его прокрутить.
+       bottom:58px держит чат над навбаром; JS обновляет bottom когда открывается клавиатура. */
     .chat-wrap {
-        height: calc(100dvh - 56px - 58px - env(safe-area-inset-bottom));
+        position: fixed;
+        top: 56px;
+        left: 0;
+        right: 0;
+        width: 100%;
+        bottom: 58px;
+        height: auto;
         border-radius: 0;
-        margin: -8px -12px 0;
-        width: calc(100% + 24px);
+        margin: 0;
+        z-index: 10;
     }
-    /* Список контактов — на всю ширину */
     .chat-sidebar { width:100%; min-width:0; border-right:none; }
-    /* По умолчанию скрываем правую панель */
     .chat-main { display:none; }
-    /* Если открыт чат — только правая панель, полноэкранная */
     .in-conversation .chat-sidebar { display:none; }
     .in-conversation .chat-main { display:flex; width:100%; }
-    /* Поле ввода 16px — iOS не зумирует */
     .chat-input { font-size:16px; }
     .emoji-picker { width:calc(100vw - 30px); left:8px; }
     .chat-msg { max-width:88%; }
-    /* Пузыри чуть крупнее */
     .chat-bubble { font-size:15px; }
-    /* Заголовок чата — back кнопка заметнее */
     .chat-header { padding:10px 12px; }
 }
 
@@ -714,39 +715,30 @@ async function _sendVoice(blob) {
     } catch(e) {}
 }
 
-// Keyboard resize — keeps input visible when virtual keyboard opens
-// Мобильный чат: position:fixed вырывает чат из потока страницы,
-// поэтому браузер не может "проскроллить" его за экран при открытии клавиатуры.
-// VisualViewport API даёт точную высоту видимой области (без клавиатуры).
+// Мобильный чат: CSS задаёт position:fixed и bottom:58px.
+// JS обновляет только bottom когда открывается клавиатура, чтобы инпут всегда был виден.
 (function() {
+    if (!window.visualViewport || window.innerWidth > 900) return;
     var chatWrap = document.querySelector('.chat-wrap');
-    if (!chatWrap || window.innerWidth > 900) return;
-    var TOPBAR = 56, BNAV = 58;
+    if (!chatWrap) return;
 
     function _update() {
         if (window.innerWidth > 900) {
-            // Сброс на десктопе при повороте
-            chatWrap.style.cssText = '';
+            chatWrap.style.bottom = '';
             return;
         }
-        var vpH = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        var h = Math.max(200, Math.round(vpH) - TOPBAR - BNAV);
-        chatWrap.style.position = 'fixed';
-        chatWrap.style.top = TOPBAR + 'px';
-        chatWrap.style.left = '0';
-        chatWrap.style.right = '0';
-        chatWrap.style.width = '100%';
-        chatWrap.style.height = h + 'px';
-        chatWrap.style.borderRadius = '0';
-        chatWrap.style.margin = '0';
-        chatWrap.style.zIndex = '10';
+        var vpH   = Math.round(window.visualViewport.height);
+        var innerH = window.innerHeight;
+        // keyboardH > 0 когда клавиатура открыта (scroll-behaviour браузера)
+        var keyboardH = Math.max(0, innerH - vpH);
+        // bottom двигается вверх на высоту клавиатуры + высоту нава
+        chatWrap.style.bottom = (keyboardH + 58) + 'px';
+
         var msgs = document.getElementById('chatMessages');
-        if (msgs) setTimeout(function() { msgs.scrollTop = msgs.scrollHeight; }, 50);
+        if (msgs) setTimeout(function() { msgs.scrollTop = msgs.scrollHeight; }, 80);
     }
 
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', _update);
-    }
+    window.visualViewport.addEventListener('resize', _update);
     window.addEventListener('resize', _update);
     _update();
 })();
