@@ -156,13 +156,13 @@
         <div class="mgr-tabs-row">
             <button class="mgr-tab mgr-tab-recon"
                     id="btn-recon-{{ m.id }}"
-                    onclick="showMgrTab({{ m.id }}, 'recon')">
+                    data-action="show-mgr-tab" data-id="{{ m.id }}" data-tab="recon">
                 <i class="bi bi-building me-1"></i>Реконструкции
                 <span class="mgr-tab-count">{{ s.recon_projects|length }}</span>
             </button>
             <button class="mgr-tab mgr-tab-constr"
                     id="btn-constr-{{ m.id }}"
-                    onclick="showMgrTab({{ m.id }}, 'constr')">
+                    data-action="show-mgr-tab" data-id="{{ m.id }}" data-tab="constr">
                 <i class="bi bi-hammer me-1"></i>Констракшн
                 <span class="mgr-tab-count">{{ s.constr_projects|length }}</span>
             </button>
@@ -178,15 +178,14 @@
             </a>
             {% if user and user.is_admin %}
             <button class="btn btn-xs {% if m.email %}btn-outline-success{% else %}btn-outline-secondary{% endif %}"
-                    onclick="openEmailModal({{ m.id }}, '{{ m.name }}', '{{ m.email or '' }}')"
-                    title="{% if m.email %}Email: {{ m.email }}{% else %}Добавить email{% endif %}">
+                    data-action="open-email-modal" data-id="{{ m.id }}" data-name="{{ m.name }}" data-email="{{ m.email or '' }}"title="{% if m.email %}Email: {{ m.email }}{% else %}Добавить email{% endif %}">
                 <i class="bi bi-envelope{% if m.email %}-check{% endif %}"></i>
             </button>
             {% if m.email %}
             <span class="text-muted small d-block mt-1" style="font-size:11px;word-break:break-all;">{{ m.email }}</span>
             {% endif %}
             <form method="post" action="/managers/{{ m.id }}/delete" class="d-inline"
-                  onsubmit="return confirm('Удалить {{ m.name }}? Его проекты останутся без менеджера.')">
+                  data-confirm="Удалить {{ m.name }}? Его проекты останутся без менеджера.">
                 <button type="submit" class="btn btn-xs btn-outline-danger">
                     <i class="bi bi-trash"></i>
                 </button>
@@ -209,7 +208,7 @@
             <span class="fw-bold text-success">
                 <i class="bi bi-building-fill me-2"></i>{{ m.name }} — Реконструкции
             </span>
-            <button class="btn btn-sm btn-outline-secondary" onclick="closeMgrTab({{ m.id }}, 'recon')">
+            <button class="btn btn-sm btn-outline-secondary" data-action="close-mgr-tab" data-id="{{ m.id }}" data-tab="recon">
                 <i class="bi bi-x"></i>
             </button>
         </div>
@@ -282,7 +281,7 @@
             <span class="fw-bold text-primary">
                 <i class="bi bi-hammer me-2"></i>{{ m.name }} — Констракшн
             </span>
-            <button class="btn btn-sm btn-outline-secondary" onclick="closeMgrTab({{ m.id }}, 'constr')">
+            <button class="btn btn-sm btn-outline-secondary" data-action="close-mgr-tab" data-id="{{ m.id }}" data-tab="constr">
                 <i class="bi bi-x"></i>
             </button>
         </div>
@@ -576,5 +575,17 @@ function openEmailModal(mgrId, name, currentEmail) {
         else alert('Ошибка: ' + (d.error || 'неизвестная'));
     });
 }
+
+document.addEventListener('click', function(e) {
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    var id  = parseInt(el.dataset.id);
+    var tab = el.dataset.tab;
+    switch (el.dataset.action) {
+        case 'show-mgr-tab':    showMgrTab(id, tab); break;
+        case 'close-mgr-tab':   closeMgrTab(id, tab); break;
+        case 'open-email-modal': openEmailModal(id, el.dataset.name, el.dataset.email); break;
+    }
+});
 </script>
 {% endblock %}

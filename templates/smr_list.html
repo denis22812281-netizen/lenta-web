@@ -12,14 +12,14 @@
            placeholder="ТК №">
 
     <select name="proj_type" class="form-select form-select-sm smr-filter-input"
-            onchange="this.form.submit()">
+            data-action="autosubmit">
       <option value="">Все типы</option>
       <option value="Констракшн"    {% if request.query_params.get('proj_type') == 'Констракшн' %}selected{% endif %}>Констракшн</option>
       <option value="Реконструкция" {% if request.query_params.get('proj_type') == 'Реконструкция' %}selected{% endif %}>Реконструкция</option>
     </select>
 
     <select name="manager_id" class="form-select form-select-sm smr-filter-input"
-            onchange="this.form.submit()">
+            data-action="autosubmit">
       <option value="">Все менеджеры</option>
       {% for m in managers %}
       <option value="{{ m.id }}" {% if filter_manager_id == m.id|string %}selected{% endif %}>{{ m.name }}</option>

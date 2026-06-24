@@ -17,7 +17,7 @@
                         <option value="claude">Claude (Anthropic)</option>
                         <option value="deepseek">DeepSeek</option>
                     </select>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="clearChat()" title="Очистить историю">
+                    <button class="btn btn-sm btn-outline-secondary" id="btn-clear-chat" title="Очистить историю">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
@@ -40,11 +40,11 @@
             </div>
 
             <div id="quick-prompts" style="padding:8px 16px;border-top:1px solid #f0f2f7;display:flex;gap:8px;flex-wrap:wrap;">
-                <button class="quick-prompt-btn" onclick="sendQuick('Какие проекты просрочены или под угрозой срыва?')">⚠️ Риски</button>
-                <button class="quick-prompt-btn" onclick="sendQuick('Дай полную сводку по всем активным проектам')">📊 Сводка</button>
-                <button class="quick-prompt-btn" onclick="sendQuick('Какие дедлайны на ближайшие 7 дней?')">📅 Дедлайны</button>
-                <button class="quick-prompt-btn" onclick="sendQuick('Кто из менеджеров перегружен и у кого критические сроки?')">👥 Команда</button>
-                <button class="quick-prompt-btn" onclick="sendQuick('Что нужно сделать в первую очередь сегодня?')">🎯 Приоритеты</button>
+                <button class="quick-prompt-btn" data-action="quick-prompt" data-prompt="Какие проекты просрочены или под угрозой срыва?">⚠️ Риски</button>
+                <button class="quick-prompt-btn" data-action="quick-prompt" data-prompt="Дай полную сводку по всем активным проектам">📊 Сводка</button>
+                <button class="quick-prompt-btn" data-action="quick-prompt" data-prompt="Какие дедлайны на ближайшие 7 дней?">📅 Дедлайны</button>
+                <button class="quick-prompt-btn" data-action="quick-prompt" data-prompt="Кто из менеджеров перегружен и у кого критические сроки?">👥 Команда</button>
+                <button class="quick-prompt-btn" data-action="quick-prompt" data-prompt="Что нужно сделать в первую очередь сегодня?">🎯 Приоритеты</button>
             </div>
 
             <div style="padding:12px 16px;border-top:1px solid #f0f2f7;">
@@ -52,8 +52,8 @@
                     <textarea id="chat-input" class="form-control" rows="2"
                               placeholder="Задайте любой вопрос..."
                               style="resize:none;border-radius:12px"
-                              onkeydown="handleKey(event)"></textarea>
-                    <button id="send-btn" class="btn btn-danger" style="border-radius:12px;min-width:48px" onclick="sendMessage()">
+                              id="ai-input"></textarea>
+                    <button id="send-btn" class="btn btn-danger" style="border-radius:12px;min-width:48px" >
                         <i class="bi bi-send-fill"></i>
                     </button>
                 </div>
@@ -215,5 +215,16 @@ async function sendQuick(msg) {
     document.getElementById('send-btn').disabled = false;
     document.getElementById('chat-input').focus();
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    var clearBtn = document.getElementById('btn-clear-chat');
+    if (clearBtn) clearBtn.addEventListener('click', clearChat);
+    var aiInput = document.getElementById('ai-input');
+    if (aiInput) aiInput.addEventListener('keydown', handleKey);
+    document.addEventListener('click', function(e) {
+        var el = e.target.closest('[data-action="quick-prompt"]');
+        if (el) sendQuick(el.dataset.prompt);
+    });
+});
 </script>
 {% endblock %}

@@ -40,7 +40,7 @@
                    placeholder="Поиск по номеру ТК или городу..."
                    autocomplete="off"
                    value="{% if selected_proj %}ТК {{ selected_proj.tk_number }}{% if selected_proj.city %} · {{ selected_proj.city }}{% endif %}{% endif %}"
-                   oninput="filterTk(this.value)"
+                   id="opening-tk-search"
                    onfocus="showTkDropdown()">
             <div id="tkDropdown" class="position-absolute w-100 shadow-lg d-none"
                  style="top:calc(100% + 4px);left:0;z-index:1000;background:var(--bs-body-bg);
@@ -52,7 +52,7 @@
                    data-id="{{ p.id }}"
                    data-label="ТК {{ p.tk_number }}{% if p.city %} · {{ p.city }}{% endif %}"
                    data-search="{{ p.tk_number|lower }}{% if p.city %} {{ p.city|lower }}{% endif %}"
-                   onclick="selectTk(this)"
+                   data-action="select-tk"
                    onmouseover="this.style.background='rgba(60,179,74,.12)'"
                    onmouseout="this.style.background=''">
                 <span class="fw-semibold">ТК {{ p.tk_number }}</span>
@@ -73,7 +73,7 @@
 
           <!-- Dropzone -->
           <div id="dropzone"
-               onclick="document.getElementById('photoInput').click()"
+               data-action="trigger-file" data-target="photoInput"
                ondragover="event.preventDefault();this.classList.add('drag-over')"
                ondragleave="this.classList.remove('drag-over')"
                ondrop="handleDrop(event)"
@@ -86,7 +86,7 @@
           </div>
 
           <input type="file" id="photoInput" multiple accept="image/*"
-                 style="display:none" onchange="startUpload(this.files)">
+                 style="display:none" >
 
           <!-- Прогресс -->
           <div id="progressWrap" class="d-none mt-3">
@@ -128,13 +128,13 @@
           </a>
 
           <!-- Копировать ссылку -->
-          <button type="button" id="copyLinkBtn" onclick="copyGalleryLink()"
+          <button type="button" id="copyLinkBtn" 
                   class="btn btn-outline-secondary w-100 mb-3"
                   style="border-radius:10px;font-size:13px">
             <i class="bi bi-link-45deg me-1"></i>Скопировать ссылку
           </button>
 
-          <form method="post" action="/opening/send-report" onsubmit="handleSendReport(this)">
+          <form method="post" action="/opening/send-report" id="send-report-form">
             <input type="hidden" name="project_id" value="{{ selected_proj.id }}">
             <button type="submit" id="sendReportBtn" class="btn btn-success w-100"
                     style="border-radius:10px;font-weight:700">
@@ -186,7 +186,7 @@
               <!-- Звезда (featured toggle) -->
               <div class="d-flex justify-content-between align-items-start">
                 <button class="btn btn-sm rounded-circle p-1"
-                        onclick="toggleFeatured({{ photo.id }})"
+                        data-action="toggle-featured" data-id="{{ photo.id }}"
                         id="starBtn{{ photo.id }}"
                         style="width:32px;height:32px;line-height:1;
                                background:{{ 'rgba(255,210,0,.9)' if photo.is_featured else 'rgba(0,0,0,.5)' }};
@@ -195,7 +195,7 @@
                 </button>
 
                 <button class="btn btn-sm rounded-circle p-1"
-                        onclick="deletePhoto({{ photo.id }})"
+                        data-action="delete-photo" data-id="{{ photo.id }}"
                         style="width:28px;height:28px;line-height:1;
                                background:rgba(220,38,38,.8);border:none;color:#fff">
                   <i class="bi bi-trash3" style="font-size:11px"></i>
@@ -366,12 +366,12 @@ function addPhotoCard(photoId, url) {
       <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-between p-2"
            style="background:linear-gradient(to bottom,rgba(0,0,0,.5) 0%,transparent 40%,transparent 60%,rgba(0,0,0,.6) 100%)">
         <div class="d-flex justify-content-between align-items-start">
-          <button class="btn btn-sm rounded-circle p-1" onclick="toggleFeatured(${photoId})"
+          <button class="btn btn-sm rounded-circle p-1" data-action="toggle-featured" data-id="${photoId}"
                   id="starBtn${photoId}"
                   style="width:32px;height:32px;line-height:1;background:rgba(0,0,0,.5);border:none;color:#fff">
             <i class="bi bi-star-fill" style="font-size:13px"></i>
           </button>
-          <button class="btn btn-sm rounded-circle p-1" onclick="deletePhoto(${photoId})"
+          <button class="btn btn-sm rounded-circle p-1" data-action="delete-photo" data-id="${photoId}"
                   style="width:28px;height:28px;line-height:1;background:rgba(220,38,38,.8);border:none;color:#fff">
             <i class="bi bi-trash3" style="font-size:11px"></i>
           </button>
@@ -450,6 +450,26 @@ function handleSendReport(form) {
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Отправляю...';
 }
+
+(function() {
+    var tkSearch = document.getElementById('opening-tk-search');
+    if (tkSearch) tkSearch.addEventListener('input', function() { filterTk(this.value); });
+    var photoInput = document.getElementById('photoInput');
+    if (photoInput) photoInput.addEventListener('change', function() { startUpload(this.files); });
+    var sendReportForm = document.getElementById('send-report-form');
+    if (sendReportForm) sendReportForm.addEventListener('submit', function(e) {
+        e.preventDefault(); handleSendReport(this);
+    });
+    document.addEventListener('click', function(e) {
+        var el = e.target.closest('[data-action]');
+        if (!el) return;
+        switch (el.dataset.action) {
+            case 'select-tk':        selectTk(el); break;
+            case 'toggle-featured':  toggleFeatured(parseInt(el.dataset.id)); break;
+            case 'delete-photo':     deletePhoto(parseInt(el.dataset.id)); break;
+        }
+    });
+})();
 </script>
 
 <style>

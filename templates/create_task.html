@@ -95,7 +95,7 @@
                     <form method="post" action="/tasks/{{ t.id }}/update-status" id="form-{{ t.id }}">
                         <input type="hidden" name="completion_comment" id="cc-{{ t.id }}" value="">
                         <select name="status" class="form-select form-select-sm" style="width:130px"
-                                onchange="onStatusChange(this, {{ t.id }}, '{{ t.status }}')">
+                                data-action="status-change" data-id="{{ t.id }}" data-status="{{ t.status }}">
                             {% for s in task_statuses %}
                             <option value="{{ s }}" {% if t.status == s %}selected{% endif %}>{{ s }}</option>
                             {% endfor %}
@@ -104,7 +104,7 @@
                 </td>
                 <td>
                     <form method="post" action="/tasks/{{ t.id }}/delete"
-                          onsubmit="return confirm('Удалить задачу?')">
+                          data-confirm="Удалить задачу?">
                         <button type="submit" class="btn btn-sm btn-outline-danger" title="Удалить">
                             <i class="bi bi-trash"></i>
                         </button>
@@ -215,7 +215,7 @@
                         <i class="bi bi-camera-fill" style="font-size:28px;color:#3CB34A"></i>
                         <div class="mt-1 text-muted small">Нажмите или перетащите фото сюда</div>
                         <input id="completePhotos" type="file" accept="image/*" multiple style="display:none"
-                               onchange="previewPhotos(this)">
+                               id="photo-preview-input">
                     </label>
                 </div>
 
@@ -223,8 +223,8 @@
                 <div id="photoPreview" class="d-flex flex-wrap gap-2 mt-2"></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="cancelComplete()">Отмена</button>
-                <button type="button" class="btn btn-success" id="btnSubmitComplete" onclick="submitComplete()">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btn-cancel-complete">Отмена</button>
+                <button type="button" class="btn btn-success" id="btnSubmitComplete" >
                     <i class="bi bi-check2-circle me-1"></i>Завершить и отправить отчёт
                 </button>
             </div>
@@ -463,9 +463,9 @@ function renderRows(tasks, statuses) {
             <td><form method="post" action="/tasks/${t.id}/update-status" id="form-${t.id}">
                 <input type="hidden" name="completion_comment" id="cc-${t.id}" value="">
                 <select name="status" class="form-select form-select-sm" style="width:130px"
-                        onchange="onStatusChange(this,${t.id},'${t.status}')">${statusOpts}</select>
+                        data-action="status-change" data-id="${t.id}" data-status="${t.status}">${statusOpts}</select>
             </form></td>
-            <td><form method="post" action="/tasks/${t.id}/delete" onsubmit="return confirm('Удалить задачу?')">
+            <td><form method="post" action="/tasks/${t.id}/delete" data-confirm="Удалить задачу?">
                 <button type="submit" class="btn btn-sm btn-outline-danger" title="Удалить"><i class="bi bi-trash"></i></button>
             </form></td>
         </tr>`;
@@ -542,10 +542,10 @@ function renderPagination(total, page) {
     const pages = Math.ceil(total / PAGE_SIZE);
     const info = `<span class="text-muted small">Стр. ${page} из ${pages} (${total} задач)</span>`;
     const prev = page > 1
-        ? `<button class="btn btn-sm btn-outline-secondary" onclick="window._taskPage=${page-1};applySearchAndPage()"><i class="bi bi-chevron-left"></i></button>`
+        ? `<button class="btn btn-sm btn-outline-secondary" data-action="task-page" data-delta="-1"><i class="bi bi-chevron-left"></i></button>`
         : `<button class="btn btn-sm btn-outline-secondary" disabled><i class="bi bi-chevron-left"></i></button>`;
     const next = page < pages
-        ? `<button class="btn btn-sm btn-outline-secondary" onclick="window._taskPage=${page+1};applySearchAndPage()"><i class="bi bi-chevron-right"></i></button>`
+        ? `<button class="btn btn-sm btn-outline-secondary" data-action="task-page" data-delta="1"><i class="bi bi-chevron-right"></i></button>`
         : `<button class="btn btn-sm btn-outline-secondary" disabled><i class="bi bi-chevron-right"></i></button>`;
     wrap.innerHTML = prev + info + next;
 }
@@ -568,6 +568,20 @@ applyFilters = async function() {
 
 // Инициализация при загрузке
 window._taskPage = 1;
-document.addEventListener('DOMContentLoaded', applySearchAndPage);
+document.addEventListener('DOMContentLoaded', function() {
+    applySearchAndPage();
+    var photoInput = document.getElementById('photo-preview-input');
+    if (photoInput) photoInput.addEventListener('change', function() { previewPhotos(this); });
+    var cancelBtn = document.getElementById('btn-cancel-complete');
+    if (cancelBtn) cancelBtn.addEventListener('click', cancelComplete);
+    document.addEventListener('change', function(e) {
+        var el = e.target.closest('[data-action="status-change"]');
+        if (el) onStatusChange(el, parseInt(el.dataset.id), el.dataset.status);
+    });
+    document.addEventListener('click', function(e) {
+        var el = e.target.closest('[data-action="task-page"]');
+        if (el) { window._taskPage += parseInt(el.dataset.delta); applySearchAndPage(); }
+    });
+});
 </script>
 {% endblock %}

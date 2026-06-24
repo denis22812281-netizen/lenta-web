@@ -152,7 +152,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Добавляет security-заголовки и инжектирует CSP nonce во все <script> теги."""
     _CSP_TMPL = (
         "default-src 'self'; "
-        "script-src 'self' 'nonce-{{nonce}}' 'unsafe-inline' 'strict-dynamic' cdn.jsdelivr.net; "
+        "script-src 'self' 'nonce-{{nonce}}' 'unsafe-inline' cdn.jsdelivr.net; "
         "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net fonts.googleapis.com; "
         "img-src 'self' data: blob: res.cloudinary.com *.cloudinary.com "
         "*.tile.openstreetmap.org *.basemaps.cartocdn.com; "

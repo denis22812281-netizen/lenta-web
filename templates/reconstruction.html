@@ -282,19 +282,19 @@ thead .rc-sticky{ z-index: 3; }
 
 <!-- ── KPI Cards ──────────────────────────────────────────────────── -->
 <div class="kpi-row">
-    <div class="kpi-card kpi-all" onclick="document.getElementById('search').focus()">
+    <div class="kpi-card kpi-all" data-action="focus-search">
         <i class="bi bi-buildings kpi-icon"></i>
         <div class="kpi-val text-info">{{ total }}</div>
         <div class="kpi-lab">Объектов</div>
         <div class="kpi-sub">в текущей выборке</div>
     </div>
-    <div class="kpi-card kpi-over" onclick="setOnlyProblems(true)">
+    <div class="kpi-card kpi-over" data-action="set-only-problems" data-val="true">
         <i class="bi bi-exclamation-octagon kpi-icon"></i>
         <div class="kpi-val text-danger">{{ overdue_projects }}</div>
         <div class="kpi-lab">Просрочено</div>
         <div class="kpi-sub">{{ overdue_items|length }} этапов просрочено</div>
     </div>
-    <div class="kpi-card kpi-warn" onclick="setOnlyProblems(true)">
+    <div class="kpi-card kpi-warn" data-action="set-only-problems" data-val="true">
         <i class="bi bi-clock-history kpi-icon"></i>
         <div class="kpi-val text-warning">{{ total_warn }}</div>
         <div class="kpi-lab">Горит (≤7 дн.)</div>
@@ -316,7 +316,7 @@ thead .rc-sticky{ z-index: 3; }
         <span class="risk-title">Просрочено: {{ overdue_items|length }} этапов на {{ overdue_projects }} объектах</span>
         <span class="text-muted small">Сортировка: самые критичные сверху</span>
         {% if overdue_items|length > 5 %}
-        <button class="risk-collapse-btn" onclick="toggleRisk(this)">
+        <button class="risk-collapse-btn" data-action="toggle-risk">
             Показать все ({{ overdue_items|length }})
         </button>
         {% endif %}
@@ -364,10 +364,10 @@ thead .rc-sticky{ z-index: 3; }
     <input type="hidden" name="only_problems" id="op-hidden" value="{% if only_problems %}1{% endif %}">
     <div class="rc-filters">
         <input type="text" id="search" class="search-input" placeholder="Поиск: ТК, город…"
-               oninput="filterTable(this.value)">
+               id="search-input-recon">
         <select name="manager_id" class="form-select form-select-sm"
                 style="width:160px;background:#0f172a;color:#e2e8f0;border-color:rgba(255,255,255,.1)"
-                onchange="this.form.submit()">
+                data-action="autosubmit">
             <option value="">Все менеджеры</option>
             {% for m in managers %}
             <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>
@@ -378,7 +378,7 @@ thead .rc-sticky{ z-index: 3; }
         <div class="form-check form-switch mb-0">
             <input class="form-check-input" type="checkbox" id="only-problems"
                    {% if only_problems %}checked{% endif %}
-                   onchange="setOnlyProblems(this.checked)">
+                   data-action="set-problems-checkbox">
             <label class="form-check-label small text-muted" for="only-problems">Только с рисками</label>
         </div>
         <span class="text-muted small ms-auto" id="visible-count">{{ total }} объектов</span>
@@ -386,10 +386,10 @@ thead .rc-sticky{ z-index: 3; }
         <div class="view-toggle gap-1" style="display:none">
             <button type="button" class="btn btn-sm" id="btn-table"
                     style="background:#0f172a;border:1px solid rgba(255,255,255,.15);color:#94a3b8"
-                    onclick="switchView('table')"><i class="bi bi-table"></i></button>
+                    data-action="switch-view" data-val="table"><i class="bi bi-table"></i></button>
             <button type="button" class="btn btn-sm" id="btn-cards"
                     style="background:#FFD200;border-color:#FFD200;color:#0f172a"
-                    onclick="switchView('cards')"><i class="bi bi-card-list"></i></button>
+                    data-action="switch-view" data-val="cards"><i class="bi bi-card-list"></i></button>
         </div>
     </div>
     </form>
@@ -479,7 +479,7 @@ thead .rc-sticky{ z-index: 3; }
     <div class="proj-card {% if row.is_opened %}has-opened{% elif row.has_problem %}has-risk{% endif %}"
          data-tk="{{ p.tk_number }}" data-city="{{ p.city or '' }}"
          data-mgr="{{ row.mgr_name }}" data-pid="{{ p.id }}">
-        <div class="proj-card-hdr" onclick="toggleCard(this.parentElement)">
+        <div class="proj-card-hdr" data-action="toggle-card">
             <div class="proj-card-info" style="flex:1;min-width:0">
                 <div class="rc-tk" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
                     ТК {{ p.tk_number }}
@@ -562,7 +562,7 @@ thead .rc-sticky{ z-index: 3; }
 <div style="position:fixed;bottom:70px;right:16px;z-index:100;display:flex;flex-direction:column;align-items:flex-end;gap:4px">
     <div id="refresh-ind" style="background:#1e293b;border:1px solid rgba(255,255,255,.1);
          border-radius:20px;padding:3px 10px;font-size:.68rem;color:#475569;cursor:pointer"
-         onclick="manualRefresh()" title="Нажмите для обновления">
+         id="btn-manual-refresh" title="Нажмите для обновления">
         <i class="bi bi-arrow-clockwise me-1" id="refresh-icon"></i>
         <span id="refresh-label">обновлено только что</span>
     </div>
@@ -900,6 +900,28 @@ function manualRefresh() {
     icon.classList.add('spin-once');
     setTimeout(() => location.reload(), 150);
 }
+
+(function() {
+    var si = document.getElementById('search-input-recon');
+    if (si) si.addEventListener('input', function() { filterTable(this.value); });
+    var mr = document.getElementById('btn-manual-refresh');
+    if (mr) mr.addEventListener('click', manualRefresh);
+
+    document.addEventListener('click', function(e) {
+        var el = e.target.closest('[data-action]');
+        if (!el) return;
+        switch (el.dataset.action) {
+            case 'focus-search': { var s = document.getElementById('search'); if (s) s.focus(); break; }
+            case 'set-only-problems': setOnlyProblems(el.dataset.val === 'true'); break;
+            case 'toggle-risk': toggleRisk(el); break;
+            case 'switch-view': switchView(el.dataset.val); break;
+            case 'toggle-card': toggleCard(el.parentElement); break;
+        }
+    });
+    document.addEventListener('change', function(e) {
+        if (e.target.dataset.action === 'set-problems-checkbox') setOnlyProblems(e.target.checked);
+    });
+})();
 </script>
 <style>
 @keyframes spin-once { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

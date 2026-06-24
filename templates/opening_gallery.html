@@ -251,11 +251,11 @@
 <body>
 
 <!-- Лайтбокс -->
-<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
-  <button class="lb-close" onclick="closeLightbox()"><i class="bi bi-x-lg"></i></button>
-  <button class="lb-prev"  onclick="lbPrev(event)"><i class="bi bi-chevron-left"></i></button>
+<div class="lightbox" id="lightbox" id="lightbox" data-action="lb-close-if-self">
+  <button class="lb-close" data-action="lb-close"><i class="bi bi-x-lg"></i></button>
+  <button class="lb-prev"  data-action="lb-prev"><i class="bi bi-chevron-left"></i></button>
   <img id="lbImg" src="" alt="">
-  <button class="lb-next"  onclick="lbNext(event)"><i class="bi bi-chevron-right"></i></button>
+  <button class="lb-next"  data-action="lb-next"><i class="bi bi-chevron-right"></i></button>
   <div class="lb-counter" id="lbCounter"></div>
 </div>
 
@@ -308,7 +308,7 @@
   <div class="fg">
     {% for photo in featured %}
     {% set purl = media_url(photo.photo_path) %}
-    <div class="fc" onclick="openLb('{{ purl }}', {{ loop.index0 }})">
+    <div class="fc" data-action="open-lb" data-url="{{ purl }}" data-idx="{{ loop.index0 }}">
       <img src="{{ purl }}" alt="Фото {{ loop.index }}" loading="lazy"
            onerror="this.src='/static/img/raccoon.png'">
       <div class="feat-badge"><i class="bi bi-star-fill" style="font-size:9px"></i>В отчёт</div>
@@ -330,7 +330,7 @@
   <div class="mc">
     {% for photo in rest %}
     {% set purl = media_url(photo.photo_path) %}
-    <div class="mi" onclick="openLb('{{ purl }}', {{ (featured|length) + loop.index0 }})">
+    <div class="mi" data-action="open-lb" data-url="{{ purl }}" data-idx="{{ (featured|length) + loop.index0 }}">
       <img src="{{ purl }}" alt="Фото" loading="lazy"
            onerror="this.src='/static/img/raccoon.png'">
     </div>
@@ -399,6 +399,19 @@ document.getElementById('lightbox').addEventListener('touchstart', e => { _tx = 
 document.getElementById('lightbox').addEventListener('touchend', e => {
   const dx = e.changedTouches[0].clientX - _tx;
   if (Math.abs(dx) > 50) dx < 0 ? lbNext(e) : lbPrev(e);
+});
+
+// Delegation for data-action buttons
+document.addEventListener('click', function(e) {
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    switch (el.dataset.action) {
+        case 'open-lb':          openLb(el.dataset.url, parseInt(el.dataset.idx)); break;
+        case 'lb-close':         closeLightbox(e); break;
+        case 'lb-close-if-self': if (e.target === el) closeLightbox(e); break;
+        case 'lb-prev':          lbPrev(e); break;
+        case 'lb-next':          lbNext(e); break;
+    }
 });
 </script>
 </body>

@@ -39,7 +39,7 @@
                 </div>
             </div>
             <form method="post" action="/account/2fa/disable"
-                  onsubmit="return confirm('Отключить двухфакторную аутентификацию? Ваш аккаунт будет защищён только паролем.')">
+                  data-confirm="Отключить двухфакторную аутентификацию? Ваш аккаунт будет защищён только паролем.">
                 <input type="hidden" name="csrf_token" value="{{ request.session.get('csrf_token','') }}">
                 <button type="submit" class="btn btn-outline-danger">
                     <i class="bi bi-shield-x me-1"></i>Отключить 2FA
@@ -75,7 +75,7 @@
                 <div class="input-group input-group-sm">
                     <input type="text" class="form-control font-monospace fw-bold" id="secretKey"
                            value="{{ secret }}" readonly style="letter-spacing:2px">
-                    <button class="btn btn-outline-secondary" type="button" onclick="copySecret()">
+                    <button class="btn btn-outline-secondary" type="button" id="btn-copy-secret">
                         <i class="bi bi-copy" id="copyIcon"></i>
                     </button>
                 </div>

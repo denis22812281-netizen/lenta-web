@@ -56,7 +56,7 @@
         </a>
         <form method="post" action="/adaptation/{{ card.id }}/send" class="d-inline" id="sendForm">
             <input type="hidden" name="csrf_token" value="{{ request.session.get('csrf_token','') }}">
-            <button type="button" class="btn btn-warning btn-sm fw-bold" onclick="confirmSend()">
+            <button type="button" class="btn btn-warning btn-sm fw-bold" data-action="confirm-send">
                 <i class="bi bi-send-fill me-1"></i>Отправить
             </button>
         </form>
@@ -85,7 +85,7 @@
         ] %}
         <button type="button"
                 class="wiz-step-btn flex-fill d-flex flex-column align-items-center py-2 px-1 rounded border-0"
-                data-step="{{ snum }}" onclick="goStep({{ snum }})">
+                data-step="{{ snum }}" data-action="go-step">
             <div class="wiz-circle rounded-circle d-flex align-items-center justify-content-center mb-1">
                 <i class="bi {{ sicon }}"></i>
             </div>
@@ -740,7 +740,7 @@
                 <form method="post"
                       action="/adaptation/{{ card.id }}/photos/{{ ph.id }}/delete"
                       class="position-absolute top-0 end-0 m-1"
-                      onsubmit="return confirm('Удалить фото?')">
+                      data-confirm="Удалить фото?">
                     <button type="submit" class="btn btn-danger p-0"
                             style="width:22px;height:22px;font-size:11px;line-height:1;border-radius:4px">
                         <i class="bi bi-x"></i>
@@ -756,10 +756,10 @@
 
             <input type="file" name="files" id="adaptPhotoInput"
                    accept="image/*" multiple style="display:none"
-                   onchange="onAdaptPhotos(this)">
+                   >
             <div class="d-flex gap-2 align-items-center flex-wrap mb-2">
                 <button type="button" class="btn btn-sm btn-outline-warning"
-                        onclick="document.getElementById('adaptPhotoInput').click()">
+                        data-action="trigger-file" data-target="adaptPhotoInput">
                     <i class="bi bi-images me-1"></i>Выбрать фото
                 </button>
                 <span id="adaptPhotoName" class="small text-muted"></span>
@@ -776,7 +776,7 @@
 
             <button type="button" id="adaptPhotoSubmit"
                     class="btn btn-sm btn-warning text-dark fw-bold" style="display:none"
-                    onclick="uploadAdaptPhotos()">
+                    data-action="upload-adapt-photos">
                 <i class="bi bi-cloud-upload me-1"></i>Загрузить
             </button>
             <div class="text-muted mt-2" style="font-size:.7rem">
@@ -863,13 +863,13 @@
 
     <!-- ══ НАВИГАЦИЯ МАСТЕРА (только десктоп) ══════════════════════════════ -->
     <div class="d-none d-lg-flex align-items-center gap-2 mt-3 mb-2">
-        <button type="button" class="btn btn-outline-secondary px-3" id="btnPrev" onclick="stepPrev()" disabled>
+        <button type="button" class="btn btn-outline-secondary px-3" id="btnPrev" >
             <i class="bi bi-arrow-left me-1"></i>Назад
         </button>
         <div class="flex-grow-1 text-center">
             <small class="text-muted" id="navInfo">1 / 5</small>
         </div>
-        <button type="button" class="btn btn-primary px-3" id="btnNext" onclick="stepNext()">
+        <button type="button" class="btn btn-primary px-3" id="btnNext" >
             Далее<i class="bi bi-arrow-right ms-1"></i>
         </button>
         <button type="submit" class="btn btn-success px-3 d-none" id="btnSave">
@@ -887,14 +887,14 @@
     <!-- Строка 1: Назад / Шаг N из N / Далее -->
     <div class="d-flex align-items-center gap-2 mb-1" id="mobileNavRow">
         <button type="button" class="btn btn-outline-secondary btn-sm px-3" id="btnPrevMob"
-                onclick="stepPrev()" disabled>
+                >
             <i class="bi bi-arrow-left"></i>
         </button>
         <div class="flex-grow-1 text-center">
             <small class="text-muted fw-semibold" id="navInfoMob">1 / 5</small>
         </div>
         <button type="button" class="btn btn-primary btn-sm px-3" id="btnNextMob"
-                onclick="stepNext()">
+                >
             <i class="bi bi-arrow-right"></i>
         </button>
     </div>
@@ -904,7 +904,7 @@
         <i class="bi bi-floppy-fill me-1"></i>Сохранить
     </button>
     {% if card %}
-    <button type="button" class="btn btn-warning fw-bold px-3" onclick="confirmSend()" title="Отправить на почту">
+    <button type="button" class="btn btn-warning fw-bold px-3" data-action="confirm-send" title="Отправить на почту">
         <i class="bi bi-send-fill"></i>
     </button>
     <a href="/adaptation/{{ card.id }}/download" class="btn btn-outline-success px-3" title="Скачать Excel">
@@ -932,7 +932,7 @@
             </ol>
             <p class="text-muted small mb-4">Счётчик в кружке <span class="badge bg-success">3</span> показывает заполненные поля на шаге. Можно нажать на кружок для перехода.</p>
             <div class="d-grid">
-                <button class="btn btn-primary btn-lg" onclick="closeTour()">
+                <button class="btn btn-primary btn-lg" data-action="close-tour">
                     <i class="bi bi-play-fill me-1"></i>Начать заполнение
                 </button>
             </div>
@@ -1159,5 +1159,20 @@ function confirmSend() {
         document.getElementById('sendForm').submit();
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    var adaptInput = document.getElementById('adaptPhotoInput');
+    if (adaptInput) adaptInput.addEventListener('change', function() { onAdaptPhotos(this); });
+    document.addEventListener('click', function(e) {
+        var el = e.target.closest('[data-action]');
+        if (!el) return;
+        switch (el.dataset.action) {
+            case 'confirm-send':        confirmSend(); break;
+            case 'go-step':             goStep(parseInt(el.dataset.step)); break;
+            case 'upload-adapt-photos': uploadAdaptPhotos(); break;
+            case 'close-tour':          closeTour(); break;
+        }
+    });
+});
 </script>
 {% endblock %}

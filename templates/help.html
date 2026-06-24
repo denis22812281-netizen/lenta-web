@@ -361,7 +361,7 @@ strong { color: var(--green-deep); }
     {% if user is defined and user %}
       <a href="/" class="btn-back"><i class="bi bi-arrow-left"></i> В систему</a>
     {% endif %}
-    <button class="btn-pdf" onclick="window.print()">
+    <button class="btn-pdf" data-action="print">
       <i class="bi bi-file-earmark-pdf"></i> Скачать PDF
     </button>
   </div>

@@ -66,7 +66,7 @@
                     {% if p.end_date < today %}<span class="kanban-overdue-label">просрочен</span>{% endif %}
                 </div>
                 {% endif %}
-                <a href="/projects/{{ p.id }}" class="kanban-card-link" onclick="event.stopPropagation()">
+                <a href="/projects/{{ p.id }}" class="kanban-card-link" data-action="stop-propagation">
                     Открыть →
                 </a>
             </div>

@@ -54,11 +54,11 @@
               <div class="d-flex gap-1 ms-2">
                 <button class="btn btn-sm btn-outline-primary py-0 px-2"
                         style="border-radius:6px;font-size:11px"
-                        onclick="editCrit({{ c.id }}, '{{ c.name|replace("'", "\\'") }}')">
+                        data-action="edit-crit" data-id="{{ c.id }}" data-name="{{ c.name|replace('"', '&quot;') }}">
                   <i class="bi bi-pencil"></i>
                 </button>
                 <form method="post" action="/admin/vpk-criteria/{{ c.id }}/delete"
-                      onsubmit="return confirm('Удалить?')" style="display:inline">
+                      data-confirm="Удалить?" style="display:inline">
                   <input type="hidden" name="csrf_token" value="{{ request.session.get('csrf_token','') }}">
                   <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2"
                           style="border-radius:6px;font-size:11px">

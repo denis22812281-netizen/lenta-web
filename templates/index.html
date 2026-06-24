@@ -136,7 +136,7 @@
                 </thead>
                 <tbody>
                 {% for t in recent_tasks %}
-                <tr style="cursor:pointer" onclick="window.location='/tasks'">
+                <tr style="cursor:pointer" data-action="navigate" data-href="/tasks">
                     <td class="fw-semibold small">{{ t.title[:28] }}{% if t.title|length > 28 %}…{% endif %}</td>
                     <td class="text-muted small">{{ t.assignee.name if t.assignee else '—' }}</td>
                     <td class="small">
@@ -252,7 +252,7 @@
         </summary>
         <div class="mt-2">
             <form method="post" action="/projects/clear-all"
-                  onsubmit="return confirm('Удалить ВСЕ проекты Реконструкций и Констракшн? Это необратимо!')">
+                  data-confirm="Удалить ВСЕ проекты Реконструкций и Констракшн? Это необратимо!">
                 <button type="submit" class="btn btn-sm btn-outline-danger">
                     <i class="bi bi-trash-fill me-1"></i>Удалить ВСЕ проекты (Реконструкции + Констракшн)
                 </button>

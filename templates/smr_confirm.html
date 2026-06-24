@@ -148,10 +148,10 @@
       <input type="hidden" name="comment" id="hiddenComment" value="">
 
       <div class="choice-wrap">
-        <button type="button" class="btn-yes" onclick="submitConfirm()">
+        <button type="button" class="btn-yes" id="btnYes">
           ✅ &nbsp;Подтверждаю
         </button>
-        <button type="button" class="btn-no" id="btnNo" onclick="toggleReject()">
+        <button type="button" class="btn-no" id="btnNo">
           ❌ &nbsp;Не подтверждаю
         </button>
       </div>
@@ -161,9 +161,8 @@
           Укажите причину или комментарий:
         </label>
         <textarea id="commentText"
-                  placeholder="Например: задержка поставки оборудования, перенос на 5 дней..."
-                  oninput="document.getElementById('hiddenComment').value=this.value"></textarea>
-        <button type="button" class="btn-submit" onclick="submitReject()">
+                  placeholder="Например: задержка поставки оборудования, перенос на 5 дней..."></textarea>
+        <button type="button" class="btn-submit" id="btnReject">
           <i class="bi bi-send me-2"></i>Отправить отчёт
         </button>
       </div>
@@ -202,6 +201,19 @@ function toggleReject() {
         setTimeout(() => document.getElementById('commentText').focus(), 350);
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    var btnYes = document.getElementById('btnYes');
+    if (btnYes) btnYes.addEventListener('click', submitConfirm);
+    var btnNo = document.getElementById('btnNo');
+    if (btnNo) btnNo.addEventListener('click', toggleReject);
+    var btnReject = document.getElementById('btnReject');
+    if (btnReject) btnReject.addEventListener('click', submitReject);
+    var commentText = document.getElementById('commentText');
+    if (commentText) commentText.addEventListener('input', function() {
+        document.getElementById('hiddenComment').value = this.value;
+    });
+});
 
 {% if auto_reject %}
 document.addEventListener('DOMContentLoaded', function () {

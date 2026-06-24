@@ -17,7 +17,7 @@
                     <i class="bi bi-pencil me-1"></i>Редактировать
                 </button>
                 {% if user.is_admin %}
-                <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete()">
+                <button class="btn btn-sm btn-outline-danger" id="btn-confirm-delete">
                     <i class="bi bi-trash"></i>
                 </button>
                 {% endif %}
@@ -135,7 +135,7 @@
                         <i class="bi bi-bar-chart-steps me-1"></i>График СМР
                     </a>
                     <form method="post" action="/projects/{{ project.id }}/delete"
-                          onsubmit="return confirm('Удалить проект {{ project.name }}?')">
+                          data-confirm="Удалить проект {{ project.name }}?">
                         <button type="submit" class="btn btn-sm btn-outline-danger w-100">
                             <i class="bi bi-trash me-1"></i>Удалить проект
                         </button>
@@ -175,7 +175,7 @@
                         {{ stage.status }}
                     </span>
                     <form method="post" action="/stages/{{ stage.id }}/delete"
-                          onsubmit="return confirm('Удалить этап?')" class="d-inline">
+                          data-confirm="Удалить этап?" class="d-inline">
                         <button type="submit" class="btn btn-sm btn-link text-danger p-0"><i class="bi bi-x-lg"></i></button>
                     </form>
                 </div>
@@ -243,7 +243,7 @@
         {% if c.author_name == user.display_name or user.is_admin %}
         <form method="post" action="/projects/{{ project.id }}/comments/{{ c.id }}/delete"
               class="ms-2 flex-shrink-0"
-              onsubmit="return confirm('Удалить заметку?')">
+              data-confirm="Удалить заметку?">
             <button type="submit" class="btn btn-sm btn-link text-danger p-0 comment-del">
                 <i class="bi bi-x-lg"></i>
             </button>
@@ -260,7 +260,7 @@
         <form method="post" action="/projects/{{ project.id }}/comments/add" class="d-flex gap-2 align-items-end">
             <textarea name="text" class="form-control form-control-sm comment-input"
                       placeholder="Добавить заметку…" rows="2" required
-                      onkeydown="if(event.ctrlKey&&event.key==='Enter'){this.form.submit();}"></textarea>
+                      id="comment-textarea"></textarea>
             <button type="submit" class="btn btn-sm btn-success flex-shrink-0">
                 <i class="bi bi-send-fill"></i>
             </button>
@@ -340,7 +340,7 @@
             {% if user.is_admin or user.display_name == a.uploaded_by %}
             <form method="post" action="/projects/{{ project.id }}/attachments/{{ a.id }}/delete"
                   class="position-absolute top-0 end-0 m-1"
-                  onsubmit="return confirm('Удалить файл?')">
+                  data-confirm="Удалить файл?">
                 <button type="submit" class="btn btn-danger p-0"
                         style="width:22px;height:22px;font-size:11px;line-height:1;border-radius:4px">
                     <i class="bi bi-x"></i>
@@ -366,7 +366,7 @@
             <span class="text-muted" style="font-size:.72rem">{{ (a.file_size // 1024) }}KB</span>
             {% if user.is_admin or user.display_name == a.uploaded_by %}
             <form method="post" action="/projects/{{ project.id }}/attachments/{{ a.id }}/delete"
-                  onsubmit="return confirm('Удалить?')">
+                  data-confirm="Удалить?">
                 <button type="submit" class="btn btn-sm btn-link text-danger p-0">
                     <i class="bi bi-trash3"></i>
                 </button>
@@ -389,9 +389,9 @@
             <div class="d-flex gap-2 align-items-center flex-wrap">
                 <input type="file" name="file" id="attachFileInput"
                        accept="image/*,.pdf,.xls,.xlsx,.doc,.docx"
-                       style="display:none" onchange="onAttachChange(this)">
+                       style="display:none" class="attach-file-input">
                 <button type="button" class="btn btn-sm btn-outline-info"
-                        onclick="document.getElementById('attachFileInput').click()">
+                        data-action="trigger-file" data-target="attachFileInput">
                     <i class="bi bi-paperclip me-1"></i>Прикрепить файл
                 </button>
                 <span id="attachFileName" class="small text-muted"></span>
@@ -413,6 +413,25 @@ function onAttachChange(inp) {
     document.getElementById('attachFileName').textContent = f ? f.name : '';
     document.getElementById('attachSubmitBtn').style.display = f ? '' : 'none';
 }
+document.addEventListener('DOMContentLoaded', function() {
+    var ai = document.querySelector('.attach-file-input');
+    if (ai) ai.addEventListener('change', function() { onAttachChange(this); });
+    var oi = document.getElementById('openingFileInput');
+    if (oi) oi.addEventListener('change', function() { onOpeningFileChange(this); });
+    var ct = document.getElementById('comment-textarea');
+    if (ct) ct.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 'Enter') { this.form.submit(); }
+    });
+    var cd = document.getElementById('btn-confirm-delete');
+    if (cd) cd.addEventListener('click', confirmDelete);
+    var ou = document.getElementById('btn-opening-upload');
+    if (ou) ou.addEventListener('click', function(e) { e.preventDefault(); return confirmOpeningUpload(); });
+    document.addEventListener('click', function(e) {
+        var el = e.target.closest('[data-action]');
+        if (!el) return;
+        if (el.dataset.action === 'gantt-view') setGanttView(el.dataset.val, el);
+    });
+});
 </script>
 
 <!-- Modal: Add Stage -->
@@ -472,9 +491,9 @@ function onAttachChange(inp) {
     <div class="d-flex align-items-center gap-2">
       <span id="ganttSaveStatus" class="small text-muted"></span>
       <div class="btn-group btn-group-sm" role="group">
-        <button class="btn btn-outline-secondary btn-xs active" onclick="setGanttView('Week',this)">Нед</button>
-        <button class="btn btn-outline-secondary btn-xs" onclick="setGanttView('Month',this)">Мес</button>
-        <button class="btn btn-outline-secondary btn-xs" onclick="setGanttView('Day',this)">День</button>
+        <button class="btn btn-outline-secondary btn-xs active" data-action="gantt-view" data-val="Week">Нед</button>
+        <button class="btn btn-outline-secondary btn-xs" data-action="gantt-view" data-val="Month">Мес</button>
+        <button class="btn btn-outline-secondary btn-xs" data-action="gantt-view" data-val="Day">День</button>
       </div>
     </div>
   </div>
@@ -613,16 +632,15 @@ function onAttachChange(inp) {
             <div class="d-flex gap-2 align-items-start flex-wrap">
                 <div>
                     <input type="file" name="photos" id="openingFileInput"
-                           accept="image/*" multiple style="display:none"
-                           onchange="onOpeningFileChange(this)">
+                           accept="image/*" multiple style="display:none">
                     <button type="button" class="btn btn-outline-warning"
-                            onclick="document.getElementById('openingFileInput').click()">
+                            data-action="trigger-file" data-target="openingFileInput">
                         <i class="bi bi-images me-1"></i>Выбрать фото
                     </button>
                 </div>
                 <button type="submit" class="btn btn-warning text-dark fw-bold"
                         id="openingUploadBtn" style="display:none"
-                        onclick="return confirmOpeningUpload()">
+                        id="btn-opening-upload">
                     <i class="bi bi-send-fill me-1"></i>Загрузить и отправить на почту
                 </button>
             </div>

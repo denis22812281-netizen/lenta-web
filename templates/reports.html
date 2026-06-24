@@ -7,7 +7,7 @@
 {% if user and user.is_admin %}
 <div class="mb-3 d-flex justify-content-end">
     <form method="post" action="/reports/clear-all"
-          onsubmit="return confirm('Удалить ВСЕ отчёты ВПК? Это действие нельзя отменить.')">
+          data-confirm="Удалить ВСЕ отчёты ВПК? Это действие нельзя отменить.">
         <button type="submit" class="btn btn-sm btn-outline-danger">
             <i class="bi bi-trash me-1"></i>Очистить все отчёты
         </button>
@@ -149,7 +149,7 @@
                 <div class="mt-2">
                     <img src="{{ media_url(item.photo_path) }}"
                          class="report-photo" alt="фото"
-                         onclick="openPhoto('{{ media_url(item.photo_path) }}')">
+                         data-action="open-photo" data-url="{{ media_url(item.photo_path) }}">
                 </div>
                 {% endif %}
             </div>
@@ -179,7 +179,7 @@
 {% endif %}
 
 <!-- Лайтбокс -->
-<div id="lightbox" onclick="this.style.display='none'"
+<div id="lightbox" id="lightbox-overlay"
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99999;align-items:center;justify-content:center;cursor:pointer">
     <img id="lightboxImg" src="" style="max-width:92vw;max-height:88vh;border-radius:10px">
 </div>

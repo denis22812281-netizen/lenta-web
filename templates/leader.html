@@ -50,12 +50,12 @@
         </div>
     </div>
     <div class="recon-kpis">
-        <div class="recon-kpi-item recon-kpi-btn" onclick="rcOverlay('overlayOpened')" title="Показать список">
+        <div class="recon-kpi-item recon-kpi-btn" data-action="rc-overlay" data-target="overlayOpened" title="Показать список">
             <div class="recon-kpi-num" style="color:#4ade80">{{ recon_opened }}</div>
             <div class="recon-kpi-lab">Открыто <i class="bi bi-chevron-down" style="font-size:.55rem"></i></div>
         </div>
         <div class="recon-kpi-divider"></div>
-        <div class="recon-kpi-item recon-kpi-btn" onclick="rcOverlay('overlayInWork')" title="Показать список">
+        <div class="recon-kpi-item recon-kpi-btn" data-action="rc-overlay" data-target="overlayInWork" title="Показать список">
             <div class="recon-kpi-num" style="color:#60a5fa">{{ recon_in_work }}</div>
             <div class="recon-kpi-lab">В работе <i class="bi bi-chevron-down" style="font-size:.55rem"></i></div>
         </div>
@@ -316,7 +316,7 @@
                 <tbody>
                 {% for p in all_critical_projects %}
                 {% set days = (p.opening_date - today).days %}
-                <tr style="cursor:pointer" onclick="window.location='/projects/{{ p.id }}'">
+                <tr style="cursor:pointer" data-action="navigate" data-href="/projects/{{ p.id }}">
                     <td>
                         <div class="fw-semibold">{{ p.name[:28] }}{% if p.name|length > 28 %}…{% endif %}</div>
                         {% if p.tk_number %}<div class="small text-muted">{{ p.tk_number }}</div>{% endif %}
@@ -543,14 +543,14 @@
     </div>
 </div>
 <!-- ── Оверлей: Открытые ТК ──────────────────────────────────────────── -->
-<div class="rc-overlay" id="overlayOpened" onclick="if(event.target===this)rcClose('overlayOpened')">
+<div class="rc-overlay" id="overlayOpened" data-action="rc-close-if-self" data-target="overlayOpened">
   <div class="rc-overlay-box">
     <div class="rc-modal-header">
       <div class="rc-modal-title">
         <i class="bi bi-door-open-fill" style="color:#4ade80"></i>
         Открытые ТК — <span style="color:#4ade80">{{ recon_opened }}</span> объектов
       </div>
-      <button class="rc-modal-close" onclick="rcClose('overlayOpened')"><i class="bi bi-x-lg"></i></button>
+      <button class="rc-modal-close" data-action="rc-close" data-target="overlayOpened"><i class="bi bi-x-lg"></i></button>
     </div>
     <div class="rc-overlay-body">
       <table class="rc-modal-table w-100">
@@ -574,20 +574,20 @@
       <a href="/reconstruction" class="btn btn-sm" style="background:#16a34a;color:#fff;border-radius:8px;font-weight:600">
         <i class="bi bi-arrow-right-circle me-1"></i>Открыть дашборд
       </a>
-      <button class="btn btn-sm rc-btn-close-footer" onclick="rcClose('overlayOpened')">Закрыть</button>
+      <button class="btn btn-sm rc-btn-close-footer" data-action="rc-close" data-target="overlayOpened">Закрыть</button>
     </div>
   </div>
 </div>
 
 <!-- ── Оверлей: В работе ─────────────────────────────────────────────── -->
-<div class="rc-overlay" id="overlayInWork" onclick="if(event.target===this)rcClose('overlayInWork')">
+<div class="rc-overlay" id="overlayInWork" data-action="rc-close-if-self" data-target="overlayInWork">
   <div class="rc-overlay-box">
     <div class="rc-modal-header">
       <div class="rc-modal-title">
         <i class="bi bi-tools" style="color:#60a5fa"></i>
         ТК в работе — <span style="color:#60a5fa">{{ recon_in_work }}</span> объектов
       </div>
-      <button class="rc-modal-close" onclick="rcClose('overlayInWork')"><i class="bi bi-x-lg"></i></button>
+      <button class="rc-modal-close" data-action="rc-close" data-target="overlayInWork"><i class="bi bi-x-lg"></i></button>
     </div>
     <div class="rc-overlay-body">
       <table class="rc-modal-table w-100">
@@ -618,7 +618,7 @@
       <a href="/reconstruction" class="btn btn-sm" style="background:#1d4ed8;color:#fff;border-radius:8px;font-weight:600">
         <i class="bi bi-arrow-right-circle me-1"></i>Открыть дашборд
       </a>
-      <button class="btn btn-sm rc-btn-close-footer" onclick="rcClose('overlayInWork')">Закрыть</button>
+      <button class="btn btn-sm rc-btn-close-footer" data-action="rc-close" data-target="overlayInWork">Закрыть</button>
     </div>
   </div>
 </div>
@@ -991,6 +991,17 @@ document.addEventListener('keydown', function(e) {
         document.querySelectorAll('.rc-overlay.open').forEach(function(el) {
             rcClose(el.id);
         });
+    }
+});
+
+document.addEventListener('click', function(e) {
+    var el = e.target.closest('[data-action]');
+    if (!el) return;
+    switch (el.dataset.action) {
+        case 'rc-overlay':       rcOverlay(el.dataset.target); break;
+        case 'rc-close':         rcClose(el.dataset.target); break;
+        case 'rc-close-if-self': if (e.target === el) rcClose(el.dataset.target); break;
+        case 'navigate':         window.location = el.dataset.href; break;
     }
 });
 </script>

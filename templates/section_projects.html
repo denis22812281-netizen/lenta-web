@@ -24,7 +24,7 @@
     </a>
     {% if user and user.is_admin %}
     {% if section_type == "Констракшн" %}
-    <form method="post" action="/construction/clear-all" onsubmit="return confirm('Удалить ВСЕ проекты Констракшн и загрузить заново?')">
+    <form method="post" action="/construction/clear-all" data-confirm="Удалить ВСЕ проекты Констракшн и загрузить заново?">
         <button type="submit" class="btn btn-outline-danger btn-sm">
             <i class="bi bi-trash me-1"></i>Очистить и перезагрузить
         </button>
@@ -32,7 +32,7 @@
     {% endif %}
     {% if section_type == "Реконструкция" %}
     <form method="post" action="/reconstruct/delete-tk-prefix" class="d-inline"
-          onsubmit="return confirm('Удалить все проекты с префиксом ТК/L из Реконструкций?')">
+          data-confirm="Удалить все проекты с префиксом ТК/L из Реконструкций?">
         <button type="submit" class="btn btn-outline-danger btn-sm">
             <i class="bi bi-trash me-1"></i>Удалить лишние
         </button>
@@ -65,7 +65,7 @@
             {% if section_type == "Констракшн" %}
             <li><hr class="dropdown-divider"></li>
             <li>
-                <form method="post" action="/construction/clear-all" onsubmit="return confirm('Удалить ВСЕ проекты Констракшн?')">
+                <form method="post" action="/construction/clear-all" data-confirm="Удалить ВСЕ проекты Констракшн?">
                     <button type="submit" class="dropdown-item text-danger">
                         <i class="bi bi-trash me-2"></i>Очистить и перезагрузить
                     </button>
@@ -76,7 +76,7 @@
             <li><hr class="dropdown-divider"></li>
             <li>
                 <form method="post" action="/reconstruct/delete-tk-prefix"
-                      onsubmit="return confirm('Удалить лишние проекты?')">
+                      data-confirm="Удалить лишние проекты?">
                     <button type="submit" class="dropdown-item text-danger">
                         <i class="bi bi-trash me-2"></i>Удалить лишние
                     </button>
@@ -130,8 +130,8 @@
         <option value="status:Приостановлен">Статус: Приостановлен</option>
         <option value="status:Завершён">Статус: Завершён</option>
     </select>
-    <button class="btn btn-sm btn-primary" onclick="applyBulk()">Применить</button>
-    <button class="btn btn-sm btn-outline-secondary" onclick="clearSelection()">Отмена</button>
+    <button class="btn btn-sm btn-primary" data-action="apply-bulk">Применить</button>
+    <button class="btn btn-sm btn-outline-secondary" data-action="clear-selection">Отмена</button>
 </div>
 
 <!-- ── Desktop Table ──────────────────────────────────────────────────── -->
@@ -142,7 +142,7 @@
     <table class="table table-hover mb-0 align-middle" id="projects-table">
         <thead class="table-head">
             <tr>
-                <th style="width:32px"><input type="checkbox" id="chk-all" class="form-check-input" onchange="toggleAll(this)"></th>
+                <th style="width:32px"><input type="checkbox" id="chk-all" class="form-check-input" data-action="toggle-all"></th>
                 <th>ТК №</th>
                 <th>Название / Город</th>
                 <th>Менеджер</th>
@@ -159,7 +159,7 @@
         {% if p.end_date %}{% set days = (p.end_date - today).days %}{% else %}{% set days = None %}{% endif %}
         {% set is_opened = p.opening_date and p.opening_date <= today %}
         <tr class="{% if is_opened %}table-success{% endif %}" data-id="{{ p.id }}">
-            <td><input type="checkbox" class="form-check-input row-chk" value="{{ p.id }}" onchange="updateBulkBar()"></td>
+            <td><input type="checkbox" class="form-check-input row-chk" value="{{ p.id }}" data-action="update-bulk-bar"></td>
             <td class="text-muted small fw-semibold">{{ p.tk_number or '—' }}</td>
             <td>
                 <a href="/projects/{{ p.id }}" class="fw-semibold text-decoration-none text-dark">{{ p.name }}</a>
@@ -528,4 +528,20 @@ function applyBulk() {
     color: #64748b;
 }
 </style>
+<script>
+(function() {
+    document.addEventListener('click', function(e) {
+        var el = e.target.closest('[data-action]');
+        if (!el) return;
+        switch (el.dataset.action) {
+            case 'apply-bulk':     applyBulk(); break;
+            case 'clear-selection': clearSelection(); break;
+        }
+    });
+    document.addEventListener('change', function(e) {
+        if (e.target.dataset.action === 'toggle-all') toggleAll(e.target);
+        if (e.target.dataset.action === 'update-bulk-bar') updateBulkBar();
+    });
+})();
+</script>
 {% endblock %}

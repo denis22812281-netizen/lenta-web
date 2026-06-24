@@ -51,10 +51,8 @@
                 <span class="input-group-text bg-white"><i class="bi bi-123 text-muted"></i></span>
                 <input type="text" id="tkInput" class="form-control form-control-lg fw-bold"
                        placeholder="Введите номер ТК…"
-                       autocomplete="off" inputmode="numeric"
-                       oninput="tkSearch(this.value)"
-                       onkeydown="tkKeydown(event)">
-                <button type="button" class="btn btn-outline-secondary" onclick="tkClear()" id="tkClearBtn" style="display:none">
+                       autocomplete="off" inputmode="numeric">
+                <button type="button" class="btn btn-outline-secondary" id="tkClearBtn" style="display:none">
                     <i class="bi bi-x-lg"></i>
                 </button>
             </div>
@@ -86,10 +84,10 @@
                 <span class="badge bg-{{ accent }} ms-1">{{ criteria|length }}</span>
             </span>
             <div class="d-flex gap-2 flex-wrap">
-                <button type="button" class="btn btn-sm btn-outline-success" onclick="checkAll(true)">
+                <button type="button" class="btn btn-sm btn-outline-success" data-action="vpk-check-all" data-val="true">
                     <i class="bi bi-check-all me-1"></i><span class="d-none d-sm-inline">Все выполнены</span><span class="d-sm-none">Все ✓</span>
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="checkAll(false)">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="vpk-check-all" data-val="false">
                     <i class="bi bi-arrow-counterclockwise me-1"></i><span class="d-none d-sm-inline">Сбросить</span>
                 </button>
             </div>
@@ -107,15 +105,15 @@
                     <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
                         <input type="file" name="photo_{{ c.id }}" id="photo_{{ c.id }}"
                                accept="image/*" style="display:none"
-                               onchange="onCriterionPhoto({{ c.id }}, this)">
+                               class="vpk-photo-input" data-cid="{{ c.id }}">
                         <button type="button" class="btn btn-sm btn-outline-secondary"
-                                onclick="document.getElementById('photo_{{ c.id }}').click()">
+                                data-action="trigger-file" data-target="photo_{{ c.id }}">
                             <i class="bi bi-camera me-1"></i>Прикрепить фото
                         </button>
                         <span id="photo-name-{{ c.id }}" class="small text-muted"></span>
                     </div>
                     <button type="button" class="btn btn-sm btn-success mt-2"
-                            onclick="saveComment({{ c.id }})">
+                            data-action="vpk-save-comment" data-cid="{{ c.id }}">
                         <i class="bi bi-check-lg me-1"></i>Сохранить
                     </button>
                 </div>
@@ -124,11 +122,11 @@
                    class="vpk-check" style="display:none">
             <div class="vpk-actions">
                 <button type="button" class="vpk-btn vpk-btn-yes" id="btn-yes-{{ c.id }}"
-                        onclick="setCriterion({{ c.id }}, true)">
+                        data-action="vpk-set-criterion" data-cid="{{ c.id }}" data-val="true">
                     <i class="bi bi-check-lg"></i> Да
                 </button>
                 <button type="button" class="vpk-btn vpk-btn-no" id="btn-no-{{ c.id }}"
-                        onclick="setCriterion({{ c.id }}, false)">
+                        data-action="vpk-set-criterion" data-cid="{{ c.id }}" data-val="false">
                     <i class="bi bi-x-lg"></i> Нет
                 </button>
             </div>
@@ -147,7 +145,7 @@
             <div class="progress-bar bg-{{ accent }}" id="progressBar" style="width:0%"></div>
         </div>
         <button type="submit" class="btn btn-{{ accent }} w-100 btn-lg fw-bold"
-                onclick="return confirmSubmit()">
+                id="vpk-submit-btn">
             <i class="bi bi-send-fill me-2"></i>Отправить отчёт
         </button>
         <div class="text-muted small text-center mt-2">
@@ -183,9 +181,7 @@
                 <input type="text" id="preTkInput" name="tk_text" class="form-control form-control-lg fw-bold"
                        placeholder="Введите номер ТК…"
                        autocomplete="off" inputmode="numeric"
-                       oninput="preTkSearch(this.value)"
-                       onkeydown="preTkKeydown(event)">
-                <button type="button" class="btn btn-outline-secondary" onclick="preTkClear()" id="preTkClearBtn" style="display:none">
+                <button type="button" class="btn btn-outline-secondary" id="preTkClearBtn" style="display:none">
                     <i class="bi bi-x-lg"></i>
                 </button>
             </div>
@@ -214,8 +210,8 @@
                 <span class="badge bg-warning text-dark ms-1">{{ precheck_criteria|length }}</span>
             </span>
             <div class="d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-outline-success" onclick="preCheckAll('done')">✅ Все готово</button>
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="preCheckAll('not_checked')">Сбросить</button>
+                <button type="button" class="btn btn-sm btn-outline-success" data-action="vpk-pre-check-all" data-val="done">✅ Все готово</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-action="vpk-pre-check-all" data-val="not_checked">Сбросить</button>
             </div>
         </div>
         <div class="p-0">
@@ -231,9 +227,9 @@
                     <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
                         <input type="file" name="photo_{{ c.id }}" id="pre-photo-{{ c.id }}"
                                accept="image/*" style="display:none"
-                               onchange="onPrePhoto({{ c.id }}, this)">
+                               class="vpk-pre-photo-input" data-cid="{{ c.id }}">
                         <button type="button" class="btn btn-sm btn-outline-secondary"
-                                onclick="document.getElementById('pre-photo-{{ c.id }}').click()">
+                                data-action="trigger-file" data-target="pre-photo-{{ c.id }}">
                             <i class="bi bi-camera me-1"></i>Прикрепить фото
                         </button>
                         <span id="pre-photo-name-{{ c.id }}" class="small text-muted"></span>
@@ -242,15 +238,15 @@
             </div>
             <div class="vpk-actions" style="flex-direction:column;gap:3px">
                 <button type="button" class="vpk-btn vpk-btn-yes" id="pre-btn-yes-{{ c.id }}"
-                        onclick="setPrecheck({{ c.id }}, 'done')">
+                        data-action="vpk-set-precheck" data-cid="{{ c.id }}" data-val="done">
                     <i class="bi bi-check-lg"></i> Готово
                 </button>
                 <button type="button" class="vpk-btn vpk-btn-no" id="pre-btn-no-{{ c.id }}"
-                        onclick="setPrecheck({{ c.id }}, 'not_done')">
+                        data-action="vpk-set-precheck" data-cid="{{ c.id }}" data-val="not_done">
                     <i class="bi bi-x-lg"></i> Нет
                 </button>
                 <button type="button" class="vpk-btn" id="pre-btn-skip-{{ c.id }}"
-                        onclick="setPrecheck({{ c.id }}, 'not_checked')"
+                        data-action="vpk-set-precheck" data-cid="{{ c.id }}" data-val="not_checked"
                         style="background:#6b728020;color:#6b7280;border:1px solid #6b728040">
                     — Не смотрел
                 </button>
@@ -268,7 +264,7 @@
             <span class="badge bg-secondary fs-6" id="pre-skip-count">— 0</span>
         </div>
         <button type="submit" class="btn btn-warning text-dark w-100 btn-lg fw-bold"
-                onclick="return preConfirmSubmit()">
+                id="vpk-pre-submit-btn">
             <i class="bi bi-send-fill me-2"></i>Отправить предосмотр на почту
         </button>
         <div class="text-muted small text-center mt-2">
@@ -433,7 +429,7 @@ function preConfirmSubmit() {
     {% set total = r.items|length %}
     {% set pct = ((done_count / total * 100)|int) if total > 0 else 0 %}
     <div class="vpk-report-card" id="rpt-{{ r.id }}"
-         onclick="markRead({{ r.id }})">
+         data-action="vpk-mark-read" data-rid="{{ r.id }}">
         <div class="d-flex justify-content-between align-items-start mb-2">
             <div>
                 <span class="badge {% if r.vpk_type == 1 %}bg-danger{% else %}bg-primary{% endif %} me-2">ВПК{{ r.vpk_type }}</span>
@@ -739,5 +735,39 @@ async function markRead(reportId) {
         await fetch('/vpk/reports/' + reportId + '/read', { method: 'POST' });
     } catch(e) {}
 }
+
+// Event delegation — replaces all inline onclick/onchange/oninput attrs
+(function() {
+    var ti = document.getElementById('tkInput');
+    if (ti) { ti.addEventListener('input', function() { tkSearch(this.value); }); ti.addEventListener('keydown', tkKeydown); }
+    var tc = document.getElementById('tkClearBtn');
+    if (tc) tc.addEventListener('click', tkClear);
+    var pi = document.getElementById('preTkInput');
+    if (pi) { pi.addEventListener('input', function() { preTkSearch(this.value); }); pi.addEventListener('keydown', preTkKeydown); }
+    var pc = document.getElementById('preTkClearBtn');
+    if (pc) pc.addEventListener('click', preTkClear);
+    var vs = document.getElementById('vpk-submit-btn');
+    if (vs) vs.addEventListener('click', function(e) { if (!confirmSubmit()) e.preventDefault(); });
+    var ps = document.getElementById('vpk-pre-submit-btn');
+    if (ps) ps.addEventListener('click', function(e) { if (!preConfirmSubmit()) e.preventDefault(); });
+
+    document.addEventListener('click', function(e) {
+        var el = e.target.closest('[data-action]');
+        if (!el) return;
+        switch (el.dataset.action) {
+            case 'vpk-check-all':       checkAll(el.dataset.val === 'true'); break;
+            case 'trigger-file':        document.getElementById(el.dataset.target) && document.getElementById(el.dataset.target).click(); break;
+            case 'vpk-save-comment':    saveComment(parseInt(el.dataset.cid)); break;
+            case 'vpk-set-criterion':   setCriterion(parseInt(el.dataset.cid), el.dataset.val === 'true'); break;
+            case 'vpk-pre-check-all':   preCheckAll(el.dataset.val); break;
+            case 'vpk-set-precheck':    setPrecheck(parseInt(el.dataset.cid), el.dataset.val); break;
+            case 'vpk-mark-read':       markRead(parseInt(el.dataset.rid)); break;
+        }
+    });
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('vpk-photo-input'))     onCriterionPhoto(parseInt(e.target.dataset.cid), e.target);
+        if (e.target.classList.contains('vpk-pre-photo-input')) onPrePhoto(parseInt(e.target.dataset.cid), e.target);
+    });
+})();
 </script>
 {% endblock %}

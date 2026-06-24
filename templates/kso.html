@@ -182,7 +182,7 @@
             <td class="small text-muted">{{ s.uploaded_at.strftime('%d.%m.%Y %H:%M') }}</td>
             <td>
                 <form method="post" action="/kso/schedules/{{ s.id }}/delete"
-                      onsubmit="return confirm('Удалить файл?')">
+                      data-confirm="Удалить файл?">
                     <button type="submit" class="btn btn-sm btn-outline-danger">
                         <i class="bi bi-trash"></i>
                     </button>

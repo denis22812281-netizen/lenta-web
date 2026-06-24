@@ -3,7 +3,7 @@
 {% block title %}<i class="bi bi-clock-history me-2"></i>Дедлайны{% endblock %}
 {% block topbar_actions %}
 <a href="/deadlines/export" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel me-1"></i><span class="d-none d-sm-inline">Excel</span></a>
-<button class="btn btn-sm btn-outline-secondary btn-print" onclick="window.print()"><i class="bi bi-printer me-1"></i><span class="d-none d-sm-inline">PDF</span></button>
+<button class="btn btn-sm btn-outline-secondary btn-print" data-action="print"><i class="bi bi-printer me-1"></i><span class="d-none d-sm-inline">PDF</span></button>
 {% endblock %}
 
 {% block content %}
@@ -11,7 +11,7 @@
 <div class="filter-bar mb-4">
     <form method="get" class="row g-2">
         <div class="col-6 col-sm-auto">
-            <select name="manager_id" class="form-select form-select-sm" onchange="this.form.submit()">
+            <select name="manager_id" class="form-select form-select-sm" data-action="autosubmit">
                 <option value="">Все менеджеры</option>
                 {% for m in managers %}
                 <option value="{{ m.id }}" {% if filter_manager_id|string == m.id|string %}selected{% endif %}>{{ m.name | short_name }}</option>
@@ -19,7 +19,7 @@
             </select>
         </div>
         <div class="col-6 col-sm-auto">
-            <select name="view" class="form-select form-select-sm" onchange="this.form.submit()">
+            <select name="view" class="form-select form-select-sm" data-action="autosubmit">
                 <option value="all" {% if view == 'all' %}selected{% endif %}>Все</option>
                 <option value="overdue" {% if view == 'overdue' %}selected{% endif %}>Просроченные</option>
                 <option value="week" {% if view == 'week' %}selected{% endif %}>На этой неделе</option>

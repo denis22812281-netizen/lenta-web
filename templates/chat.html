@@ -85,14 +85,14 @@
         <div id="photoPreview" class="photo-preview-bar" style="display:none">
             <img id="photoPreviewImg" src="" alt="">
             <span id="photoPreviewName" class="small text-muted ms-2"></span>
-            <button type="button" class="btn btn-sm btn-outline-danger ms-auto" onclick="clearPhoto()">
+            <button type="button" class="btn btn-sm btn-outline-danger ms-auto" id="btn-clear-photo">
                 <i class="bi bi-x"></i>
             </button>
         </div>
 
         <div class="chat-input-wrap">
             <!-- Смайлики -->
-            <button type="button" class="chat-tool-btn" id="btnEmoji" onclick="toggleEmoji()" title="Смайлики">
+            <button type="button" class="chat-tool-btn" id="btnEmoji"  title="Смайлики">
                 <i class="bi bi-emoji-smile"></i>
             </button>
             <!-- Голосовое -->
@@ -100,18 +100,18 @@
                 <i class="bi bi-mic-fill"></i>
             </button>
             <!-- Фото -->
-            <button type="button" class="chat-tool-btn" onclick="document.getElementById('photoInput').click()" title="Прикрепить фото">
+            <button type="button" class="chat-tool-btn" data-action="trigger-file" data-target="photoInput" title="Прикрепить фото">
                 <i class="bi bi-image"></i>
             </button>
-            <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="onPhotoSelected(this)">
+            <input type="file" id="photoInput" accept="image/*" style="display:none" >
 
             <div style="position:relative;flex:1;display:flex;">
                 <input type="text" id="msgInput" class="form-control chat-input"
                        placeholder="Написать сообщение... (@ для упоминания)" autocomplete="off"
-                       onkeydown="handleInputKey(event)" oninput="handleMentionInput(this)">
+                       id="chat-input-field">
                 <div id="mention-dropdown" class="mention-dropdown" style="display:none"></div>
             </div>
-            <button class="btn btn-success chat-send-btn" onclick="sendMsg()" title="Отправить">
+            <button class="btn btn-success chat-send-btn" id="btn-send-msg" title="Отправить">
                 <i class="bi bi-send-fill"></i>
             </button>
         </div>
@@ -119,7 +119,7 @@
 </div>
 
 <!-- Лайтбокс для просмотра фото -->
-<div id="lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:99999;align-items:center;justify-content:center;cursor:pointer" onclick="this.style.display='none'">
+<div id="lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:99999;align-items:center;justify-content:center;cursor:pointer" id="lightbox">
     <img id="lightboxImg" src="" style="max-width:92vw;max-height:88vh;border-radius:8px;box-shadow:0 4px 30px rgba(0,0,0,.5)">
 </div>
 
@@ -547,7 +547,7 @@ function renderMessages(msgs, clear) {
                 const src = m.photo.startsWith('http') ? m.photo : `/static/${m.photo}`;
                 bubbleContent += `<audio controls class="chat-audio" src="${escHtml(src)}"></audio>`;
             } else {
-                bubbleContent += `<img src="${escHtml(m.photo)}" class="chat-photo" onclick="openLightbox('${escHtml(m.photo)}')" alt="фото">`;
+                bubbleContent += `<img src="${escHtml(m.photo)}" class="chat-photo" data-action="open-lightbox" data-url="${escHtml(m.photo)}" alt="фото">`;
             }
         }
 
@@ -731,6 +731,27 @@ async function _sendVoice(blob) {
     _scrollBottom();
     if (window.visualViewport) window.visualViewport.addEventListener('resize', function() {
         setTimeout(_scrollBottom, 100);
+    });
+
+    // Wire buttons that lost onclick attrs
+    var btnEmoji = document.getElementById('btnEmoji');
+    if (btnEmoji) btnEmoji.addEventListener('click', toggleEmoji);
+    var btnSend = document.getElementById('btn-send-msg');
+    if (btnSend) btnSend.addEventListener('click', sendMsg);
+    var clearPhoto = document.getElementById('btn-clear-photo');
+    if (clearPhoto) clearPhoto.addEventListener('click', function() { clearPhoto(); });
+    var chatInput = document.getElementById('chat-input-field');
+    if (chatInput) {
+        chatInput.addEventListener('keydown', handleInputKey);
+        chatInput.addEventListener('input', function() { handleMentionInput(this); });
+    }
+    var photoInput = document.getElementById('photoInput');
+    if (photoInput) photoInput.addEventListener('change', function() { onPhotoSelected(this); });
+    var lightbox = document.getElementById('lightbox');
+    if (lightbox) lightbox.addEventListener('click', function() { this.style.display = 'none'; });
+    document.addEventListener('click', function(e) {
+        var el = e.target.closest('[data-action="open-lightbox"]');
+        if (el) openLightbox(el.dataset.url);
     });
 })();
 </script>

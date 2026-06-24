@@ -181,7 +181,7 @@
                 Этот номер телефона не авторизован для работы в системе.<br>
                 Обратитесь к руководителю проектов.
             </div>
-            <button class="btn-login" onclick="window.location.href='/login'" style="max-width:200px;margin:auto;display:block">
+            <button class="btn-login" data-action="navigate" data-href="/login" style="max-width:200px;margin:auto;display:block">
                 Попробовать снова
             </button>
         </div>
@@ -232,7 +232,7 @@
                            placeholder="Введите пароль"
                            autocomplete="current-password"
                            required autofocus>
-                    <button class="btn btn-outline-secondary" type="button" onclick="togglePass('pass','eye1')">
+                    <button class="btn btn-outline-secondary" type="button" data-action="toggle-pass" data-field="pass" data-eye="eye1">
                         <i class="bi bi-eye" id="eye1"></i>
                     </button>
                 </div>
@@ -246,7 +246,7 @@
             </button>
         </form>
         <div class="text-center mt-3">
-            <button class="btn-back" onclick="window.location.href='/login'">
+            <button class="btn-back" data-action="navigate" data-href="/login">
                 <i class="bi bi-arrow-left me-1"></i>Другой номер
             </button>
         </div>
@@ -269,9 +269,9 @@
                     <input type="password" name="password" id="pass1" class="form-control"
                            placeholder="Минимум 8 символов"
                            autocomplete="new-password"
-                           oninput="checkStrength(this.value)"
+                           id="new-pass-strength"
                            required autofocus>
-                    <button class="btn btn-outline-secondary" type="button" onclick="togglePass('pass1','eye2')">
+                    <button class="btn btn-outline-secondary" type="button" data-action="toggle-pass" data-field="pass1" data-eye="eye2">
                         <i class="bi bi-eye" id="eye2"></i>
                     </button>
                 </div>
@@ -284,7 +284,7 @@
                            placeholder="Введите пароль ещё раз"
                            autocomplete="new-password"
                            required>
-                    <button class="btn btn-outline-secondary" type="button" onclick="togglePass('pass2','eye3')">
+                    <button class="btn btn-outline-secondary" type="button" data-action="toggle-pass" data-field="pass2" data-eye="eye3">
                         <i class="bi bi-eye" id="eye3"></i>
                     </button>
                 </div>
@@ -294,7 +294,7 @@
             </button>
         </form>
         <div class="text-center mt-3">
-            <button class="btn-back" onclick="window.location.href='/login'">
+            <button class="btn-back" data-action="navigate" data-href="/login">
                 <i class="bi bi-arrow-left me-1"></i>Другой номер
             </button>
         </div>
@@ -324,7 +324,7 @@
             </button>
         </form>
         <div class="text-center mt-3">
-            <button class="btn-back" onclick="window.location.href='/login'">
+            <button class="btn-back" data-action="navigate" data-href="/login">
                 <i class="bi bi-arrow-left me-1"></i>Войти с другого аккаунта
             </button>
         </div>
@@ -371,6 +371,14 @@ if (phoneInput) {
         else this.value = val.slice(0,3)+' '+val.slice(3,6)+' '+val.slice(6,8)+' '+val.slice(8,10);
     });
 }
+
+// Delegation for toggle-pass buttons and strength input
+document.addEventListener('click', function(e) {
+    var el = e.target.closest('[data-action="toggle-pass"]');
+    if (el) togglePass(el.dataset.field, el.dataset.eye);
+});
+var strengthInput = document.getElementById('new-pass-strength');
+if (strengthInput) strengthInput.addEventListener('input', function() { checkStrength(this.value); });
 </script>
 </body>
 </html>

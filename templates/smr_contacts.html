@@ -53,7 +53,7 @@
         <span><i class="bi bi-people-fill me-2"></i>Контакты <span class="badge bg-secondary ms-1">{{ contacts | length }}</span></span>
         <input type="text" id="contactSearch" class="form-control form-control-sm ms-2"
                style="width:200px" placeholder="Быстрый поиск..."
-               oninput="filterContacts(this.value)">
+               id="contacts-search">
       </div>
 
       {% if not contacts %}
@@ -80,7 +80,7 @@
           <td class="text-muted small d-none d-md-table-cell">{{ c.position or '—' }}</td>
           <td>
             <form method="post" action="/smr/contacts/{{ c.id }}/delete"
-                  onsubmit="return confirm('Удалить {{ c.name }}?')">
+                  data-confirm="Удалить {{ c.name }}?">
               <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
               <button class="btn btn-sm btn-outline-danger py-0 px-2">
                 <i class="bi bi-trash"></i>
