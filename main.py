@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import re
 import secrets
 from datetime import datetime, timedelta
 from urllib.parse import parse_qs
@@ -140,11 +141,14 @@ class AdminIPWhitelistMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+_SCRIPT_NONCE_RE = re.compile(rb"<script(?![^>]*\bnonce\b)", re.IGNORECASE)
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """Добавляет security-заголовки ко всем ответам."""
-    _CSP = (
+    """Добавляет security-заголовки и инжектирует CSP nonce во все <script> теги."""
+    _CSP_TMPL = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
+        "script-src 'self' 'nonce-{{nonce}}' 'unsafe-inline' cdn.jsdelivr.net; "
         "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
         "img-src 'self' data: blob: res.cloudinary.com *.cloudinary.com "
         "*.tile.openstreetmap.org *.basemaps.cartocdn.com; "
@@ -155,17 +159,45 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     )
 
     async def dispatch(self, request: Request, call_next):
+        nonce = secrets.token_urlsafe(16)
+        request.state.csp_nonce = nonce
         response = await call_next(request)
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        # CSP только для HTML-страниц (не для статики и API)
+
+        base_headers = {
+            "X-Frame-Options": "DENY",
+            "X-Content-Type-Options": "nosniff",
+            "Referrer-Policy": "strict-origin-when-cross-origin",
+            "Permissions-Policy": "geolocation=(), camera=(), microphone=()",
+            "X-XSS-Protection": "1; mode=block",
+        }
+        if os.getenv("RAILWAY_ENVIRONMENT"):
+            base_headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+
         ct = response.headers.get("content-type", "")
-        if "text/html" in ct:
-            response.headers["Content-Security-Policy"] = self._CSP
-        return response
+        if "text/html" not in ct:
+            for k, v in base_headers.items():
+                response.headers[k] = v
+            return response
+
+        # Читаем тело, инжектируем nonce во все <script> теги
+        chunks: list[bytes] = []
+        async for chunk in response.body_iterator:
+            chunks.append(chunk if isinstance(chunk, bytes) else chunk.encode("utf-8"))
+        body = b"".join(chunks)
+
+        nonce_b = nonce.encode("ascii")
+        body = _SCRIPT_NONCE_RE.sub(b'<script nonce="' + nonce_b + b'"', body)
+
+        base_headers["Content-Security-Policy"] = self._CSP_TMPL.replace("{{nonce}}", nonce)
+
+        from starlette.responses import Response as PlainResponse
+        new_resp = PlainResponse(content=body, status_code=response.status_code, media_type=ct)
+        for k, v in response.headers.items():
+            if k.lower() not in ("content-length", "content-type"):
+                new_resp.headers[k] = v
+        for k, v in base_headers.items():
+            new_resp.headers[k] = v
+        return new_resp
 
 
 class AuditMiddleware(BaseHTTPMiddleware):
