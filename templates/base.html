@@ -17,7 +17,7 @@
     </script>
     <link href="/static/vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
     <link href="/static/vendor/bootstrap-icons/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="/static/css/style.css?v=20260624b" rel="stylesheet">
+    <link href="/static/css/style.css?v=20260624c" rel="stylesheet">
     <meta name="csrf-token" content="{{ csrf_token(request) }}">
 </head>
 <body>
@@ -194,7 +194,7 @@
     </header>
 
     <!-- Search overlay -->
-    <div id="search-overlay" style="display:none;position:fixed;inset:0;z-index:1050;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)"></div>
+    <div id="search-overlay" style="display:none;position:fixed;inset:0;z-index:1050;background:rgba(0,0,0,.6)"></div>
     <div id="search-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:1051;padding:10px 12px;background:var(--bs-body-bg);box-shadow:0 4px 20px rgba(0,0,0,.3)">
         <form method="get" action="/search" class="d-flex gap-2" id="search-form">
             <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" id="btn-search-close">

@@ -537,8 +537,6 @@ body {
     inset: 0;
     background: rgba(0,0,0,.55);
     z-index: 999;
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
     animation: fadeIn .2s ease;
 }
 .sidebar-backdrop.show { display: block; }
