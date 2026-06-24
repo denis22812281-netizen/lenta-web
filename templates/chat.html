@@ -216,35 +216,33 @@
 
 /* ── Мобильная адаптация ─────────────────────────────────────── */
 @media (max-width: 768px) {
-    /* Базовая высота; JS переопределяет через position:fixed при запуске */
+    /* position:fixed + top/bottom → height:auto вычисляется браузером.
+       JS только уточняет top под реальную высоту топбара. */
     .chat-wrap {
-        height: calc(100dvh - 56px - 58px - env(safe-area-inset-bottom, 0px));
+        position: fixed;
+        top: 56px;
+        bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+        left: 0;
+        right: 0;
+        height: auto;
         border-radius: 0;
-        margin: -8px -12px 0;
-        width: calc(100% + 24px);
+        margin: 0;
+        width: 100%;
+        overflow: hidden;
+        z-index: 10;
     }
     .chat-sidebar { width:100%; min-width:0; border-right:none; }
     .chat-main { display:none; }
     .in-conversation .chat-sidebar { display:none; }
-    .in-conversation .chat-main { display:flex; width:100%; position:relative; }
+    .in-conversation .chat-main { display:flex; width:100%; height:100%; }
+    /* КЛЮЧЕВОЙ ФИX: min-height:0 позволяет flex:1 сжиматься,
+       не выталкивая chat-input-wrap за пределы контейнера */
+    .chat-messages { min-height: 0; }
     .chat-input { font-size:16px; }
-    .emoji-picker { width:calc(100vw - 30px); left:8px; bottom:auto; top:auto; }
+    .emoji-picker { width:calc(100vw - 30px); left:8px; }
     .chat-msg { max-width:88%; }
     .chat-bubble { font-size:15px; }
     .chat-header { padding:10px 12px; }
-    /* Инпут всегда внизу chat-main — абсолютное позиционирование,
-       не зависит от flex-распределения высоты */
-    .in-conversation .chat-input-wrap {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        z-index: 2;
-    }
-    /* Отступ снизу чтобы последние сообщения не перекрывались инпутом */
-    .in-conversation .chat-messages {
-        padding-bottom: 70px;
-    }
 }
 
 /* ── DARK THEME ── */
@@ -721,51 +719,25 @@ async function _sendVoice(blob) {
     } catch(e) {}
 }
 
-// Мобильный чат: position:fixed, высота из реального DOM.
-// getBoundingClientRect() замеряет точно где заканчивается топбар и начинается нав.
+// Мобильный чат: CSS делает position:fixed (top/bottom/height:auto).
+// JS только уточняет top под реальную высоту топбара.
 (function() {
     if (window.innerWidth > 900) return;
     var chatWrap = document.querySelector('.chat-wrap');
     if (!chatWrap) return;
 
+    // Сбрасываем inline-стили от старых версий скрипта
+    chatWrap.style.cssText = '';
+    var chatMain = chatWrap.querySelector('.chat-main');
+    if (chatMain) chatMain.style.cssText = '';
+
     function _apply() {
-        if (window.innerWidth > 900) { chatWrap.style.cssText = ''; return; }
-
+        if (window.innerWidth > 900) { chatWrap.style.top = ''; return; }
         var topbarEl = document.querySelector('.topbar');
-        var bnavEl   = document.querySelector('.bottom-nav-mobile');
-        var vpH = window.visualViewport
-                ? Math.round(window.visualViewport.height)
-                : window.innerHeight;
-
-        // Точная нижняя граница топбара в координатах viewport
         var chatTop = topbarEl
                 ? Math.ceil(topbarEl.getBoundingClientRect().bottom)
                 : 56;
-
-        // Точная верхняя граница навбара; если нав ушёл за клавиатуру — ограничиваем vpH
-        var bnavTop = bnavEl
-                ? Math.round(bnavEl.getBoundingClientRect().top)
-                : (vpH - 58);
-        var chatBottom = Math.min(bnavTop, vpH);
-
-        var h = Math.max(150, chatBottom - chatTop);
-
-        chatWrap.style.position     = 'fixed';
-        chatWrap.style.top          = chatTop + 'px';
-        chatWrap.style.left         = '0';
-        chatWrap.style.right        = '0';
-        chatWrap.style.width        = '100%';
-        chatWrap.style.height       = h + 'px';
-        chatWrap.style.bottom       = '';
-        chatWrap.style.margin       = '0';
-        chatWrap.style.borderRadius = '0';
-        chatWrap.style.zIndex       = '10';
-        chatWrap.style.overflow     = 'visible';
-
-        // Явно задаём высоту chat-main чтобы flex:1 на chatMessages работал
-        var chatMain = chatWrap.querySelector('.chat-main');
-        if (chatMain) chatMain.style.height = h + 'px';
-
+        chatWrap.style.top = chatTop + 'px';
         var msgs = document.getElementById('chatMessages');
         if (msgs) setTimeout(function() { msgs.scrollTop = msgs.scrollHeight; }, 80);
     }
