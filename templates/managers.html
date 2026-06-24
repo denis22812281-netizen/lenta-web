@@ -513,32 +513,6 @@
 </div>
 {% endif %}
 
-<!-- Модал: редактировать email -->
-{% if user and user.is_admin %}
-<div class="modal fade" id="modalEmail" tabindex="-1">
-    <div class="modal-dialog modal-sm">
-        <div class="modal-content">
-            <div class="modal-header bg-dark text-white">
-                <h6 class="modal-title"><i class="bi bi-envelope me-2"></i>Email для уведомлений</h6>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="fw-semibold mb-2" id="emailModalName"></div>
-                <input type="email" id="emailModalInput" class="form-control"
-                       placeholder="ivanov@lenta.com">
-                <div class="form-text">На этот адрес придут уведомления о задачах</div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Отмена</button>
-                <button type="button" class="btn btn-dark btn-sm" onclick="saveEmail()">
-                    <i class="bi bi-check2 me-1"></i>Сохранить
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-
 {% endblock %}
 
 {% block scripts %}
@@ -590,28 +564,17 @@ function closeMgrTab(mgrId, tab) {
 }
 
 // ── Email менеджера ──────────────────────────────────────────
-var _emailMgrId = null;
-
 function openEmailModal(mgrId, name, currentEmail) {
-    _emailMgrId = mgrId;
-    document.getElementById('emailModalName').textContent = name;
-    document.getElementById('emailModalInput').value = currentEmail || '';
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEmail')).show();
-}
-
-async function saveEmail() {
-    if (!_emailMgrId) return;
-    const email = document.getElementById('emailModalInput').value.trim();
-    const resp = await fetch('/managers/' + _emailMgrId + '/email', {
+    const newEmail = prompt('Email для ' + name + ':', currentEmail || '');
+    if (newEmail === null) return; // отмена
+    fetch('/managers/' + mgrId + '/email', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({email: email})
+        body: JSON.stringify({email: newEmail.trim()})
+    }).then(r => r.json()).then(d => {
+        if (d.ok) location.reload();
+        else alert('Ошибка: ' + (d.error || 'неизвестная'));
     });
-    const data = await resp.json();
-    if (data.ok) {
-        bootstrap.Modal.getInstance(document.getElementById('modalEmail')).hide();
-        location.reload();
-    }
 }
 </script>
 {% endblock %}
