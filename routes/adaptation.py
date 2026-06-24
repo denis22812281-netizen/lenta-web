@@ -21,7 +21,7 @@ _NOTIFY_EMAIL = os.getenv("NOTIFY_PRECHECK_EMAIL", "denis.mesmer@lenta.com")
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
-def _send_adaptation_email(card_dict: dict) -> None:
+def _send_adaptation_email(card_dict: dict, extra_emails: list | None = None) -> None:
     """Send adaptation card by email. Receives plain dict to avoid DetachedInstanceError."""
     import logging
     log = logging.getLogger(__name__)
@@ -39,19 +39,26 @@ def _send_adaptation_email(card_dict: dict) -> None:
 
         excel_bytes = generate_excel(data)
 
+        recipients = {_NOTIFY_EMAIL}
+        for em in (extra_emails or []):
+            if em:
+                recipients.add(em)
+
         # Write to temp file — email_service reads from path
         fd, tmp_path = tempfile.mkstemp(suffix=".xlsx")
         try:
             os.write(fd, excel_bytes)
             os.close(fd)
-            notify_adaptation_card(
-                to_email=_NOTIFY_EMAIL,
-                tk_number=tk,
-                author=author,
-                date_str=date_str,
-                data=data,
-                excel_path=tmp_path,
-            )
+            for to_email in recipients:
+                if to_email:
+                    notify_adaptation_card(
+                        to_email=to_email,
+                        tk_number=tk,
+                        author=author,
+                        date_str=date_str,
+                        data=data,
+                        excel_path=tmp_path,
+                    )
         finally:
             try:
                 os.unlink(tmp_path)
@@ -193,8 +200,17 @@ async def adaptation_send(
     card.recipient_email = _NOTIFY_EMAIL
     db.commit()
 
+    # Email отправителя — чтобы он тоже получил копию карточки
+    submitter_name = user.get("display_name", "")
+    sub_mgr = db.query(models.Manager).filter(
+        models.Manager.name == submitter_name,
+        models.Manager.email.isnot(None),
+        models.Manager.email != "",
+    ).first()
+    extra = [sub_mgr.email] if sub_mgr and sub_mgr.email != _NOTIFY_EMAIL else []
+
     from services.email_service import EMAIL_ENABLED
-    background_tasks.add_task(_send_adaptation_email, card_dict)
+    background_tasks.add_task(_send_adaptation_email, card_dict, extra)
     suffix = "" if EMAIL_ENABLED else "&email_warn=1"
     return RedirectResponse(f"/adaptation/{card_id}/edit?sent=1{suffix}", status_code=303)
 

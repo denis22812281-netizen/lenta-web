@@ -215,24 +215,25 @@ async def precheck_submit(request: Request, background_tasks: BackgroundTasks,
     ok_count   = sum(1 for i in items if i.status == "done")
     skip_count = sum(1 for i in items if i.status == "not_checked")
 
-    # Получатель: env var → иначе email отправителя из таблицы менеджеров
-    to_email = _PRECHECK_EMAIL
-    if not to_email:
-        submitter_name = user.get("display_name", "")
-        mgr = db.query(models.Manager).filter(
-            models.Manager.name == submitter_name,
-            models.Manager.email.isnot(None),
-            models.Manager.email != "",
-        ).first()
-        if mgr:
-            to_email = mgr.email
-
+    # Получатели: фиксированный email (Denis) + email отправителя из таблицы менеджеров
     submitter = user.get("display_name", "")
-    if to_email:
-        background_tasks.add_task(
-            notify_precheck_report, to_email, vpk_type, tk, proj_name,
-            submitter, vpk_date_str, failed_items, ok_count, skip_count,
-        )
+    to_emails: set[str] = set()
+    if _PRECHECK_EMAIL:
+        to_emails.add(_PRECHECK_EMAIL)
+    sub_mgr = db.query(models.Manager).filter(
+        models.Manager.name == submitter,
+        models.Manager.email.isnot(None),
+        models.Manager.email != "",
+    ).first()
+    if sub_mgr:
+        to_emails.add(sub_mgr.email)
+
+    if to_emails:
+        for em in to_emails:
+            background_tasks.add_task(
+                notify_precheck_report, em, vpk_type, tk, proj_name,
+                submitter, vpk_date_str, failed_items, ok_count, skip_count,
+            )
     else:
         _vpk_logger.warning("Precheck: email не отправлен — NOTIFY_PRECHECK_EMAIL не задан и у менеджера нет email")
 
@@ -502,13 +503,24 @@ async def opening_send_report(request: Request, background_tasks: BackgroundTask
     city = proj.city or ""
     submitter = user.get("display_name", "")
 
-    to_email = _OPENING_EMAIL
-    if to_email:
-        background_tasks.add_task(
-            notify_opening_photos,
-            to_email, proj.tk_number, city, submitter, photo_urls, proj.id,
-        )
-        _vpk_logger.info("Opening report: отправка %d фото → %s", len(photo_urls), to_email)
+    open_emails: set[str] = set()
+    if _OPENING_EMAIL:
+        open_emails.add(_OPENING_EMAIL)
+    sub_mgr_op = db.query(models.Manager).filter(
+        models.Manager.name == submitter,
+        models.Manager.email.isnot(None),
+        models.Manager.email != "",
+    ).first()
+    if sub_mgr_op:
+        open_emails.add(sub_mgr_op.email)
+
+    if open_emails:
+        for em in open_emails:
+            background_tasks.add_task(
+                notify_opening_photos,
+                em, proj.tk_number, city, submitter, photo_urls, proj.id,
+            )
+        _vpk_logger.info("Opening report: отправка %d фото → %s", len(photo_urls), open_emails)
         msg = f"Отчёт отправлен — {len(photo_urls)} фото"
     else:
         msg = "NOTIFY_PRECHECK_EMAIL не задан"
