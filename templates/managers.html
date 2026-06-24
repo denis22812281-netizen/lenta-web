@@ -593,7 +593,7 @@ function openEmailModal(mgrId, name, currentEmail) {
     _emailMgrId = mgrId;
     document.getElementById('emailModalName').textContent = name;
     document.getElementById('emailModalInput').value = currentEmail || '';
-    new bootstrap.Modal(document.getElementById('modalEmail')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEmail')).show();
 }
 
 async function saveEmail() {
