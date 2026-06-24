@@ -216,27 +216,19 @@
 
 /* ── Мобильная адаптация ─────────────────────────────────────── */
 @media (max-width: 768px) {
-    /* position:fixed + top/bottom → height:auto вычисляется браузером.
-       JS только уточняет top под реальную высоту топбара. */
     .chat-wrap {
-        position: fixed;
-        top: 56px;
-        bottom: calc(58px + env(safe-area-inset-bottom, 0px));
-        left: 0;
-        right: 0;
-        height: auto;
+        height: calc(100vh - 56px - 58px - env(safe-area-inset-bottom, 0px));
+        height: calc(100dvh - 56px - 58px - env(safe-area-inset-bottom, 0px));
         border-radius: 0;
-        margin: 0;
-        width: 100%;
-        overflow: hidden;
-        z-index: 10;
+        margin: -8px -12px 0;
+        width: calc(100% + 24px);
     }
     .chat-sidebar { width:100%; min-width:0; border-right:none; }
     .chat-main { display:none; }
     .in-conversation .chat-sidebar { display:none; }
     .in-conversation .chat-main { display:flex; width:100%; height:100%; }
-    /* КЛЮЧЕВОЙ ФИX: min-height:0 позволяет flex:1 сжиматься,
-       не выталкивая chat-input-wrap за пределы контейнера */
+    /* Ключевой фикс: без min-height:0 flex:1 не сжимается и
+       выталкивает chat-input-wrap за пределы контейнера */
     .chat-messages { min-height: 0; }
     .chat-input { font-size:16px; }
     .emoji-picker { width:calc(100vw - 30px); left:8px; }
@@ -726,25 +718,20 @@ async function _sendVoice(blob) {
     var chatWrap = document.querySelector('.chat-wrap');
     if (!chatWrap) return;
 
-    // Сбрасываем inline-стили от старых версий скрипта
+    // Сброс inline-стилей от старых версий скрипта
     chatWrap.style.cssText = '';
     var chatMain = chatWrap.querySelector('.chat-main');
     if (chatMain) chatMain.style.cssText = '';
 
-    function _apply() {
-        if (window.innerWidth > 900) { chatWrap.style.top = ''; return; }
-        var topbarEl = document.querySelector('.topbar');
-        var chatTop = topbarEl
-                ? Math.ceil(topbarEl.getBoundingClientRect().bottom)
-                : 56;
-        chatWrap.style.top = chatTop + 'px';
+    // Прокрутка к последнему сообщению
+    function _scrollBottom() {
         var msgs = document.getElementById('chatMessages');
-        if (msgs) setTimeout(function() { msgs.scrollTop = msgs.scrollHeight; }, 80);
+        if (msgs) msgs.scrollTop = msgs.scrollHeight;
     }
-
-    if (window.visualViewport) window.visualViewport.addEventListener('resize', _apply);
-    window.addEventListener('resize', _apply);
-    _apply();
+    _scrollBottom();
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', function() {
+        setTimeout(_scrollBottom, 100);
+    });
 })();
 </script>
 {% endblock %}
