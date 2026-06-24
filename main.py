@@ -153,11 +153,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     _CSP_TMPL = (
         "default-src 'self'; "
         "script-src 'self' 'nonce-{{nonce}}' 'unsafe-inline' cdn.jsdelivr.net; "
-        "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' cdn.jsdelivr.net fonts.googleapis.com; "
         "img-src 'self' data: blob: res.cloudinary.com *.cloudinary.com "
         "*.tile.openstreetmap.org *.basemaps.cartocdn.com; "
         "connect-src 'self' fcm.googleapis.com *.googleapis.com; "
-        "font-src 'self' cdn.jsdelivr.net; "
+        "font-src 'self' cdn.jsdelivr.net fonts.gstatic.com; "
         "frame-ancestors 'none'; "
         "object-src 'none';"
     )

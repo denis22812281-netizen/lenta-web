@@ -1,5 +1,8 @@
-/* ─── ЛЕНТА BRAND COLORS ────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+/* ─── ЛЕНТА BRAND COLORS + DESIGN TOKENS ────────────────────── */
 :root {
+    /* Brand */
     --lenta-green: #3CB34A;
     --lenta-green-dark: #2A8436;
     --lenta-green-deep: #1A5C22;
@@ -10,12 +13,38 @@
     --sidebar-w: 260px;
     --bg: #F4FAF5;
     --card-shadow: 0 2px 10px rgba(42,132,54,.1);
+
+    /* Spacing scale */
+    --sp-xs: 4px;
+    --sp-sm: 8px;
+    --sp-md: 16px;
+    --sp-lg: 24px;
+    --sp-xl: 32px;
+
+    /* Radius scale */
+    --r-sm: 8px;
+    --r-md: 12px;
+    --r-lg: 16px;
+    --r-xl: 20px;
+
+    /* Shadow scale */
+    --shadow-sm: 0 1px 4px rgba(0,0,0,.07);
+    --shadow-md: 0 4px 16px rgba(42,132,54,.1);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
+    --shadow-hover: 0 12px 36px rgba(42,132,54,.18);
+
+    /* Animation */
+    --ease-out: cubic-bezier(.2, 0, .2, 1);
+    --ease-spring: cubic-bezier(.4, 0, .2, 1.4);
+    --dur-fast: 120ms;
+    --dur-base: 200ms;
+    --dur-slow: 350ms;
 }
 
 * { box-sizing: border-box; }
 
 body {
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
     background: var(--bg);
     margin: 0;
     display: flex;
@@ -1125,6 +1154,299 @@ body {
 .filter-chip.active { background: var(--lenta-green); color: #fff; border-color: var(--lenta-green-dark); }
 [data-bs-theme="dark"] .filter-chip { color: #4ade80; }
 [data-bs-theme="dark"] .filter-chip.active { color: #fff; }
+
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN SYSTEM v2 — типографика, карточки, анимации, дашборд
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Типографика ────────────────────────────────────────────── */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+.fw-800 { font-weight: 800 !important; }
+.fw-900 { font-weight: 900 !important; }
+.text-mono { font-feature-settings: "tnum"; font-variant-numeric: tabular-nums; }
+
+/* ── Stat cards — усиленный вид ─────────────────────────────── */
+.stat-card {
+    position: relative;
+    overflow: hidden;
+}
+.stat-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity var(--dur-base) var(--ease-out);
+    pointer-events: none;
+}
+.stat-blue::before  { background: linear-gradient(135deg, rgba(60,179,74,.06), transparent 60%); }
+.stat-green::before { background: linear-gradient(135deg, rgba(34,197,94,.06), transparent 60%); }
+.stat-yellow::before{ background: linear-gradient(135deg, rgba(234,179,8,.06), transparent 60%); }
+.stat-red::before   { background: linear-gradient(135deg, rgba(239,68,68,.06), transparent 60%); }
+.stat-card:hover::before { opacity: 1; }
+
+.stat-num {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: "tnum";
+    letter-spacing: -2px;
+}
+.stat-icon-wrap {
+    transition: transform var(--dur-base) var(--ease-spring);
+}
+.stat-card:hover .stat-icon-wrap {
+    transform: scale(1.1) rotate(-4deg);
+}
+
+/* ── Project card — карточка с акцентом и прогрессом ────────── */
+.project-card {
+    background: #fff;
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid #e8f5e9;
+    overflow: hidden;
+    transition: box-shadow var(--dur-base) var(--ease-out),
+                transform var(--dur-base) var(--ease-out),
+                border-color var(--dur-base);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+.project-card:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-3px);
+    border-color: rgba(60,179,74,.3);
+}
+.project-card-accent {
+    height: 4px;
+    width: 100%;
+    flex-shrink: 0;
+}
+.project-card-body {
+    padding: 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.project-card-title {
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1.35;
+    color: inherit;
+    text-decoration: none;
+}
+.project-card-title:hover { color: var(--lenta-green); }
+.project-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #64748b;
+}
+.project-card-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+    background: var(--lenta-green-dark);
+}
+.project-card-progress {
+    margin-top: auto;
+}
+.project-card-progress-bar {
+    height: 4px;
+    border-radius: 4px;
+    background: #e8f5e9;
+    overflow: hidden;
+}
+.project-card-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: var(--lenta-green);
+    transition: width 0.6s var(--ease-out);
+}
+
+[data-bs-theme="dark"] .project-card {
+    background: #1a2e1c;
+    border-color: rgba(60,179,74,.15);
+}
+[data-bs-theme="dark"] .project-card:hover {
+    border-color: rgba(60,179,74,.4);
+}
+
+/* ── Dashboard quick-action buttons ─────────────────────────── */
+.dash-banner {
+    border-radius: var(--r-lg);
+    background: linear-gradient(135deg, var(--lenta-green-deep), var(--lenta-green-dark));
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+    min-height: 70px;
+}
+.dash-banner::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: rgba(255,210,0,.08);
+}
+.lenta-sign-wrap { display: flex; align-items: center; }
+.dash-logo { height: 38px; filter: brightness(0) invert(1); opacity: .9; }
+
+.dash-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+.dash-qbtn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 18px 12px 14px;
+    border-radius: var(--r-lg);
+    text-decoration: none;
+    color: inherit;
+    background: #fff;
+    border: 1px solid #e8f5e9;
+    box-shadow: var(--shadow-sm);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    transition: transform var(--dur-base) var(--ease-out),
+                box-shadow var(--dur-base) var(--ease-out),
+                border-color var(--dur-base);
+}
+.dash-qbtn:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: rgba(60,179,74,.25);
+    color: inherit;
+}
+.dash-qbtn-icon {
+    width: 48px; height: 48px;
+    border-radius: var(--r-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    transition: transform var(--dur-base) var(--ease-spring);
+}
+.dash-qbtn:hover .dash-qbtn-icon {
+    transform: scale(1.1);
+}
+[data-bs-theme="dark"] .dash-qbtn {
+    background: #1a2e1c;
+    border-color: rgba(60,179,74,.15);
+    color: #e2e8f0;
+}
+
+/* ── Кнопки — micro-animations ──────────────────────────────── */
+.btn {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 500;
+    transition: transform var(--dur-fast) var(--ease-out),
+                box-shadow var(--dur-fast) var(--ease-out),
+                background var(--dur-fast),
+                border-color var(--dur-fast) !important;
+    will-change: transform;
+}
+.btn:active { transform: scale(0.97) !important; }
+.btn:not(:disabled):hover { transform: translateY(-1px); }
+.btn-success {
+    background: var(--lenta-green) !important;
+    border-color: var(--lenta-green) !important;
+}
+.btn-success:hover {
+    background: var(--lenta-green-dark) !important;
+    border-color: var(--lenta-green-dark) !important;
+    box-shadow: 0 4px 12px rgba(60,179,74,.3) !important;
+}
+.btn-success:active {
+    background: var(--lenta-green-deep) !important;
+    border-color: var(--lenta-green-deep) !important;
+}
+
+/* ── Form focus — чёткие состояния ─────────────────────────── */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--lenta-green) !important;
+    box-shadow: 0 0 0 3px rgba(60,179,74,.15) !important;
+    outline: none;
+}
+.form-control, .form-select {
+    transition: border-color var(--dur-fast),
+                box-shadow var(--dur-fast);
+    font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* ── Table rows — плавный hover ─────────────────────────────── */
+.table-hover > tbody > tr {
+    transition: background var(--dur-fast);
+}
+
+/* ── Badge / pill — единый стиль ────────────────────────────── */
+.badge {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+/* ── Page entrance — для основного контента ─────────────────── */
+.page-body > * {
+    animation: pageIn var(--dur-slow) var(--ease-out) both;
+}
+@keyframes pageIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+}
+/* Стаггер для рядов */
+.page-body > *:nth-child(2) { animation-delay: 40ms; }
+.page-body > *:nth-child(3) { animation-delay: 80ms; }
+.page-body > *:nth-child(4) { animation-delay: 120ms; }
+
+/* ── Loading state для кнопок ────────────────────────────────── */
+.btn-loading {
+    position: relative;
+    pointer-events: none;
+    color: transparent !important;
+}
+.btn-loading::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: btn-spin 0.6s linear infinite;
+    top: 50%; left: 50%;
+    margin-top: -7px; margin-left: -7px;
+}
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+
+/* ── Link hover — плавный underline ─────────────────────────── */
+a {
+    transition: color var(--dur-fast);
+}
+
+/* Мобиль */
+@media (max-width: 767px) {
+    .dash-quick-actions { grid-template-columns: repeat(2, 1fr); }
+    .dash-qbtn { padding: 14px 10px 12px; }
+    .dash-qbtn-icon { width: 40px; height: 40px; font-size: 18px; }
+}
 
 /* ── Print overrides — must be last, same specificity beats dark theme ── */
 @media print {

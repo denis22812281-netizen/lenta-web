@@ -275,6 +275,33 @@ async function checkDeadlines(force = false) {
     } catch (_) {}
 }
 
+// ── Button loading state ──────────────────────────────────────────────────────
+function btnLoading(btn, loading) {
+    if (loading) {
+        btn.dataset._origText = btn.innerHTML;
+        btn.classList.add('btn-loading');
+        btn.disabled = true;
+    } else {
+        btn.innerHTML = btn.dataset._origText || btn.innerHTML;
+        btn.classList.remove('btn-loading');
+        btn.disabled = false;
+    }
+}
+
+// Auto-disable submit buttons on form submit to prevent double-send
+document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('submit', function (e) {
+        const form = e.target;
+        if (form.classList.contains('no-loading')) return;
+        const btn = form.querySelector('[type="submit"]:not([data-no-loading])');
+        if (btn) {
+            // Restore after 8s as fallback if redirect doesn't happen
+            setTimeout(() => btnLoading(btn, false), 8000);
+            btnLoading(btn, true);
+        }
+    });
+});
+
 // ── Прогресс-индикатор для длинных форм ──────────────────────────────────────
 (function() {
     document.addEventListener('DOMContentLoaded', function() {
