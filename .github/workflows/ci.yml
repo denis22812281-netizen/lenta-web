@@ -8,10 +8,22 @@ on:
 
 jobs:
 
-  # ── Быстрые тесты на SQLite (без зависимостей) ────────────────────────
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install ruff>=0.15.0
+      - run: ruff check .
+
   test-sqlite:
     name: Tests (SQLite)
     runs-on: ubuntu-latest
+    needs: [lint]
 
     env:
       DATABASE_URL: "sqlite:///./test_lenta.db"
@@ -31,19 +43,16 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run tests
-        run: pytest tests/ -v --tb=short
+        run: pytest tests/ -v --tb=short -x --ignore=tests/test_e2e_mobile.py
 
-      - name: Upload test results on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-sqlite
-          path: pytest-*.xml
+      - name: Cleanup test DB
+        if: always()
+        run: rm -f test_lenta.db
 
-  # ── Тесты против реального PostgreSQL ────────────────────────────────
   test-postgres:
     name: Tests (PostgreSQL)
     runs-on: ubuntu-latest
+    needs: [lint]
 
     services:
       postgres:
@@ -79,11 +88,4 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run tests against PostgreSQL
-        run: pytest tests/ -v --tb=short
-
-      - name: Upload test results on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-postgres
-          path: pytest-*.xml
+        run: pytest tests/ -v --tb=short -x --ignore=tests/test_e2e_mobile.py

@@ -1,41 +1,9 @@
-name: Tests
-
+# Устарел — логика перенесена в ci.yml
+name: _deprecated
 on:
-  push:
-    branches: [main, master, develop]
-  pull_request:
-    branches: [main, master]
-
+  workflow_dispatch:
 jobs:
-  test:
+  noop:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    env:
-      SECRET_KEY: ci-test-secret-key-not-for-production
-      SENTRY_DSN: ""
-      CLOUDINARY_CLOUD_NAME: ""
-      TESTING: "1"
-
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-          cache-dependency-path: lenta-web/requirements.txt
-
-      - name: Install dependencies
-        working-directory: lenta-web
-        run: pip install --upgrade pip && pip install -r requirements.txt
-
-      - name: Run tests
-        working-directory: lenta-web
-        run: pytest tests/ -v --tb=short -x
-
-      - name: Check test DB cleanup
-        if: always()
-        working-directory: lenta-web
-        run: rm -f test_lenta.db
+      - run: echo "Use ci.yml instead"
