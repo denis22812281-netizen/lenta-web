@@ -123,10 +123,10 @@ async def vpk_submit(request: Request, background_tasks: BackgroundTasks,
     ]
 
     recipients = {}
-    # Получатели: лидеры (Гаврин, Комаров) + отправитель + менеджер проекта
+    # Получатели: отправитель + менеджер проекта (лидеры временно отключены)
     for mgr in db.query(models.Manager).filter(
             models.Manager.email != "", models.Manager.email.isnot(None)).all():
-        if mgr.is_leader or mgr.name == submitter or (proj and proj.manager_id == mgr.id):
+        if mgr.name == submitter or (proj and proj.manager_id == mgr.id):
             recipients[mgr.email] = mgr.name
 
     _vpk_logger.info("VPK submit: отправка email получателям %s", list(recipients.keys()))
