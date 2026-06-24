@@ -183,7 +183,7 @@
 function confirmDelete(wlId, name) {
     document.getElementById('deleteUserName').textContent = name;
     document.getElementById('deleteForm').action = '/admin/whitelist/' + wlId + '/delete';
-    new bootstrap.Modal(document.getElementById('modalConfirmDelete')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalConfirmDelete')).show();
 }
 </script>
 {% endblock %}

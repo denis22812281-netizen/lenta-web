@@ -1,7 +1,8 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.pool import StaticPool
-import os
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./lenta.db")
 
@@ -36,6 +37,7 @@ def get_db():
 
 
 from contextlib import contextmanager
+
 
 @contextmanager
 def db_session():

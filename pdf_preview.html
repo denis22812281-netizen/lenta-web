@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Превью PDF — Отчёт директора</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #e5e7eb; font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; }
+
+  /* A4 лист */
+  .page {
+    background: #fff;
+    width: 794px;
+    min-height: 1123px;
+    margin: 0 auto;
+    padding: 32px 36px;
+    box-shadow: 0 4px 30px rgba(0,0,0,.25);
+    border-radius: 4px;
+  }
+
+  /* Шапка */
+  .print-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #3CB34A;
+  }
+  .print-header img {
+    max-width: 320px;
+    max-height: 70px;
+    object-fit: contain;
+  }
+  .print-header-sub {
+    font-size: 12px;
+    color: #666;
+    margin-top: 7px;
+    letter-spacing: .03em;
+  }
+
+  /* KPI карточки */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .kpi-card { border-radius: 10px; padding: 14px 16px; border: 1px solid #dee2e6; }
+  .kpi-num  { font-size: 28px; font-weight: 800; line-height: 1; }
+  .kpi-label { font-size: 11px; color: #666; margin-top: 4px; }
+  .kpi-green  { border-left: 4px solid #16a34a; }
+  .kpi-green .kpi-num { color: #16a34a; }
+  .kpi-blue   { border-left: 4px solid #2563eb; }
+  .kpi-blue .kpi-num  { color: #2563eb; }
+  .kpi-red    { border-left: 4px solid #dc2626; }
+  .kpi-red .kpi-num   { color: #dc2626; }
+  .kpi-yellow { border-left: 4px solid #d97706; }
+  .kpi-yellow .kpi-num { color: #d97706; }
+
+  /* Секции */
+  .section { border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; margin-bottom: 18px; }
+  .section-header {
+    background: #f8f9fa; padding: 10px 14px;
+    font-size: 12px; font-weight: 700; color: #374151;
+    border-bottom: 1px solid #dee2e6;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-header .badge {
+    background: #6b7280; color: #fff;
+    border-radius: 10px; padding: 1px 7px; font-size: 11px;
+  }
+
+  /* Таблица */
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #e9ecef; padding: 7px 10px; text-align: left; font-weight: 700; color: #374151; border-bottom: 1px solid #dee2e6; }
+  td { padding: 7px 10px; border-bottom: 1px solid #f3f4f6; color: #111; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f9fafb; }
+
+  .medal { font-size: 16px; }
+  .badge-green { background: #dcfce7; color: #15803d; border-radius: 4px; padding: 1px 6px; font-size: 11px; font-weight: 600; }
+  .badge-red   { background: #fee2e2; color: #b91c1c; border-radius: 4px; padding: 1px 6px; font-size: 11px; font-weight: 600; }
+  .badge-blue  { background: #dbeafe; color: #1d4ed8; border-radius: 4px; padding: 1px 6px; font-size: 11px; font-weight: 600; }
+
+  .footer {
+    margin-top: 24px;
+    padding-top: 10px;
+    border-top: 1px solid #dee2e6;
+    font-size: 10px;
+    color: #9ca3af;
+    text-align: center;
+  }
+  .print-btn {
+    display: block; margin: 0 auto 20px; padding: 10px 28px;
+    background: #1A5C22; color: #fff; border: none; border-radius: 8px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    width: 794px;
+  }
+  .print-btn:hover { background: #16a34a; }
+  .note { text-align: center; color: #6b7280; font-size: 12px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨️ Сохранить как PDF (Ctrl+P)</button>
+<p class="note">Это превью того, как будет выглядеть PDF при нажатии кнопки на странице аналитики</p>
+
+<div class="page">
+
+  <!-- Шапка -->
+  <div class="print-header">
+    <img src="static/img/superlenta-logo.png" alt="Супер Лента" onerror="this.style.display='none';this.nextSibling.style.display='block'">
+    <div style="display:none;font-size:28px;font-weight:900;color:#3CB34A;letter-spacing:-.5px">супер<span style="color:#000">🌼</span>лента</div>
+    <div class="print-header-sub">Отчёт директора — Констракшн · Лента.PM · 11.06.2026</div>
+  </div>
+
+  <!-- KPI -->
+  <div class="kpi-row">
+    <div class="kpi-card kpi-green">
+      <div class="kpi-num">31</div>
+      <div class="kpi-label">Открыто в 2026 г.</div>
+    </div>
+    <div class="kpi-card kpi-blue">
+      <div class="kpi-num">64</div>
+      <div class="kpi-label">В работе</div>
+    </div>
+    <div class="kpi-card kpi-red">
+      <div class="kpi-num">4</div>
+      <div class="kpi-label">Просрочено</div>
+    </div>
+    <div class="kpi-card kpi-yellow">
+      <div class="kpi-num">47</div>
+      <div class="kpi-label">Прогноз 90 дн.</div>
+    </div>
+  </div>
+
+  <!-- Рейтинг менеджеров -->
+  <div class="section">
+    <div class="section-header">
+      🏆 Рейтинг менеджеров — 2026
+      <span class="badge">8</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Менеджер</th><th>В работе</th><th>Открыто</th><th>Просрочено</th><th>Рейтинг</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="medal">🥇</span></td><td><b>Месмер Денис</b></td><td>12</td><td>8</td><td>0</td><td><span class="badge-green">100</span></td></tr>
+        <tr><td><span class="medal">🥈</span></td><td><b>Митько Роберт</b></td><td>8</td><td>5</td><td>1</td><td><span class="badge-green">87</span></td></tr>
+        <tr><td><span class="medal">🥉</span></td><td><b>Ловчиков Александр</b></td><td>10</td><td>4</td><td>1</td><td><span class="badge-blue">82</span></td></tr>
+        <tr><td>4</td><td>Валеев Борис</td><td>9</td><td>4</td><td>0</td><td><span class="badge-blue">78</span></td></tr>
+        <tr><td>5</td><td>Хачатурова Жанна</td><td>7</td><td>3</td><td>1</td><td><span class="badge-blue">71</span></td></tr>
+        <tr><td>6</td><td>Шевченко Наталья</td><td>6</td><td>3</td><td>1</td><td><span class="badge-blue">65</span></td></tr>
+        <tr><td>7</td><td>Студеникин Сергей</td><td>7</td><td>2</td><td>0</td><td><span class="badge-blue">60</span></td></tr>
+        <tr><td>8</td><td>Косило Сергей</td><td>5</td><td>2</td><td>0</td><td><span class="badge-blue">58</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Ближайшие открытия -->
+  <div class="section">
+    <div class="section-header">
+      📅 Открытия в ближайшие 90 дней
+      <span class="badge">8</span>
+    </div>
+    <table>
+      <thead>
+        <tr><th>ТК</th><th>Проект</th><th>Тип</th><th>Дата открытия</th><th>Осталось</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>L651</b></td><td>ТК L651 Москва</td><td><span class="badge-blue">Const</span></td><td>11.06.2026</td><td><span class="badge-red">0 дн.</span></td></tr>
+        <tr><td><b>L872</b></td><td>ТК L872 Томск</td><td><span class="badge-blue">Const</span></td><td>11.06.2026</td><td><span class="badge-red">0 дн.</span></td></tr>
+        <tr><td><b>651</b></td><td>ТК 651 Москва</td><td><span class="badge-green">Рекон</span></td><td>11.06.2026</td><td><span class="badge-red">0 дн.</span></td></tr>
+        <tr><td><b>716</b></td><td>ТК 716 Санкт-Петербург</td><td><span class="badge-green">Рекон</span></td><td>17.06.2026</td><td><span class="badge-blue">6 дн.</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Просроченные -->
+  <div class="section">
+    <div class="section-header" style="color:#b91c1c">
+      ⚠️ Просроченные открытия
+      <span class="badge" style="background:#dc2626">4</span>
+    </div>
+    <table>
+      <thead>
+        <tr><th>ТК</th><th>Адрес</th><th>Менеджер</th><th>Было открыть</th><th>Просрочка</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><b>L538</b></td><td>Москва</td><td>Митько</td><td>01.05.2026</td><td><span class="badge-red">+41 дн</span></td></tr>
+        <tr><td><b>L720</b></td><td>Санкт-Петербург</td><td>Ловчиков</td><td>15.05.2026</td><td><span class="badge-red">+27 дн</span></td></tr>
+        <tr><td><b>L633</b></td><td>Казань</td><td>Хачатурова</td><td>20.05.2026</td><td><span class="badge-red">+22 дн</span></td></tr>
+        <tr><td><b>L812</b></td><td>Новосибирск</td><td>Студеникин</td><td>01.06.2026</td><td><span class="badge-red">+10 дн</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    Сформировано: 11.06.2026 · Лента.PM — Система управления проектами · Конфиденциально
+  </div>
+</div>
+
+</body>
+</html>

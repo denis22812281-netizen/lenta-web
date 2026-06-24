@@ -1,4 +1,5 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+
 from services.presence_manager import presence_manager
 
 router = APIRouter()

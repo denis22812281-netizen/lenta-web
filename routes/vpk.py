@@ -1,23 +1,24 @@
 import asyncio
 import io
 import json
+import logging as _logging
 import os
-from datetime import datetime, date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Request, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from openpyxl import Workbook
-from openpyxl.styles import PatternFill, Font, Alignment
+from openpyxl.styles import Alignment, Font, PatternFill
 from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, get_current_user, require_login
-from services.email_service import notify_vpk_report, notify_precheck_report, notify_opening_photos
+from deps import get_current_user, require_login, templates
 from services.cloud_storage import upload_photo
+from services.email_service import notify_opening_photos, notify_precheck_report, notify_vpk_report
+from utils.files import check_magic_bytes
 
-import logging as _logging
 _vpk_logger = _logging.getLogger(__name__)
 
 # Список email для VPK-уведомлений. Формат: email:Имя,email2:Имя2
@@ -98,8 +99,13 @@ async def vpk_submit(request: Request, background_tasks: BackgroundTasks,
         photo_file = form.get(f"photo_{c.id}")
         if photo_file and hasattr(photo_file, "filename") and photo_file.filename:
             ext = Path(photo_file.filename).suffix.lower() or ".jpg"
+            content = await photo_file.read()
+            try:
+                check_magic_bytes(content, photo_file.filename)
+            except ValueError:
+                continue  # skip invalid file, don't block the whole report
             fname = f"{report.id}_{c.id}{ext}"
-            photo_path = upload_photo(await photo_file.read(), "vpk", fname)
+            photo_path = upload_photo(content, "vpk", fname)
         db.add(models.VpkReportItem(
             report_id=report.id, criterion_id=c.id,
             criterion_name=c.name, done=is_done,
@@ -424,6 +430,11 @@ async def opening_upload_one(request: Request, db: Session = Depends(get_db)):
     if not raw:
         return {"error": "Пустой файл"}
 
+    try:
+        check_magic_bytes(raw, photo_file.filename)
+    except ValueError as e:
+        return {"error": str(e)}
+
     ext = Path(photo_file.filename).suffix.lower() or ".jpg"
     ts  = int(datetime.utcnow().timestamp() * 1000)
     fname = f"open_{proj.id}_{ts}{ext}"
@@ -578,6 +589,7 @@ async def opening_download_zip(project_id: int, db: Session = Depends(get_db)):
     import zipfile
     from concurrent.futures import ThreadPoolExecutor
     from urllib.parse import quote
+
     import httpx as _httpx
 
     proj = db.query(models.Project).filter(models.Project.id == project_id).first()

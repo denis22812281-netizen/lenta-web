@@ -1,12 +1,12 @@
 """Unit-тесты для карточек адаптации."""
 import pytest
 
-
 # ── helpers ──────────────────────────────────────────────────────────────────
 
 def _login(client):
     """Создаёт пользователя и логинится (без 2FA)."""
-    import models, utils.passwords as pw
+    import models
+    import utils.passwords as pw
     from tests.conftest import TestingSessionLocal
     db = TestingSessionLocal()
     phone = "+79990000001"

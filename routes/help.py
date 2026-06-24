@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from deps import templates, get_current_user
+
+from deps import get_current_user, templates
 
 router = APIRouter()
 

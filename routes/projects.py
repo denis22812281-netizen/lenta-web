@@ -1,23 +1,35 @@
 """All project-related routes: list, detail, create, update, delete, stages, excel import/export."""
 import io
-from datetime import datetime, date
-
 import os
+from datetime import date, datetime
 from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Request, Form, Depends, UploadFile, File, HTTPException
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    UploadFile,
+)
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
-from sqlalchemy.orm import Session
 from openpyxl import Workbook
-from openpyxl.styles import PatternFill, Font, Alignment
+from openpyxl.styles import Alignment, Font, PatternFill
+from sqlalchemy.orm import Session
 
 import models
+from config import PROJECT_TYPES, STAGE_NAMES, STATUSES
 from database import get_db
-from deps import templates, require_login, require_api_user, limiter
-from config import PROJECT_TYPES, STATUSES, STAGE_NAMES
-from services.excel_import import parse_excel_file, import_reconstruct_excel, import_construction_excel
-from services.cloud_storage import upload_photo
+from deps import limiter, require_api_user, require_login, templates
+from services.cloud_storage import upload_file, upload_photo
 from services.email_service import notify_opening_photos
+from services.excel_import import (
+    import_construction_excel,
+    import_reconstruct_excel,
+    parse_excel_file,
+)
 from utils.files import read_limited
 
 _OPENING_EMAIL = os.getenv("NOTIFY_PRECHECK_EMAIL", "").strip()
@@ -177,15 +189,18 @@ async def update_project(project_id: int, request: Request, db: Session = Depend
 
 
 @router.post("/projects/{project_id}/delete")
-async def delete_project(project_id: int, request: Request, db: Session = Depends(get_db),
-                         user: dict = Depends(require_login)):
+async def delete_project(
+    project_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: dict = Depends(require_login),
+):
     if not user.get("is_admin"):
         raise HTTPException(status_code=403)
     p = db.query(models.Project).filter(models.Project.id == project_id).first()
-    if not p:
-        raise HTTPException(status_code=404)
-    db.delete(p)
-    db.commit()
+    if p:
+        db.delete(p)
+        db.commit()
     return RedirectResponse("/projects", status_code=303)
 
 
@@ -318,14 +333,6 @@ async def delete_comment(project_id: int, comment_id: int, request: Request,
     return RedirectResponse(f"/projects/{project_id}#comments", status_code=303)
 
 
-@router.post("/projects/{project_id}/delete")
-async def delete_project(project_id: int, request: Request, db: Session = Depends(get_db),
-                         user: dict = Depends(require_login)):
-    p = db.query(models.Project).filter(models.Project.id == project_id).first()
-    if p:
-        db.delete(p)
-        db.commit()
-    return RedirectResponse("/projects", status_code=303)
 
 
 # ─── Этапы проекта ────────────────────────────────────────────────────────────
@@ -491,7 +498,7 @@ async def import_excel(request: Request, db: Session = Depends(get_db),
     except ValueError:
         return RedirectResponse("/projects?error=Файл слишком большой (макс 10 МБ)", status_code=303)
     try:
-        result = parse_excel_file(content, "", int(manager_id) if manager_id else None, db)
+        parse_excel_file(content, "", int(manager_id) if manager_id else None, db)
     except Exception:
         return RedirectResponse("/projects?error=invalid_excel", status_code=303)
     return RedirectResponse("/projects", status_code=303)

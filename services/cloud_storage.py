@@ -3,8 +3,8 @@
 Если заданы CLOUDINARY_* переменные — использует Cloudinary.
 Иначе — сохраняет локально в static/uploads/ (работает, но на Railway сбрасывается при рестарте).
 """
-import os
 import logging
+import os
 from pathlib import Path
 
 logger = logging.getLogger(__name__)

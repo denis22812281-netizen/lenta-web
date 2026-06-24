@@ -1,11 +1,11 @@
-from fastapi import Request, HTTPException
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi import HTTPException, Request
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from utils.csrf import get_csrf_token
 from services.cloud_storage import media_url
+from utils.csrf import get_csrf_token
 
 templates = Jinja2Templates(directory="templates")
 templates.env.globals["csrf_token"] = get_csrf_token
@@ -62,7 +62,8 @@ def require_executive(request: Request) -> dict:
     if user.get("is_admin"):
         return user
     try:
-        import database, models
+        import database
+        import models
         name = user.get("display_name", "")
         if name:
             with database.db_session() as db:
@@ -91,7 +92,8 @@ def require_api_user(request: Request) -> dict:
 def write_audit(request: Request, path: str | None = None):
     """Записывает посещение в audit_log. Вызывается из роутов вручную."""
     try:
-        import database, models
+        import database
+        import models
         user = request.session.get("user")
         if not user:
             return

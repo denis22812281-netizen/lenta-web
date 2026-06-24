@@ -15,8 +15,8 @@ def test_create_task(auth_client):
     assert r.status_code in (302, 303)
 
     # Задача создана
-    from tests.conftest import TestingSessionLocal
     import models
+    from tests.conftest import TestingSessionLocal
     db = TestingSessionLocal()
     t = db.query(models.Task).filter_by(title="Тестовая задача").first()
     assert t is not None
@@ -52,8 +52,8 @@ def test_update_task_status(auth_client):
     }, follow_redirects=False)
     assert r.status_code in (302, 303)
 
-    from tests.conftest import TestingSessionLocal
     import models
+    from tests.conftest import TestingSessionLocal
     db = TestingSessionLocal()
     t = db.query(models.Task).filter_by(title="Задача для статуса").first()
     assert t is not None

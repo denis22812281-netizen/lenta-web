@@ -1,7 +1,9 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Index
-from sqlalchemy.orm import relationship
-from database import Base
 from datetime import datetime
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy.orm import relationship
+
+from database import Base
 
 
 class VpkCriterion(Base):

@@ -27,8 +27,8 @@ def test_create_and_delete_project(auth_client):
     assert "999" in r.text
 
     # Получаем id из БД
-    from tests.conftest import TestingSessionLocal
     import models
+    from tests.conftest import TestingSessionLocal
     db = TestingSessionLocal()
     p = db.query(models.Project).filter_by(tk_number="999").first()
     assert p is not None
@@ -89,8 +89,8 @@ def test_bulk_update_rejects_invalid_status(auth_client):
 
 def test_bulk_update_accepts_valid_status(auth_client):
     """bulk-update принимает статус из списка STATUSES (создаём проект для теста)."""
-    from tests.conftest import TestingSessionLocal
     import models
+    from tests.conftest import TestingSessionLocal
 
     # Создаём временный проект
     auth_client.post("/projects/create", data={
@@ -124,8 +124,8 @@ def _create_temp_project(auth_client, tk="TMP_HIST"):
         "name": f"Тест {tk}", "tk_number": tk, "city": "Тест",
         "project_type": "Констракшн", "status": "Активный",
     }, follow_redirects=False)
-    from tests.conftest import TestingSessionLocal
     import models
+    from tests.conftest import TestingSessionLocal
     db = TestingSessionLocal()
     p = db.query(models.Project).filter_by(tk_number=tk).first()
     pid = p.id if p else None
@@ -143,8 +143,8 @@ def test_history_recorded_on_update(auth_client):
         "city": "Москва", "project_type": "Констракшн", "status": "Активный",
     }, follow_redirects=False)
 
-    from tests.conftest import TestingSessionLocal
     import models
+    from tests.conftest import TestingSessionLocal
     db = TestingSessionLocal()
     history = db.query(models.ProjectHistory).filter_by(project_id=pid).all()
     db.close()
@@ -163,8 +163,8 @@ def test_comment_add_and_delete(auth_client):
                          data={"text": "Тестовый комментарий"}, follow_redirects=False)
     assert r.status_code in (302, 303)
 
-    from tests.conftest import TestingSessionLocal
     import models
+    from tests.conftest import TestingSessionLocal
     db = TestingSessionLocal()
     comment = db.query(models.ProjectComment).filter_by(project_id=pid).first()
     db.close()
@@ -202,8 +202,8 @@ def test_attachment_upload_and_delete(auth_client):
     )
     assert r.status_code in (200, 302, 303), f"Upload failed: {r.status_code}"
 
-    from tests.conftest import TestingSessionLocal
     import models
+    from tests.conftest import TestingSessionLocal
     db = TestingSessionLocal()
     att = db.query(models.ProjectAttachment).filter_by(project_id=pid).first()
     db.close()
@@ -234,8 +234,8 @@ def test_stage_date_update_via_api(auth_client):
     }, follow_redirects=False)
     assert r.status_code in (302, 303)
 
-    from tests.conftest import TestingSessionLocal
     import models
+    from tests.conftest import TestingSessionLocal
     db = TestingSessionLocal()
     stage = db.query(models.ProjectStage).filter_by(project_id=pid).first()
     db.close()

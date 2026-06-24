@@ -1,5 +1,6 @@
 """DB schema migrations — safe to run on every startup (IF NOT EXISTS / IF EXISTS)."""
 import logging
+
 from sqlalchemy.engine import Engine
 
 logger = logging.getLogger(__name__)

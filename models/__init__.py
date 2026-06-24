@@ -1,12 +1,35 @@
 from database import Base  # noqa: F401 — re-exported so callers can do models.Base
-from models.auth import PhoneWhitelist, User, WebAuthnCredential
-from models.misc import Manager, KsoObject, KsoSchedule, ChatMessage, AiChatMessage, AuditLog, PushSubscription
-from models.project import Project, ProjectStage, ProjectComment, OpeningPhoto, SyncConfig, ProjectHistory, ProjectAttachment
-from models.task import Task, TaskPhoto, TaskNotification
-from models.vpk import VpkCriterion, VpkReport, VpkReportRead, VpkReportItem, PreVpkReport, PreVpkReportItem
-from models.smr import SmrContact, SmrSchedule, SmrTask, SmrConfirmation
-from models.recon import ReconStageStatus
 from models.adaptation import AdaptationCard, AdaptationPhoto
+from models.auth import PhoneWhitelist, User, WebAuthnCredential
+from models.misc import (
+    AiChatMessage,
+    AuditLog,
+    ChatMessage,
+    KsoObject,
+    KsoSchedule,
+    Manager,
+    PushSubscription,
+)
+from models.project import (
+    OpeningPhoto,
+    Project,
+    ProjectAttachment,
+    ProjectComment,
+    ProjectHistory,
+    ProjectStage,
+    SyncConfig,
+)
+from models.recon import ReconStageStatus
+from models.smr import SmrConfirmation, SmrContact, SmrSchedule, SmrTask
+from models.task import Task, TaskNotification, TaskPhoto
+from models.vpk import (
+    PreVpkReport,
+    PreVpkReportItem,
+    VpkCriterion,
+    VpkReport,
+    VpkReportItem,
+    VpkReportRead,
+)
 
 __all__ = [
     "PhoneWhitelist", "User", "WebAuthnCredential",

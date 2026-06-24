@@ -31,8 +31,8 @@ def test_push_subscribe_and_unsubscribe(auth_client):
     assert r.status_code == 200
     assert r.json().get("ok") is True
 
-    from tests.conftest import TestingSessionLocal
     import models
+    from tests.conftest import TestingSessionLocal
     db = TestingSessionLocal()
     sub = db.query(models.PushSubscription).filter_by(endpoint=endpoint).first()
     db.close()
@@ -62,8 +62,8 @@ def test_push_subscribe_idempotent(auth_client):
         "keys": {"p256dh": "key_v2", "auth": "auth_v2"},
     })
 
-    from tests.conftest import TestingSessionLocal
     import models
+    from tests.conftest import TestingSessionLocal
     db = TestingSessionLocal()
     subs = db.query(models.PushSubscription).filter_by(endpoint=endpoint).all()
     db.close()

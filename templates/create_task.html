@@ -282,7 +282,7 @@ function onStatusChange(select, taskId, oldStatus) {
         _pendingFormId = taskId;
         _pendingSelect = select;
         document.getElementById('completeComment').value = '';
-        _completeModal = new bootstrap.Modal(document.getElementById('completeModal'));
+        _completeModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('completeModal'));
         _completeModal.show();
     } else {
         document.getElementById('form-' + taskId).submit();
@@ -400,7 +400,7 @@ function bindTaskRows() {
             const cwrap = document.getElementById('modalCommentWrap');
             if (comment) { document.getElementById('modalComment').textContent = comment; cwrap.classList.remove('d-none'); }
             else { cwrap.classList.add('d-none'); }
-            new bootstrap.Modal(document.getElementById('taskModal')).show();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('taskModal')).show();
         });
     });
 }

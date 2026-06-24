@@ -2,13 +2,19 @@ import asyncio
 import logging
 import os
 import secrets as _sec
-from datetime import date as _date, datetime, timedelta as _td
+from datetime import date as _date
+from datetime import datetime
+from datetime import timedelta as _td
 from pathlib import Path
 
 import database
 import models
-from services.email_service import send_smr_deadline_notification, send_leader_digest
-from services.excel_import import import_reconstruct_excel, import_construction_excel, parse_excel_file
+from services.email_service import send_leader_digest, send_smr_deadline_notification
+from services.excel_import import (
+    import_construction_excel,
+    import_reconstruct_excel,
+    parse_excel_file,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -113,8 +119,8 @@ async def smr_notification_loop():
 
 
 async def leader_digest_loop():
-    from sqlalchemy.orm import joinedload as _jl
     from sqlalchemy import func as _func
+    from sqlalchemy.orm import joinedload as _jl
 
     while True:
         now = datetime.utcnow()

@@ -1,18 +1,22 @@
 import os
-from datetime import datetime, date
+from datetime import date, datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Request, Form, Depends, HTTPException, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 import models
-from database import get_db
-from deps import templates, get_current_user, require_login
 from config import PRIORITIES, TASK_STATUSES
-from services.email_service import notify_task_assigned, notify_task_status_changed, notify_task_completed
+from database import get_db
+from deps import get_current_user, require_login, templates
 from services.cloud_storage import upload_photo
+from services.email_service import (
+    notify_task_assigned,
+    notify_task_completed,
+    notify_task_status_changed,
+)
 from utils.files import read_limited
 
 _TASK_REPORT_EMAILS = []
@@ -146,8 +150,9 @@ async def update_task_status(task_id: int, request: Request, db: Session = Depen
             fname = "".join(c if c.isalnum() or c in "._-" else "_" for c in fname)
             # Сжимаем через Pillow если доступен
             try:
-                from PIL import Image
                 import io
+
+                from PIL import Image
                 img = Image.open(io.BytesIO(raw)).convert("RGB")
                 img.thumbnail((1200, 1200), Image.LANCZOS)
                 buf = io.BytesIO()

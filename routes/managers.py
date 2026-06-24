@@ -1,16 +1,16 @@
-from datetime import datetime, date
+from datetime import date, datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Request, Form, Depends, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session, joinedload
 
 import models
 from database import get_db
-from deps import templates, get_current_user, require_login, require_admin
-from utils.phone import normalize_phone
-from services.online import ONLINE_USERS, ONLINE_TIMEOUT
+from deps import get_current_user, require_admin, require_login, templates
 from services.cloud_storage import upload_photo
+from services.online import ONLINE_TIMEOUT, ONLINE_USERS
+from utils.phone import normalize_phone
 
 router = APIRouter()
 

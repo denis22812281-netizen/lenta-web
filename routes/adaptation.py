@@ -5,14 +5,21 @@ import tempfile
 from datetime import datetime
 from urllib.parse import quote
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Request, UploadFile
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 import models
 from database import get_db
 from deps import require_admin, require_login, templates
-from services.adaptation import FIELDS, FREE_TEXT_SECTIONS, DROPDOWN_OPTIONS, generate_excel, TEMPLATE_PATH
+from services.adaptation import (
+    DROPDOWN_OPTIONS,
+    FIELDS,
+    FREE_TEXT_SECTIONS,
+    TEMPLATE_PATH,
+    generate_excel,
+)
+from utils.files import check_magic_bytes
 
 router = APIRouter()
 
@@ -24,7 +31,7 @@ _NOTIFY_EMAIL = os.getenv("NOTIFY_PRECHECK_EMAIL", "denis.mesmer@lenta.com")
 def _send_adaptation_email(card_dict: dict, extra_emails: list | None = None) -> None:
     """Send adaptation card by email. Receives plain dict to avoid DetachedInstanceError."""
     import logging
-    log = logging.getLogger(__name__)
+    logging.getLogger(__name__)
     try:
         from services.email_service import notify_adaptation_card
 
@@ -260,18 +267,19 @@ async def adaptation_download(
 
 @router.post("/adaptation/{card_id}/photos/upload")
 async def adaptation_photo_upload(
-    card_id: int, request: Request,
+    card_id: int,
+    request: Request,
     files: list[UploadFile] = File(...),
     db: Session = Depends(get_db),
     user: dict = Depends(require_login),
 ):
-    from fastapi.responses import JSONResponse
     card = db.query(models.AdaptationCard).filter_by(id=card_id).first()
     if not card:
         raise __import__('fastapi').HTTPException(status_code=404)
-    from services.cloud_storage import upload_photo
     import uuid as _uuid
     from pathlib import Path as _Path
+
+    from services.cloud_storage import upload_photo
 
     uploaded, errors = 0, 0
     for file in files:
@@ -281,6 +289,11 @@ async def adaptation_photo_upload(
             continue
         ext = _Path(file.filename or "photo.jpg").suffix.lower() or ".jpg"
         if ext not in (".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic", ".heif"):
+            errors += 1
+            continue
+        try:
+            check_magic_bytes(content, file.filename or "photo.jpg")
+        except ValueError:
             errors += 1
             continue
         fname = f"{_uuid.uuid4().hex[:10]}{ext}"

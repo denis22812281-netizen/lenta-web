@@ -2,14 +2,14 @@ import io
 import os
 from datetime import date
 
-from fastapi import APIRouter, Request, Depends, UploadFile, File
+import openpyxl
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
-import openpyxl
 
 import models
 from database import get_db
-from deps import templates, get_current_user, require_login
+from deps import get_current_user, require_login, templates
 from utils.files import read_limited
 
 _MAX_AI_EXCEL_BYTES = 10 * 1024 * 1024  # 10 MB

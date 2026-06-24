@@ -121,7 +121,7 @@
 function editCrit(id, name) {
   document.getElementById('editForm').action = '/admin/vpk-criteria/' + id + '/edit';
   document.getElementById('editName').value = name;
-  new bootstrap.Modal(document.getElementById('editModal')).show();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal')).show();
 }
 
 // Drag & drop reorder (SortableJS via CDN)

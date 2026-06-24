@@ -4,6 +4,7 @@
 С TEST_DATABASE_URL=postgresql://... — тесты против реального PostgreSQL.
 """
 import os
+
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-tests")
 os.environ.setdefault("SENTRY_DSN", "")
 os.environ.setdefault("CLOUDINARY_CLOUD_NAME", "")
@@ -14,9 +15,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from database import Base, get_db
 import models  # noqa: F401 — нужен чтобы Base.metadata знал все таблицы
+from database import Base, get_db
 from deps import limiter as _limiter
+
 _limiter.enabled = False
 
 TEST_DB_URL = os.getenv("TEST_DATABASE_URL", "sqlite:///./test_lenta.db")
@@ -46,7 +48,8 @@ def setup_test_db():
     Base.metadata.drop_all(bind=engine)
     engine.dispose()
     if _is_sqlite:
-        import pathlib, time
+        import pathlib
+        import time
         for _ in range(5):
             try:
                 pathlib.Path("test_lenta.db").unlink(missing_ok=True)
@@ -76,7 +79,8 @@ def _session_app():
 @pytest.fixture(scope="session")
 def auth_client(_session_app, setup_test_db):
     """Клиент с авторизованной сессией (Месмер Денис, admin). Создаётся один раз."""
-    import models, utils.passwords as pw
+    import models
+    import utils.passwords as pw
 
     db = TestingSessionLocal()
     phone = "+79997303914"

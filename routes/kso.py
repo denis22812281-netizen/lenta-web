@@ -2,14 +2,14 @@ import io
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, Request, Form, Depends, UploadFile, File, HTTPException
+import openpyxl
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from sqlalchemy.orm import Session
-import openpyxl
 
 import models
 from database import get_db
-from deps import templates, get_current_user, require_login, require_admin
+from deps import get_current_user, require_admin, require_login, templates
 from utils.excel import match_manager
 from utils.files import read_limited
 

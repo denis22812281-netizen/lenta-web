@@ -1,12 +1,12 @@
 from datetime import date
 
-from fastapi import APIRouter, Request, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.orm import Session, joinedload
 
 import models
 from database import get_db
-from deps import templates, require_login
+from deps import require_login, templates
 
 router = APIRouter()
 

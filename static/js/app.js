@@ -1,3 +1,25 @@
+// ── CSRF: inject X-CSRFToken into every same-origin POST fetch ───────────────
+(function () {
+    const _fetch = window.fetch;
+    window.fetch = function (input, init) {
+        const method = ((init && init.method) || 'GET').toUpperCase();
+        if (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') {
+            const url = typeof input === 'string' ? input : (input.url || '');
+            const isSameOrigin = !url.startsWith('http') || url.startsWith(location.origin);
+            if (isSameOrigin) {
+                const meta = document.querySelector('meta[name="csrf-token"]');
+                if (meta) {
+                    init = init || {};
+                    init.headers = Object.assign({}, init.headers, {
+                        'X-CSRFToken': meta.content,
+                    });
+                }
+            }
+        }
+        return _fetch.call(this, input, init);
+    };
+})();
+
 // ── Navigation progress bar (npbar) ─────────────────────────────────────────
 (function () {
     const bar = document.getElementById('npbar');

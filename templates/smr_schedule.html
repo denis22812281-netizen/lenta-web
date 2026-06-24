@@ -659,7 +659,7 @@ function openReportModal() {
     document.getElementById('reportEmail').value  = '';
     document.getElementById('reportResult').innerHTML = '';
     document.getElementById('reportAcDrop').style.display = 'none';
-    new bootstrap.Modal(document.getElementById('modalReport')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalReport')).show();
 }
 
 async function sendReport() {
@@ -705,7 +705,7 @@ function openConfirmModal(taskId, taskName, email1, email2, isMilestone) {
         ? 'Ключевая веха — можно запросить подтверждение по email.'
         : 'При смене статуса на "Выполнено" — письмо уйдёт автоматически.';
     btn.style.display = isMilestone ? '' : 'none';
-    new bootstrap.Modal(document.getElementById('modalConfirm')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalConfirm')).show();
 }
 
 async function saveEmails() {

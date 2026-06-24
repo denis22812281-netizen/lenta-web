@@ -2,11 +2,12 @@
 Email-уведомления через Brevo HTTP API (порт 443, не блокируется Railway).
 Активируется если задана BREVO_API_KEY.
 """
-import io
-import os
 import base64
+import io
 import logging
+import os
 from pathlib import Path
+
 import httpx
 
 try:
@@ -255,8 +256,7 @@ def notify_vpk_report(to_email: str, recipient_name: str,
                       vpk_type: int, tk_number: str, project_name: str,
                       submitted_by: str, done: int, total: int,
                       submitted_at: str, failed_items: list | None = None) -> bool:
-    pct   = int(done / total * 100) if total else 0
-    color = "#16a34a" if pct >= 80 else "#d97706" if pct >= 50 else "#dc2626"
+    int(done / total * 100) if total else 0
 
     attachments = []
     failed_block = ""
@@ -557,7 +557,7 @@ def notify_precheck_report(to_email: str, vpk_type: int, tk_number: str,
                            project_name: str, submitted_by: str, vpk_date_str: str,
                            failed_items: list, ok_count: int, skip_count: int) -> bool:
     """Предосмотр ВПК — уходит только отправителю (менеджеру)."""
-    total = ok_count + len(failed_items) + skip_count
+    ok_count + len(failed_items) + skip_count
     fail_count = len(failed_items)
 
     if fail_count > 0:

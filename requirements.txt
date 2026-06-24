@@ -24,3 +24,4 @@ apscheduler>=3.10.0
 pyotp>=2.9.0
 qrcode[pil]>=7.4.2
 pywebpush>=2.0.0
+filetype>=1.2.0

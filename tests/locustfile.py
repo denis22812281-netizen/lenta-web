@@ -15,8 +15,8 @@ Headless (CI):
            --csv=load_results
 """
 import random
-from locust import HttpUser, task, between
 
+from locust import HttpUser, between, task
 
 PHONE = "+79997303914"
 PASSWORD = "test1234"

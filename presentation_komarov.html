@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Система управления проектами — Лента</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --green:  #1A5C22;
+    --green2: #2d7a3a;
+    --yellow: #FFD200;
+    --dark:   #111827;
+    --gray:   #6B7280;
+    --light:  #F9FAFB;
+    --border: #E5E7EB;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #fff;
+    color: var(--dark);
+  }
+
+  /* ── Slide base ── */
+  .slide {
+    width: 297mm;
+    min-height: 210mm;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  /* ── Slide 1: Cover ── */
+  .s1 {
+    background: linear-gradient(135deg, var(--green) 0%, #0f3a14 60%, #1a1a1a 100%);
+    color: #fff;
+    justify-content: center;
+    padding: 18mm 22mm;
+  }
+  .s1 .badge {
+    display: inline-block;
+    background: var(--yellow);
+    color: var(--green);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+  }
+  .s1 h1 {
+    font-size: 38px;
+    font-weight: 900;
+    line-height: 1.15;
+    margin-bottom: 18px;
+    max-width: 200mm;
+  }
+  .s1 h1 span { color: var(--yellow); }
+  .s1 .sub {
+    font-size: 16px;
+    color: rgba(255,255,255,0.75);
+    max-width: 180mm;
+    line-height: 1.6;
+    margin-bottom: 36px;
+  }
+  .s1 .stats-row {
+    display: flex;
+    gap: 32px;
+  }
+  .s1 .stat {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 14px;
+    padding: 14px 22px;
+    text-align: center;
+  }
+  .s1 .stat .num {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--yellow);
+    display: block;
+  }
+  .s1 .stat .lbl {
+    font-size: 11px;
+    color: rgba(255,255,255,0.65);
+    margin-top: 2px;
+  }
+  .s1 .watermark {
+    position: absolute;
+    right: -30mm;
+    bottom: -20mm;
+    width: 120mm;
+    height: 120mm;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .s1 .watermark2 {
+    position: absolute;
+    right: -10mm;
+    bottom: -40mm;
+    width: 80mm;
+    height: 80mm;
+    border-radius: 50%;
+    background: rgba(255,210,0,0.07);
+    border: 1px solid rgba(255,210,0,0.12);
+  }
+
+  /* ── Slide header ── */
+  .slide-header {
+    padding: 12mm 22mm 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .slide-header .slide-num {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .slide-header .lenta-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--green);
+    letter-spacing: 0.5px;
+  }
+  .slide-body { flex: 1; padding: 8mm 22mm 12mm; }
+  .slide-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--dark);
+    margin-bottom: 6px;
+    line-height: 1.2;
+  }
+  .slide-title span { color: var(--green); }
+  .slide-sub {
+    font-size: 13px;
+    color: var(--gray);
+    margin-bottom: 18px;
+  }
+  .divider {
+    height: 3px;
+    width: 48px;
+    background: linear-gradient(90deg, var(--green), var(--yellow));
+    border-radius: 2px;
+    margin-bottom: 18px;
+  }
+
+  /* ── Slide 2: Problem ── */
+  .problem-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 4px;
+  }
+  .prob-card {
+    border-radius: 14px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .prob-card.bad {
+    background: #FEF2F2;
+    border: 1.5px solid #FECACA;
+  }
+  .prob-card.good {
+    background: #F0FDF4;
+    border: 1.5px solid #BBF7D0;
+  }
+  .prob-card .card-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .prob-card.bad .card-label { color: #DC2626; }
+  .prob-card.good .card-label { color: var(--green); }
+  .prob-card .card-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+  .prob-card.bad .card-title { color: #991B1B; }
+  .prob-card.good .card-title { color: #14532D; }
+  .prob-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 9px;
+    font-size: 12px;
+  }
+  .prob-row .icon { font-size: 14px; flex-shrink: 0; }
+  .prob-row .text { color: var(--dark); line-height: 1.4; }
+
+  .vs-badge {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--dark);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+
+  /* ── Slide 3: Features ── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .feat-card {
+    background: var(--light);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .feat-icon {
+    font-size: 22px;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .feat-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 5px;
+    line-height: 1.3;
+  }
+  .feat-desc {
+    font-size: 10px;
+    color: var(--gray);
+    line-height: 1.5;
+  }
+  .feat-card.accent {
+    background: linear-gradient(135deg, var(--green), var(--green2));
+    border-color: transparent;
+    color: #fff;
+  }
+  .feat-card.accent .feat-name { color: #fff; }
+  .feat-card.accent .feat-desc { color: rgba(255,255,255,0.75); }
+
+  /* ── Slide 4: Comparison table ── */
+  .cmp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+  }
+  .cmp-table th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    border-bottom: 2px solid var(--border);
+  }
+  .cmp-table th:first-child { color: var(--gray); }
+  .cmp-table th.th-bad { color: #DC2626; }
+  .cmp-table th.th-good { color: var(--green); }
+  .cmp-table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .cmp-table tr:last-child td { border-bottom: none; }
+  .cmp-table tr:nth-child(even) td { background: var(--light); }
+  .cmp-table .param { font-weight: 600; color: var(--dark); }
+  .cmp-table .val-bad { color: #DC2626; font-weight: 600; }
+  .cmp-table .val-good { color: var(--green); font-weight: 600; }
+  .cmp-table .val-unknown { color: #9CA3AF; font-style: italic; }
+  .cmp-table .highlight td { background: #ECFDF5 !important; }
+
+  /* ── Slide 5: Proposal ── */
+  .proposal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .prop-box {
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+  .prop-box.main {
+    background: linear-gradient(135deg, var(--green), var(--green2));
+    color: #fff;
+    grid-row: span 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .prop-box.side {
+    background: var(--light);
+    border: 1px solid var(--border);
+  }
+  .prop-box .box-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .prop-box.main .box-title { color: #fff; font-size: 18px; }
+  .prop-box.side .box-title { color: var(--dark); }
+  .prop-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .prop-item .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+  .prop-box.main .dot { background: var(--yellow); }
+  .prop-box.side .dot { background: var(--green); }
+  .prop-box.main .prop-item { color: rgba(255,255,255,0.9); }
+  .prop-box.side .prop-item { color: var(--dark); }
+  .big-num {
+    font-size: 36px;
+    font-weight: 900;
+    color: var(--yellow);
+    line-height: 1;
+  }
+  .big-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.65);
+    margin-top: 4px;
+  }
+  .savings-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .saving-item {
+    background: rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 10px 14px;
+    flex: 1;
+    text-align: center;
+  }
+  .saving-num {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--yellow);
+    display: block;
+  }
+  .saving-lbl {
+    font-size: 9px;
+    color: rgba(255,255,255,0.6);
+    margin-top: 2px;
+  }
+  .cta-box {
+    background: var(--yellow);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-top: 14px;
+  }
+  .cta-box .cta-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--green);
+    margin-bottom: 4px;
+  }
+  .cta-box .cta-text {
+    font-size: 11px;
+    color: #374151;
+    line-height: 1.5;
+  }
+
+  /* ── Footer ── */
+  .slide-footer {
+    padding: 0 22mm 8mm;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .footer-line {
+    height: 1px;
+    background: var(--border);
+    margin: 0 22mm 6mm;
+  }
+  .footer-text { font-size: 9px; color: #9CA3AF; }
+  .footer-logo {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--green);
+    letter-spacing: 0.5px;
+  }
+
+  /* Print */
+  @media print {
+    body { background: #fff; }
+    .slide { page-break-after: always; }
+    @page { size: A4 landscape; margin: 0; }
+  }
+
+  /* Screen preview */
+  @media screen {
+    body { background: #374151; padding: 20px; }
+    .slide {
+      margin: 0 auto 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      border-radius: 4px;
+    }
+    .print-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--yellow);
+      color: var(--green);
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      z-index: 999;
+    }
+    .print-btn:hover { background: #f0c800; }
+  }
+</style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">📄 Сохранить PDF</button>
+
+<!-- ═══════════════════════════════════════════════════════════
+     СЛАЙД 1 — ОБЛОЖКА
+     ══════════════════════════════════════════════════════════ -->
+<div class="slide s1">
+  <div class="watermark"></div>
+  <div class="watermark2"></div>
+
+  <div class="badge">Конфиденциально — для Комарова А.</div>
+
+  <h1>Система управления<br>строительными проектами<br><span>Лента</span></h1>
+
+  <p class="sub">
+    Внутренний инструмент, разработанный сотрудником компании.<br>
+    Уже работает 4 месяца. Используется командой ежедневно.<br>
+    Готов к официальному оформлению.
+  </p>
+
+  <div class="stats-row">
+    <div class="stat">
+      <span class="num">4</span>
+      <div class="lbl">месяца в продакшне</div>
+    </div>
+    <div class="stat">
+      <span class="num">10+</span>
+      <div class="lbl">активных пользователей</div>
+    </div>
+    <div class="stat">
+      <span class="num">2 300 ₽</span>
+      <div class="lbl">расходов в месяц (всё включено)</div>
+    </div>
+    <div class="stat">
+      <span class="num">750 000 ₽</span>
+      <div class="lbl">рыночная стоимость разработки</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     СЛАЙД 2 — ПРОБЛЕМА И КОНТРАСТ
+     ══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <span class="slide-num">02 / 05</span>
+    <span class="lenta-label">ЛЕНТА — Управление проектами</span>
+  </div>
+  <div class="slide-body">
+    <div class="slide-title">Два варианта. <span>Один уже работает.</span></div>
+    <div class="slide-sub">Сравнение текущей ситуации</div>
+    <div class="divider"></div>
+
+    <div style="position: relative;">
+      <div class="problem-grid">
+        <div class="prob-card bad">
+          <div class="card-label">❌ Внешний подрядчик</div>
+          <div class="card-title">Система за 2 000 000+ ₽</div>
+          <div class="prob-row"><span class="icon">💸</span><span class="text">Потрачено более 2 000 000 ₽ бюджета компании</span></div>
+          <div class="prob-row"><span class="icon">🚫</span><span class="text">Система не работает, команда не может её использовать</span></div>
+          <div class="prob-row"><span class="icon">📵</span><span class="text">Нет мобильной версии для работы с объектов</span></div>
+          <div class="prob-row"><span class="icon">⏳</span><span class="text">Сроки запуска неизвестны, подрядчик не даёт гарантий</span></div>
+          <div class="prob-row"><span class="icon">🎨</span><span class="text">Интерфейс неудобный, команда отказывается работать</span></div>
+          <div class="prob-row"><span class="icon">📞</span><span class="text">Любые изменения — платный тикет стороннему подрядчику</span></div>
+        </div>
+        <div class="prob-card good">
+          <div class="card-label">✅ Система Дениса Месмера</div>
+          <div class="card-title">Разработка без затрат компании</div>
+          <div class="prob-row"><span class="icon">✅</span><span class="text">Работает 4 месяца — прямо сейчас, в этот момент</span></div>
+          <div class="prob-row"><span class="icon">📱</span><span class="text">Полностью адаптирована под телефон — работа с объекта</span></div>
+          <div class="prob-row"><span class="icon">👥</span><span class="text">10+ менеджеров используют ежедневно без обучения</span></div>
+          <div class="prob-row"><span class="icon">⚡</span><span class="text">Любые изменения — в тот же день, сотрудник в штате</span></div>
+          <div class="prob-row"><span class="icon">💰</span><span class="text">Все расходы на инструменты — 2 300 ₽/мес (хостинг + Claude Code)</span></div>
+          <div class="prob-row"><span class="icon">🔒</span><span class="text">Данные компании остаются внутри компании</span></div>
+        </div>
+      </div>
+      <div class="vs-badge">VS</div>
+    </div>
+  </div>
+  <div class="footer-line"></div>
+  <div class="slide-footer">
+    <span class="footer-text">Конфиденциальный документ</span>
+    <span class="footer-logo">ЛЕНТА</span>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     СЛАЙД 3 — ЧТО УМЕЕТ СИСТЕМА
+     ══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <span class="slide-num">03 / 05</span>
+    <span class="lenta-label">ЛЕНТА — Управление проектами</span>
+  </div>
+  <div class="slide-body">
+    <div class="slide-title">Что умеет <span>система</span></div>
+    <div class="slide-sub">Все функции уже работают и используются командой</div>
+    <div class="divider"></div>
+
+    <div class="features-grid">
+      <div class="feat-card accent">
+        <span class="feat-icon">📊</span>
+        <div class="feat-name">Дашборд директора</div>
+        <div class="feat-desc">Все объекты, статусы, дедлайны и просрочки — одним взглядом с любого устройства</div>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">✅</span>
+        <div class="feat-name">ВПК чек-лист</div>
+        <div class="feat-desc">Электронная проверка объекта с телефона. Фото, нарушения, автоотчёт на почту руководству</div>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">🏗️</span>
+        <div class="feat-name">СМР и дедлайны</div>
+        <div class="feat-desc">Даты выхода на объект, уведомления за 3/7 дней, светофор срочности</div>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">📸</span>
+        <div class="feat-name">Галерея открытия</div>
+        <div class="feat-desc">Публичная страница с фото открытия ТК. Ссылка для руководства, ZIP-скачивание всех фото</div>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">🔄</span>
+        <div class="feat-name">Реконструкция</div>
+        <div class="feat-desc">Этапы реконструкции с датами: МП, ТП, аудит, зонирование — всё в одном месте</div>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">📬</span>
+        <div class="feat-name">Email-уведомления</div>
+        <div class="feat-desc">Автоматические письма: ВПК-отчёт, напоминания о дедлайнах, поздравление с открытием</div>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">📋</span>
+        <div class="feat-name">PDF-отчёты</div>
+        <div class="feat-desc">Отчёт по любому проекту в один клик. Фото, статусы, даты — готово к печати</div>
+      </div>
+      <div class="feat-card accent">
+        <span class="feat-icon">🤖</span>
+        <div class="feat-name">AI-ассистент</div>
+        <div class="feat-desc">Встроенный ChatGPT/Claude для ответов на вопросы по объектам и нормативам</div>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">💬</span>
+        <div class="feat-name">Корпоративный чат</div>
+        <div class="feat-desc">Внутренний мессенджер команды с историей и фото</div>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">👥</span>
+        <div class="feat-name">Управление командой</div>
+        <div class="feat-desc">Профили менеджеров, задачи по сотрудникам, контроль выполнения</div>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">🔐</span>
+        <div class="feat-name">Безопасность</div>
+        <div class="feat-desc">Авторизация по телефону, журнал действий, резервные копии БД каждую ночь</div>
+      </div>
+      <div class="feat-card">
+        <span class="feat-icon">📱</span>
+        <div class="feat-name">Мобильная версия</div>
+        <div class="feat-desc">Полноценная работа с iPhone и Android — ВПК заполняется прямо на объекте</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-line"></div>
+  <div class="slide-footer">
+    <span class="footer-text">Конфиденциальный документ</span>
+    <span class="footer-logo">ЛЕНТА</span>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     СЛАЙД 4 — СРАВНЕНИЕ С ЦИФРАМИ
+     ══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <span class="slide-num">04 / 05</span>
+    <span class="lenta-label">ЛЕНТА — Управление проектами</span>
+  </div>
+  <div class="slide-body">
+    <div class="slide-title">Сравнение <span>с цифрами</span></div>
+    <div class="slide-sub">Факты, которые говорят сами за себя</div>
+    <div class="divider"></div>
+
+    <table class="cmp-table">
+      <thead>
+        <tr>
+          <th style="width:34%">Параметр</th>
+          <th class="th-bad" style="width:33%">❌ Внешний подрядчик</th>
+          <th class="th-good" style="width:33%">✅ Система Дениса Месмера</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="highlight">
+          <td class="param">Стоимость разработки</td>
+          <td class="val-bad">2 000 000+ ₽</td>
+          <td class="val-good">750 000 ₽ рыночная стоимость*</td>
+        </tr>
+        <tr>
+          <td class="param">Текущий статус</td>
+          <td class="val-bad">Не работает</td>
+          <td class="val-good">Работает 4 месяца</td>
+        </tr>
+        <tr class="highlight">
+          <td class="param">Активные пользователи</td>
+          <td class="val-bad">0 человек</td>
+          <td class="val-good">10+ менеджеров ежедневно</td>
+        </tr>
+        <tr>
+          <td class="param">Стоимость хостинга и инструментов</td>
+          <td class="val-unknown">Неизвестно</td>
+          <td class="val-good">2 300 ₽ / месяц**</td>
+        </tr>
+        <tr>
+          <td class="param">Стоимость инструментов в год</td>
+          <td class="val-unknown">Неизвестно</td>
+          <td class="val-good">~27 600 ₽ / год</td>
+        </tr>
+        <tr>
+          <td class="param">Мобильная версия</td>
+          <td class="val-unknown">Неизвестно</td>
+          <td class="val-good">Полноценная</td>
+        </tr>
+        <tr>
+          <td class="param">ВПК чек-лист с фото</td>
+          <td class="val-bad">Не реализован</td>
+          <td class="val-good">Работает, проверено в реальных ВПК</td>
+        </tr>
+        <tr>
+          <td class="param">Email-уведомления</td>
+          <td class="val-unknown">Неизвестно</td>
+          <td class="val-good">ВПК, СМР, дедлайны, открытия</td>
+        </tr>
+        <tr>
+          <td class="param">Изменения и поддержка</td>
+          <td class="val-bad">Платный тикет, долго</td>
+          <td class="val-good">Сотрудник в штате — в тот же день</td>
+        </tr>
+        <tr class="highlight">
+          <td class="param">Экономия времени команды</td>
+          <td class="val-bad">0 часов</td>
+          <td class="val-good">50–70 часов / месяц</td>
+        </tr>
+        <tr class="highlight">
+          <td class="param">Экономия в деньгах (год)</td>
+          <td class="val-bad">0 ₽</td>
+          <td class="val-good">~900 000 ₽ / год*</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="font-size:9px;color:#9CA3AF;margin-top:8px;">
+      * ~300 часов разработки × 2 500 ₽/час (рыночная ставка Python-разработчика) — понесено разработчиком за счёт личного времени &nbsp;|&nbsp;
+      ** Railway ~450 ₽ + Claude Code ~1 840 ₽ = ~2 300 ₽/мес &nbsp;|&nbsp;
+      *** 50–70 часов/мес × ср. ставка менеджера 1 500 ₽/час × 12 месяцев
+    </p>
+  </div>
+  <div class="footer-line"></div>
+  <div class="slide-footer">
+    <span class="footer-text">Конфиденциальный документ</span>
+    <span class="footer-logo">ЛЕНТА</span>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     СЛАЙД 5 — ПРЕДЛОЖЕНИЕ
+     ══════════════════════════════════════════════════════════ -->
+<div class="slide">
+  <div class="slide-header">
+    <span class="slide-num">05 / 05</span>
+    <span class="lenta-label">ЛЕНТА — Управление проектами</span>
+  </div>
+  <div class="slide-body">
+    <div class="slide-title">Предложение <span>для компании</span></div>
+    <div class="slide-sub">Конкретные шаги для официального оформления</div>
+    <div class="divider"></div>
+
+    <div class="proposal-grid">
+
+      <div class="prop-box main">
+        <div>
+          <div class="box-title">Что я предлагаю</div>
+          <div class="prop-item"><div class="dot"></div><div>Передать все права на систему компании Лента</div></div>
+          <div class="prop-item"><div class="dot"></div><div>Перевести инфраструктуру на корпоративные аккаунты</div></div>
+          <div class="prop-item"><div class="dot"></div><div>Продолжить развитие системы как штатный разработчик</div></div>
+          <div class="prop-item"><div class="dot"></div><div>Обучить команду и передать документацию</div></div>
+          <div class="prop-item"><div class="dot"></div><div>Гарантировать поддержку и развитие функций</div></div>
+        </div>
+        <div class="savings-row">
+          <div class="saving-item">
+            <span class="saving-num">750 000 ₽</span>
+            <div class="saving-lbl">стоимость разработки</div>
+          </div>
+          <div class="saving-item">
+            <span class="saving-num">900 000 ₽/г</span>
+            <div class="saving-lbl">экономия команды</div>
+          </div>
+          <div class="saving-item">
+            <span class="saving-num">2 300₽</span>
+            <div class="saving-lbl">расходов/мес</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="prop-box side">
+        <div class="box-title">Предлагаемые условия</div>
+        <div class="prop-item"><div class="dot"></div><div><strong>Разовый лицензионный платёж</strong> — 300 000 ₽ при подписании договора (рыночная стоимость 500 000 ₽, скидка 40% как сотруднику компании)</div></div>
+        <div class="prop-item"><div class="dot"></div><div><strong>Ежемесячная поддержка</strong> — 64 000 ₽/мес: хостинг, баги, доработки, новые функции</div></div>
+        <div class="prop-item"><div class="dot"></div><div><strong>Итого за год</strong> — 300 000 + (64 000 × 12) = <strong>1 068 000 ₽</strong> vs 2 000 000 ₽ у подрядчика за нерабочий продукт</div></div>
+      </div>
+
+      <div class="prop-box side">
+        <div class="box-title">Следующий шаг</div>
+        <div class="prop-item"><div class="dot"></div><div>Демонстрация системы в живом режиме — 10 минут</div></div>
+        <div class="prop-item"><div class="dot"></div><div>Сравнение с текущей подрядной системой</div></div>
+        <div class="prop-item"><div class="dot"></div><div>Выбор формата сотрудничества</div></div>
+      </div>
+
+    </div>
+
+    <div class="cta-box">
+      <div class="cta-title">300 000 ₽ разово + 64 000 ₽/мес — и система официально принадлежит компании.</div>
+      <div class="cta-text">Денис Месмер — разработчик системы &nbsp;·&nbsp; denis22812281@gmail.com &nbsp;·&nbsp; Готов к встрече в удобное время</div>
+    </div>
+  </div>
+  <div class="footer-line"></div>
+  <div class="slide-footer">
+    <span class="footer-text">Конфиденциальный документ — не для распространения</span>
+    <span class="footer-logo">ЛЕНТА</span>
+  </div>
+</div>
+
+</body>
+</html>

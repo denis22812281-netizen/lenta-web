@@ -1,0 +1,24 @@
+line-length = 100
+
+[lint]
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E402",   # module import not at top — load_dotenv() must run first
+    "E501",   # line too long — formatter handles it
+    "E701",   # multiple statements on one line — alignment style in some files
+    "E702",   # statement ends with semicolon — same
+    "E711",   # comparison to None — SQLAlchemy uses == None in filters
+    "E712",   # comparison to True/False — Jinja2 templates
+    "F401",   # unused import — models/__init__.py re-exports intentionally
+    "W291",   # trailing whitespace in multiline strings
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["F811"]
+"models/__init__.py" = ["F401"]
+"migrations.py" = ["E501"]
+"services/excel_import.py" = ["E701", "E702"]
+
+[format]
+quote-style = "double"
+indent-style = "space"

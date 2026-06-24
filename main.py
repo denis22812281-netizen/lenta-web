@@ -7,21 +7,21 @@ from datetime import datetime, timedelta
 from urllib.parse import parse_qs
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
+import sentry_sdk
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 from starlette.requests import Request
-
-import sentry_sdk
-from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
 _SENTRY_DSN = os.getenv("SENTRY_DSN", "")
 if _SENTRY_DSN:
@@ -37,8 +37,8 @@ import database
 import models
 from deps import limiter, templates
 from migrations import run_postgres_migrations, run_sqlite_migrations
-from services.background import auto_sync_loop, smr_notification_loop, leader_digest_loop
-from services.online import ONLINE_USERS, ONLINE_TIMEOUT
+from services.background import auto_sync_loop, leader_digest_loop, smr_notification_loop
+from services.online import ONLINE_TIMEOUT, ONLINE_USERS
 from services.seed import seed_all
 
 logger = logging.getLogger(__name__)
@@ -47,29 +47,33 @@ app = FastAPI(title="Лента — Управление проектами")
 
 
 class CSRFMiddleware(BaseHTTPMiddleware):
-    """Проверяет CSRF-токен для всех POST-форм (кроме API и логина)."""
-    _EXEMPT = ("/api/", "/login/", "/smr/confirm/", "/import-reconstruct", "/import-construction",
-               "/vpk/precheck", "/vpk/submit", "/opening/upload", "/opening/send-report",
-               "/admin/adaptation-template")
+    """CSRF protection for all POST requests except public endpoints.
+
+    Accepts the token from either:
+      - X-CSRFToken header (AJAX / multipart fetch calls)
+      - csrf_token field in urlencoded form body (traditional HTML forms)
+    Checking the header first means we never need to read multipart bodies
+    here, so multipart upload routes no longer need exemptions.
+    """
+    _EXEMPT = ("/api/", "/login/", "/smr/confirm/")
 
     async def dispatch(self, request: Request, call_next):
         if os.getenv("TESTING") == "1":
             return await call_next(request)
         if request.method == "POST":
             path = request.url.path
-            ct   = request.headers.get("content-type", "")
             if not any(path.startswith(e) for e in self._EXEMPT):
-                submitted = None
-                try:
-                    if ct.startswith("multipart/"):
-                        form = await request.form()
-                        submitted = form.get("csrf_token")
-                    else:
-                        body = await request.body()
-                        params = parse_qs(body.decode("utf-8"))
-                        submitted = (params.get("csrf_token") or [None])[0]
-                except Exception:
-                    submitted = None
+                submitted = request.headers.get("X-CSRFToken")
+                if not submitted:
+                    # Fallback: urlencoded body (standard HTML <form> POST)
+                    ct = request.headers.get("content-type", "")
+                    if "application/x-www-form-urlencoded" in ct or not ct:
+                        try:
+                            body = await request.body()
+                            params = parse_qs(body.decode("utf-8"))
+                            submitted = (params.get("csrf_token") or [None])[0]
+                        except Exception:
+                            submitted = None
                 expected = request.session.get("csrf_token", "")
                 if not (expected and submitted
                         and secrets.compare_digest(str(submitted), expected)):
@@ -272,33 +276,33 @@ async def service_worker():
                                  "Cache-Control": "no-cache"})
 
 # ─── Роутеры ─────────────────────────────────────────────────────────────────
-from routes.auth      import router as auth_router
+from routes.adaptation import router as adaptation_router
+from routes.admin import router as admin_router
+from routes.ai import router as ai_router
+from routes.analytics import router as analytics_router
+from routes.api import router as api_router
+from routes.auth import router as auth_router
+from routes.case import router as case_router
+from routes.chat import router as chat_router
 from routes.dashboard import router as dashboard_router
-from routes.projects  import router as projects_router
-from routes.sections  import router as sections_router
-from routes.kso       import router as kso_router
-from routes.tasks     import router as tasks_router
-from routes.managers  import router as managers_router
 from routes.deadlines import router as deadlines_router
-from routes.vpk       import router as vpk_router
-from routes.stats     import router as stats_router
-from routes.admin     import router as admin_router
-from routes.chat      import router as chat_router
-from routes.ai        import router as ai_router
-from routes.api       import router as api_router
-from routes.sync      import router as sync_router
-from routes.smr       import router as smr_router
-from routes.leader    import router as leader_router
 from routes.executive import router as executive_router
-from routes.help      import router as help_router
-from routes.case           import router as case_router
+from routes.help import router as help_router
+from routes.kanban import router as kanban_router
+from routes.kso import router as kso_router
+from routes.leader import router as leader_router
+from routes.managers import router as managers_router
+from routes.map import router as map_router
+from routes.presence import router as presence_router
+from routes.projects import router as projects_router
 from routes.reconstruction import router as reconstruction_router
-from routes.search         import router as search_router
-from routes.adaptation     import router as adaptation_router
-from routes.analytics      import router as analytics_router
-from routes.map            import router as map_router
-from routes.kanban         import router as kanban_router
-from routes.presence       import router as presence_router
+from routes.search import router as search_router
+from routes.sections import router as sections_router
+from routes.smr import router as smr_router
+from routes.stats import router as stats_router
+from routes.sync import router as sync_router
+from routes.tasks import router as tasks_router
+from routes.vpk import router as vpk_router
 
 for r in [auth_router, dashboard_router, projects_router, sections_router,
           kso_router, tasks_router, managers_router, deadlines_router,
@@ -349,6 +353,7 @@ async def startup():
     if "postgresql" in str(database.DATABASE_URL):
         try:
             from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
             from services.backup import run_pg_backup
             from services.push_service import send_deadline_push
 

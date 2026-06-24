@@ -1,5 +1,6 @@
 """Скриншоты для инструкции — полная анонимизация."""
 import sys
+
 sys.stdout.reconfigure(encoding='utf-8')
 from playwright.sync_api import sync_playwright
 

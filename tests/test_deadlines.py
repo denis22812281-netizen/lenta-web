@@ -56,9 +56,10 @@ def test_construction_page_loads(auth_client):
 
 def test_deadlines_with_overdue_project(auth_client):
     """Просроченный проект попадает в urgent_projects если тип Констракшн."""
-    from tests.conftest import TestingSessionLocal
     from datetime import date, timedelta
+
     import models
+    from tests.conftest import TestingSessionLocal
 
     db = TestingSessionLocal()
     p = models.Project(

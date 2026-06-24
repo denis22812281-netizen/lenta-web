@@ -1,14 +1,14 @@
 """Центр управления реконструкциями: светофор этапов, риски, аналитика."""
 from datetime import date, datetime
 
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, require_login
+from deps import require_login, templates
 
 router = APIRouter()
 

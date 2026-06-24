@@ -1,19 +1,25 @@
 """График СМР — создание, просмотр, управление задачами, email-подтверждения."""
-import io, os, secrets
-from datetime import date, timedelta, datetime
+import io
+import os
+import secrets
+from datetime import date, datetime, timedelta
 
-from fastapi import APIRouter, Request, Form, Depends, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from openpyxl import Workbook
-from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, get_current_user, require_login
+from deps import get_current_user, require_login, templates
+from services.email_service import (
+    send_smr_confirmation,
+    send_smr_progress_report,
+    send_smr_task_done,
+)
 from services.smr_template import get_template
-from services.email_service import send_smr_confirmation, send_smr_task_done, send_smr_progress_report
 
 router = APIRouter()
 
@@ -461,7 +467,7 @@ async def smr_send_confirm(task_id: int, request: Request,
                 reject_url=reject_url,
             )
             sent.append(email)
-        except Exception as e:
+        except Exception:
             pass
 
     db.commit()

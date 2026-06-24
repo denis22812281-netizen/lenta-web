@@ -1,15 +1,15 @@
 import io
 from datetime import date
 
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
-from sqlalchemy.orm import Session
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.styles import Alignment, Font, PatternFill
+from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, require_login
+from deps import require_login, templates
 
 router = APIRouter()
 

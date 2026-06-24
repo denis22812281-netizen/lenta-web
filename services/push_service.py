@@ -26,7 +26,7 @@ def send_push(subscription, title: str, body: str, url: str = "/") -> bool | Non
     if not is_configured():
         return False
     try:
-        from pywebpush import webpush, WebPushException
+        from pywebpush import WebPushException, webpush
         webpush(
             subscription_info={
                 "endpoint": subscription.endpoint,

@@ -2,14 +2,14 @@ import base64
 import io
 import os
 
-from fastapi import APIRouter, Request, Form, Depends
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, get_current_user, require_login, limiter
-from utils.passwords import hash_password, verify_password, _is_legacy_hash
+from deps import get_current_user, limiter, require_login, templates
+from utils.passwords import _is_legacy_hash, hash_password, verify_password
 from utils.phone import normalize_phone
 
 router = APIRouter()
@@ -165,7 +165,8 @@ async def account_2fa_page(
 ):
     db_user = db.query(models.User).filter(models.User.id == user["id"]).first()
     try:
-        import pyotp, qrcode as _qrcode
+        import pyotp
+        import qrcode as _qrcode
         secret = db_user.totp_secret or pyotp.random_base32()
         uri = pyotp.TOTP(secret).provisioning_uri(
             name=user.get("display_name", "user"),

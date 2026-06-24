@@ -46,8 +46,9 @@ def test_qr_page_loads(client):
 
 def test_wrong_password_rejected(client):
     """Неверный пароль не пропускает в систему."""
+    import models
+    import utils.passwords as pw
     from tests.conftest import TestingSessionLocal
-    import models, utils.passwords as pw
 
     db = TestingSessionLocal()
     phone = "+79001112233"
@@ -76,13 +77,15 @@ def test_wrong_password_rejected(client):
 def test_logout(auth_client):
     """После logout защищённые страницы недоступны."""
     from fastapi.testclient import TestClient
+
+    from database import get_db
     from main import app
     from tests.conftest import override_get_db
-    from database import get_db
 
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app, raise_server_exceptions=False) as c:
-        import models, utils.passwords as pw
+        import models
+        import utils.passwords as pw
         from tests.conftest import TestingSessionLocal
         db = TestingSessionLocal()
         phone = "+79009876543"

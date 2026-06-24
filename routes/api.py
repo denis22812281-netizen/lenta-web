@@ -1,16 +1,16 @@
 """Общие API-эндпоинты: ping, online, task-notifications, deadlines, notifications, data-version."""
-from datetime import datetime, date, timedelta
+from datetime import date, datetime, timedelta
 
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import models
-from database import get_db
 from config import STATUSES
-from deps import get_current_user, require_login, require_api_user
-from services.online import ONLINE_USERS, ONLINE_TIMEOUT
+from database import get_db
+from deps import get_current_user, require_api_user, require_login
+from services.online import ONLINE_TIMEOUT, ONLINE_USERS
 
 router = APIRouter()
 

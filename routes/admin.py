@@ -1,11 +1,12 @@
 import os
-from fastapi import APIRouter, Request, Form, Depends
+
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, require_login, require_admin, get_current_user
+from deps import get_current_user, require_admin, require_login, templates
 from utils.phone import normalize_phone
 
 router = APIRouter()
@@ -124,7 +125,7 @@ async def vpk_criteria_add(request: Request, db: Session = Depends(get_db),
     new_order = (last.order + 1) if last else 1
     db.add(models.VpkCriterion(name=name.strip(), vpk_type=vpk_type, order=new_order))
     db.commit()
-    return RedirectResponse(f"/admin/vpk-criteria?msg=Критерий добавлен", status_code=303)
+    return RedirectResponse("/admin/vpk-criteria?msg=Критерий добавлен", status_code=303)
 
 
 @router.post("/admin/vpk-criteria/{crit_id}/edit")
@@ -172,9 +173,12 @@ async def vpk_criteria_reorder(request: Request, db: Session = Depends(get_db)):
 async def db_backup(request: Request, db: Session = Depends(get_db),
                     user: dict = Depends(require_admin)):
     """Скачать дамп PostgreSQL (только для is_admin). Используется pg_dump."""
-    import subprocess, io, os
-    from fastapi.responses import Response as _Resp
+    import io
+    import os
+    import subprocess
     from datetime import date
+
+    from fastapi.responses import Response as _Resp
 
     db_url = os.getenv("DATABASE_URL", "")
     if not db_url or "postgresql" not in db_url:

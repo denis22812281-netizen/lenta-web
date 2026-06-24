@@ -1,24 +1,34 @@
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Request, Form, Depends, UploadFile, File, WebSocket, WebSocketDisconnect
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    Request,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.responses import HTMLResponse, RedirectResponse
-from services.ws_manager import ws_manager
-from sqlalchemy import or_, and_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import templates, get_current_user, require_login
-from services.online import ONLINE_USERS, ONLINE_TIMEOUT
-from services.cloud_storage import upload_photo, upload_audio, media_url
+from deps import get_current_user, require_login, templates
+from services.cloud_storage import media_url, upload_audio, upload_photo
+from services.online import ONLINE_TIMEOUT, ONLINE_USERS
+from services.ws_manager import ws_manager
 
 router = APIRouter()
 
 
 def _push_chat(db, sender: str, receiver: str, preview: str):
     """Отправить push о новом сообщении в фоне."""
-    from services.push_service import notify_user, notify_all, is_configured
+    from services.push_service import is_configured, notify_all, notify_user
     if not is_configured():
         return
     title = f"💬 {sender}"

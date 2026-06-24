@@ -1,15 +1,15 @@
 """Исполнительный дашборд — для директора и руководителей (is_admin или is_leader)."""
-from datetime import date, timedelta
 from calendar import month_abbr
+from datetime import date, timedelta
 
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
-from sqlalchemy import func, case, extract
+from sqlalchemy import case, extract, func
 from sqlalchemy.orm import Session, joinedload
 
 import models
 from database import get_db
-from deps import templates, require_executive
+from deps import require_executive, templates
 
 router = APIRouter()
 
