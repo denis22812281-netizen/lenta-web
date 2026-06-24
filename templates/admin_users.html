@@ -68,8 +68,8 @@
                     <tr>
                         <th>Сотрудник</th>
                         <th>Номер телефона</th>
-                        <th>Роль</th>
-                        <th>Аккаунт</th>
+                        <th class="d-none d-md-table-cell">Роль</th>
+                        <th class="d-none d-md-table-cell">Аккаунт</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -77,14 +77,29 @@
                 {% for wl in whitelist %}
                 {% set u = user_by_phone.get(wl.phone) %}
                 <tr>
-                    <td class="fw-semibold">{{ wl.display_name or '—' }}</td>
-                    <td class="font-monospace">{{ wl.phone }}</td>
                     <td>
+                        <div class="fw-semibold">{{ wl.display_name or '—' }}</div>
+                        <!-- mobile: role + account status under name -->
+                        <div class="d-flex d-md-none gap-1 mt-1 flex-wrap">
+                            <span class="badge {% if wl.is_admin %}bg-danger{% else %}bg-secondary{% endif %}" style="font-size:.65rem">
+                                {% if wl.is_admin %}Администратор{% else %}Менеджер{% endif %}
+                            </span>
+                            {% if u and u.password_hash %}
+                            <span class="badge bg-success" style="font-size:.65rem"><i class="bi bi-check2 me-1"></i>Вошёл</span>
+                            {% elif u %}
+                            <span class="badge bg-warning text-dark" style="font-size:.65rem">Нет пароля</span>
+                            {% else %}
+                            <span class="badge bg-light text-muted border" style="font-size:.65rem">Не входил</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="font-monospace small">{{ wl.phone }}</td>
+                    <td class="d-none d-md-table-cell">
                         <span class="badge {% if wl.is_admin %}bg-danger{% else %}bg-secondary{% endif %}">
                             {% if wl.is_admin %}Администратор{% else %}Менеджер{% endif %}
                         </span>
                     </td>
-                    <td>
+                    <td class="d-none d-md-table-cell">
                         {% if u and u.password_hash %}
                         <span class="badge bg-success"><i class="bi bi-check2 me-1"></i>Вошёл</span>
                         {% elif u %}
@@ -98,14 +113,14 @@
                             {% if u and u.id != user.id %}
                             <form method="post" action="/admin/users/{{ u.id }}/reset-password" class="d-inline">
                                 <button type="submit" class="btn btn-sm btn-outline-warning"
-                                        title="Сбросить пароль" onclick="return confirm('Сбросить пароль?')">
+                                        title="Сбросить пароль" data-confirm-inline="Сбросить пароль?">
                                     <i class="bi bi-key"></i>
                                 </button>
                             </form>
                             {% endif %}
                             {% if wl.phone != user.phone %}
                             <button type="button" class="btn btn-sm btn-outline-danger"
-                                    onclick="confirmDelete({{ wl.id }}, '{{ wl.display_name }}')">
+                                    data-action="confirm-delete-user" data-id="{{ wl.id }}" data-name="{{ wl.display_name }}">
                                 <i class="bi bi-trash"></i>
                             </button>
                             {% else %}

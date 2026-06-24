@@ -54,7 +54,7 @@
         <a href="/deadlines" class="nav-item {% if '/deadlines' in request.url.path %}active{% endif %}">
             <i class="bi bi-clock-history"></i><span>Дедлайны</span>
         </a>
-        <div class="nav-sect-toggle {% if '/managers' in request.url.path or '/tasks' in request.url.path or request.url.path.startswith('/smr') or '/chat' in request.url.path %}open{% else %}open{% endif %}" data-target="nav-cmd" onclick="toggleNavSect(this)">
+        <div class="nav-sect-toggle {% if '/managers' in request.url.path or '/tasks' in request.url.path or request.url.path.startswith('/smr') or '/chat' in request.url.path %}open{% else %}open{% endif %}" data-target="nav-cmd" data-action="nav-toggle">
             КОМАНДА <i class="bi bi-chevron-down nav-chevron"></i>
         </div>
         <div class="nav-collapse-body" id="nav-cmd">
@@ -73,7 +73,7 @@
             </a>
         </div>
 
-        <div class="nav-sect-toggle open" data-target="nav-proj" onclick="toggleNavSect(this)">
+        <div class="nav-sect-toggle open" data-target="nav-proj" data-action="nav-toggle">
             ПРОЕКТЫ <i class="bi bi-chevron-down nav-chevron"></i>
         </div>
         <div class="nav-collapse-body" id="nav-proj">
@@ -101,7 +101,7 @@
             </a>
         </div>
 
-        <div class="nav-sect-toggle open" data-target="nav-analytics" onclick="toggleNavSect(this)">
+        <div class="nav-sect-toggle open" data-target="nav-analytics" data-action="nav-toggle">
             АНАЛИТИКА <i class="bi bi-chevron-down nav-chevron"></i>
         </div>
         <div class="nav-collapse-body" id="nav-analytics">
@@ -126,7 +126,7 @@
         </div>
 
         {% if user and user.is_admin %}
-        <div class="nav-sect-toggle" data-target="nav-import" onclick="toggleNavSect(this)">
+        <div class="nav-sect-toggle" data-target="nav-import" data-action="nav-toggle">
             ИМПОРТ <i class="bi bi-chevron-down nav-chevron"></i>
         </div>
         <div class="nav-collapse-body collapsed" id="nav-import">
@@ -140,7 +140,7 @@
         {% endif %}
 
         {% if user and user.phone == '+79997303914' %}
-        <div class="nav-sect-toggle" data-target="nav-sys" onclick="toggleNavSect(this)">
+        <div class="nav-sect-toggle" data-target="nav-sys" data-action="nav-toggle">
             СИСТЕМА <i class="bi bi-chevron-down nav-chevron"></i>
         </div>
         <div class="nav-collapse-body collapsed" id="nav-sys">
@@ -182,22 +182,22 @@
         <h5 class="topbar-title mb-0">{% block title %}{% endblock %}</h5>
         <div class="topbar-actions">{% block topbar_actions %}{% endblock %}</div>
         <div class="topbar-right">
-            <button class="btn-theme-toggle" id="btn-search-toggle" onclick="toggleSearchBar()" title="Поиск" aria-label="Поиск">
+            <button class="btn-theme-toggle" id="btn-search-toggle" title="Поиск" aria-label="Поиск">
                 <i class="bi bi-search"></i>
             </button>
-            <button id="btn-theme" class="btn-theme-toggle" onclick="toggleTheme()" title="Сменить тему">
+            <button id="btn-theme" class="btn-theme-toggle" title="Сменить тему">
                 <i class="bi bi-moon-fill" id="theme-icon"></i>
             </button>
             <span class="topbar-date" id="js-date"></span>
-            <span class="notif-badge d-none" id="notif-badge" style="cursor:pointer" onclick="window.location='/deadlines'"></span>
+            <span class="notif-badge d-none" id="notif-badge" style="cursor:pointer"></span>
         </div>
     </header>
 
     <!-- Search overlay -->
-    <div id="search-overlay" style="display:none;position:fixed;inset:0;z-index:1050;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)" onclick="closeSearchBar()"></div>
+    <div id="search-overlay" style="display:none;position:fixed;inset:0;z-index:1050;background:rgba(0,0,0,.6);backdrop-filter:blur(4px)"></div>
     <div id="search-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:1051;padding:10px 12px;background:var(--bs-body-bg);box-shadow:0 4px 20px rgba(0,0,0,.3)">
-        <form method="get" action="/search" class="d-flex gap-2" onsubmit="closeSearchBar()">
-            <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" onclick="closeSearchBar()">
+        <form method="get" action="/search" class="d-flex gap-2" id="search-form">
+            <button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" id="btn-search-close">
                 <i class="bi bi-arrow-left"></i>
             </button>
             <input type="text" name="q" id="search-input" class="form-control"
@@ -955,6 +955,9 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.setItem(TOUR_KEY, '1');
     }
 
+    // Помечаем сразу — чтобы крэш страницы не создавал бесконечный цикл показа
+    localStorage.setItem(TOUR_KEY, '1');
+
     // Создаём HTML
     const overlay = document.createElement('div');
     overlay.id = 'tour-overlay';
@@ -983,11 +986,12 @@ document.addEventListener('DOMContentLoaded', function() {
             '<small id="tour-step" style="color:#64748b">1 / ' + steps.length + '</small>' +
             '<button id="tour-next" class="btn btn-sm btn-success">Далее →</button>' +
         '</div>' +
-        '<button onclick="document.getElementById(\'tour-overlay\').remove();document.getElementById(\'tour-card\').remove();localStorage.setItem(\'' + TOUR_KEY + '\',\'1\')" ' +
+        '<button id="tour-close-btn" ' +
             'style="position:absolute;top:12px;right:12px;background:none;border:none;color:#64748b;font-size:18px;cursor:pointer;padding:4px">×</button>';
 
     document.body.appendChild(overlay);
     document.body.appendChild(card);
+    document.getElementById('tour-close-btn').addEventListener('click', closeTour);
     render();
 
     document.getElementById('tour-next').onclick = function() {
@@ -1005,7 +1009,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <div id="sync-badge" style="display:none;position:fixed;bottom:calc(58px + env(safe-area-inset-bottom) + 8px);
      left:12px;z-index:1001;background:#f59e0b;color:#fff;border-radius:20px;
      padding:5px 12px;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.25);
-     align-items:center;gap:6px;cursor:pointer" onclick="window._flushQueue && window._flushQueue()">
+     align-items:center;gap:6px;cursor:pointer">
     <i class="bi bi-arrow-repeat"></i>
     <span id="sync-badge-count">0</span> изм. в очереди
 </div>
@@ -1059,6 +1063,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     window._flushQueue = flushQueue;
+    var _sb = document.getElementById('sync-badge');
+    if (_sb) _sb.addEventListener('click', function() { flushQueue(); });
 
     // Авто-flush при восстановлении сети
     window.addEventListener('online', function() {
@@ -1146,6 +1152,72 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('beforeunload', function() { ws && ws.close(); clearTimeout(retryT); });
 })();
 </script>
+{% endif %}
+
+<!-- ── Онбординг-визард (первый вход) ────────────────────── -->
+{% if user is defined and user %}
+<div id="onboard-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.78);align-items:center;justify-content:center">
+  <div id="onboard-card" style="background:var(--bs-body-bg,#fff);border-radius:20px;max-width:480px;width:92%;box-shadow:0 24px 64px rgba(0,0,0,.4);overflow:hidden;position:relative">
+    <div style="height:4px;background:#1e293b;position:relative">
+      <div id="onboard-prog" style="height:100%;background:var(--lenta-green,#3CB34A);width:33%;transition:width .3s ease"></div>
+    </div>
+    <div style="padding:32px 28px 24px">
+      <div id="onboard-slides">
+
+        <!-- Слайд 1 -->
+        <div class="onboard-slide">
+          <div style="font-size:40px;margin-bottom:12px">👋</div>
+          <h3 style="font-size:20px;font-weight:800;margin-bottom:8px;color:var(--lenta-green,#3CB34A)">Добро пожаловать в Лента.PM</h3>
+          <p style="color:var(--bs-secondary-color,#6c757d);font-size:14px;line-height:1.6;margin-bottom:0">
+            Система управления проектами строительного департамента.<br>
+            Реконструкции · Констракшн · СМР · Адаптация · AI-чат.<br><br>
+            Покажем главное за 2 шага.
+          </p>
+        </div>
+
+        <!-- Слайд 2 -->
+        <div class="onboard-slide" style="display:none">
+          <div style="font-size:40px;margin-bottom:12px">⚡</div>
+          <h3 style="font-size:20px;font-weight:800;margin-bottom:12px;color:var(--lenta-green,#3CB34A)">Что умеет система</h3>
+          <ul style="color:var(--bs-body-color,#212529);font-size:14px;line-height:1.8;padding-left:20px;margin-bottom:0">
+            <li>Дедлайны по всем объектам — с цветовой индикацией</li>
+            <li>ВПК чеклисты и реестр отчётов</li>
+            <li>СМР-уведомления подрядчикам с подтверждением</li>
+            <li>Карточки адаптации по новым ТК</li>
+            <li>AI-ассистент для анализа портфеля</li>
+            <li>Push-уведомления о просроченных задачах</li>
+          </ul>
+        </div>
+
+        <!-- Слайд 3 -->
+        <div class="onboard-slide" style="display:none">
+          <div style="font-size:40px;margin-bottom:12px">🚀</div>
+          <h3 style="font-size:20px;font-weight:800;margin-bottom:8px;color:var(--lenta-green,#3CB34A)">С чего начать</h3>
+          <p style="color:var(--bs-secondary-color,#6c757d);font-size:14px;line-height:1.6;margin-bottom:12px">
+            Дашборд покажет текущее состояние портфеля.<br>
+            Вопросы — кнопка <strong>«Инструкция»</strong> в боковом меню (полное руководство).
+          </p>
+          <div style="background:rgba(60,179,74,.1);border:1px solid rgba(60,179,74,.3);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--bs-body-color,#212529)">
+            💡 Установите систему на телефон: в браузере нажмите «Добавить на экран» — работает как приложение.
+          </div>
+        </div>
+
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:24px">
+        <button id="onboard-skip" style="background:none;border:none;color:var(--bs-secondary-color,#6c757d);cursor:pointer;font-size:14px;padding:8px 0">Пропустить</button>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span id="onboard-dots" style="display:flex;gap:5px">
+            <span class="ob-dot" style="width:8px;height:8px;border-radius:50%;background:var(--lenta-green,#3CB34A)"></span>
+            <span class="ob-dot" style="width:8px;height:8px;border-radius:50%;background:#cbd5e1"></span>
+            <span class="ob-dot" style="width:8px;height:8px;border-radius:50%;background:#cbd5e1"></span>
+          </span>
+          <button id="onboard-next" style="background:var(--lenta-green,#3CB34A);color:#fff;border:none;border-radius:10px;padding:10px 22px;font-weight:700;font-size:14px;cursor:pointer;margin-left:8px">Далее →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endif %}
 </body>
 </html>

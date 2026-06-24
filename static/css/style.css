@@ -1065,9 +1065,8 @@ body {
 /* Онбординг-тур */
 .onboard-overlay {
     position: fixed; inset: 0;
-    background: rgba(0,0,0,.72);
+    background: rgba(0,0,0,.78);
     z-index: 3000;
-    backdrop-filter: blur(4px);
     animation: fadeIn .3s ease;
 }
 .onboard-card {

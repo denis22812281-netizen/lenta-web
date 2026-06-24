@@ -87,15 +87,63 @@ function toggleTheme() {
     _applyThemeUI();
 }
 
-// ── Date display ────────────────────────────────────────────────────────────
+// ── Global data-action dispatcher ────────────────────────────────────────────
+document.addEventListener('click', function(e) {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const action = el.dataset.action;
+    switch (action) {
+        case 'nav-toggle':        toggleNavSect(el); break;
+        case 'print':             window.print(); break;
+        case 'reload':            location.reload(); break;
+        case 'navigate':          window.location = el.dataset.href; break;
+        case 'trigger-file':      { const t = document.getElementById(el.dataset.target); if (t) t.click(); break; }
+        case 'stop-propagation':  e.stopPropagation(); break;
+    }
+});
+
+// data-action="autosubmit" on <select> / <input> → submits parent form
+document.addEventListener('change', function(e) {
+    if (e.target.dataset.action === 'autosubmit') {
+        const form = e.target.closest('form');
+        if (form) form.submit();
+    }
+});
+
+// data-confirm on <form> → native confirm dialog before submit
+document.addEventListener('submit', function(e) {
+    const msg = e.target.dataset.confirm;
+    if (msg && !confirm(msg)) e.preventDefault();
+});
+
+// ── Date display + base.html event wiring ────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-    _applyThemeUI();  // синхронизируем иконку при загрузке
+    _applyThemeUI();
     const el = document.getElementById('js-date');
     if (el) {
         el.textContent = new Date().toLocaleDateString('ru-RU', {
             weekday: 'short', day: 'numeric', month: 'long', year: 'numeric'
         });
     }
+
+    // Topbar buttons (base.html no longer uses inline handlers)
+    const searchToggle = document.getElementById('btn-search-toggle');
+    if (searchToggle) searchToggle.addEventListener('click', toggleSearchBar);
+
+    const themeBtn = document.getElementById('btn-theme');
+    if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
+
+    const notifBadge = document.getElementById('notif-badge');
+    if (notifBadge) notifBadge.addEventListener('click', () => { window.location = '/deadlines'; });
+
+    const searchOverlay = document.getElementById('search-overlay');
+    if (searchOverlay) searchOverlay.addEventListener('click', closeSearchBar);
+
+    const searchClose = document.getElementById('btn-search-close');
+    if (searchClose) searchClose.addEventListener('click', closeSearchBar);
+
+    const searchForm = document.getElementById('search-form');
+    if (searchForm) searchForm.addEventListener('submit', closeSearchBar);
 
     // Mobile sidebar + backdrop
     const hamburger = document.getElementById('btn-hamburger');
@@ -115,15 +163,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (hamburger) hamburger.addEventListener('click', () =>
         sidebar && sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
+    if (backdrop)  backdrop.addEventListener('click', closeSidebar);
 
-    // Закрыть по клику на backdrop
-    if (backdrop) backdrop.addEventListener('click', closeSidebar);
-
-    // Закрыть по кнопке × внутри сайдбара
     const closeSidebarBtn = document.getElementById('btn-sidebar-close');
     if (closeSidebarBtn) closeSidebarBtn.addEventListener('click', closeSidebar);
 
-    // Закрыть при клике по любому пункту меню на мобиле
     if (sidebar) {
         sidebar.querySelectorAll('.nav-item').forEach(link => {
             link.addEventListener('click', () => {
@@ -135,15 +179,56 @@ document.addEventListener('DOMContentLoaded', () => {
     // Notification button
     const btn = document.getElementById('btn-notif');
     if (btn) {
-        const enabled = localStorage.getItem('notif_enabled') === 'true';
-        if (enabled) btn.classList.add('active');
+        if (localStorage.getItem('notif_enabled') === 'true') btn.classList.add('active');
         btn.addEventListener('click', toggleNotifications);
     }
 
-    // Check deadlines every 5 min; also once on load after 3s
+    // Deadlines check
     setTimeout(checkDeadlines, 3000);
     setInterval(checkDeadlines, 5 * 60 * 1000);
+
+    // Onboarding wizard
+    _initOnboarding();
 });
+
+// ── Onboarding wizard ────────────────────────────────────────────────────────
+function _initOnboarding() {
+    const overlay = document.getElementById('onboard-overlay');
+    if (!overlay) return;
+    if (localStorage.getItem('lenta_welcome_v1')) return;
+
+    let step = 0;
+    const slides = overlay.querySelectorAll('.onboard-slide');
+    const prog   = document.getElementById('onboard-prog');
+    const dots   = overlay.querySelectorAll('.ob-dot');
+    const nextBtn = document.getElementById('onboard-next');
+    const skipBtn = document.getElementById('onboard-skip');
+
+    function show(i) {
+        slides.forEach((s, idx) => { s.style.display = idx === i ? '' : 'none'; });
+        dots.forEach((d, idx) => {
+            d.style.background = idx === i ? 'var(--lenta-green,#3CB34A)' : '#cbd5e1';
+        });
+        prog.style.width = ((i + 1) / slides.length * 100) + '%';
+        nextBtn.textContent = i === slides.length - 1 ? 'Начать работу ✓' : 'Далее →';
+    }
+
+    function close() {
+        localStorage.setItem('lenta_welcome_v1', '1');
+        overlay.style.display = 'none';
+    }
+
+    nextBtn.addEventListener('click', () => {
+        if (step < slides.length - 1) { step++; show(step); } else close();
+    });
+    skipBtn.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    // Помечаем сразу — чтобы крэш страницы не создавал бесконечный цикл
+    localStorage.setItem('lenta_welcome_v1', '1');
+    show(0);
+    overlay.style.display = 'flex';
+}
 
 // ── Notification toggle ──────────────────────────────────────────────────────
 async function toggleNotifications() {
