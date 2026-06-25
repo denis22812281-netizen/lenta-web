@@ -124,7 +124,7 @@ Split into modules, all re-exported from `models/__init__.py`:
 - Rate limits: 5/min login, 20/min phone check, 10/min 2FA
 - Admin IP whitelist: `ADMIN_IP_WHITELIST` env var (comma-separated)
 - Audit log: every authenticated GET request → `AuditLog` table
-- CSP headers: script-src includes `'unsafe-inline'` (templates use inline handlers) and `cdn.jsdelivr.net` (frappe-gantt)
+- CSP headers: `script-src 'self' 'nonce-{nonce}' cdn.jsdelivr.net` — no `'unsafe-inline'`; all scripts use nonce injected by `SecurityHeadersMiddleware`
 - Push notifications: VAPID keys in Railway env vars (`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`)
 
 ---

@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import get_current_user, require_login, templates
+from services.cache import cache_delete, cache_get, cache_set
 from services.cloud_storage import upload_photo
 from services.email_service import notify_opening_photos, notify_precheck_report, notify_vpk_report
 from utils.files import check_magic_bytes
@@ -46,12 +47,28 @@ router = APIRouter()
 @router.get("/vpk", response_class=HTMLResponse)
 async def vpk_page(request: Request, db: Session = Depends(get_db),
                    user: dict = Depends(require_login), tab: str = "vpk1"):
+    from types import SimpleNamespace
+
+    # VPK criteria change rarely — cache 10 minutes
+    c1_cached = await cache_get("vpk:criteria:1")
+    c2_cached = await cache_get("vpk:criteria:2")
+    if c1_cached is None:
+        criteria1 = db.query(models.VpkCriterion).filter(
+            models.VpkCriterion.vpk_type == 1).order_by(models.VpkCriterion.order).all()
+        await cache_set("vpk:criteria:1",
+                        [{"id": c.id, "name": c.name, "order": c.order} for c in criteria1], ttl=600)
+    else:
+        criteria1 = [SimpleNamespace(**d) for d in c1_cached]
+    if c2_cached is None:
+        criteria2 = db.query(models.VpkCriterion).filter(
+            models.VpkCriterion.vpk_type == 2).order_by(models.VpkCriterion.order).all()
+        await cache_set("vpk:criteria:2",
+                        [{"id": c.id, "name": c.name, "order": c.order} for c in criteria2], ttl=600)
+    else:
+        criteria2 = [SimpleNamespace(**d) for d in c2_cached]
+
     projects  = db.query(models.Project).filter(
         models.Project.project_type == "Констракшн").order_by(models.Project.tk_number).all()
-    criteria1 = db.query(models.VpkCriterion).filter(
-        models.VpkCriterion.vpk_type == 1).order_by(models.VpkCriterion.order).all()
-    criteria2 = db.query(models.VpkCriterion).filter(
-        models.VpkCriterion.vpk_type == 2).order_by(models.VpkCriterion.order).all()
     reports   = db.query(models.VpkReport).order_by(
         models.VpkReport.submitted_at.desc()).limit(50).all()
     pre_reports = db.query(models.PreVpkReport).order_by(

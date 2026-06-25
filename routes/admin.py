@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 import models
 from database import get_db
 from deps import get_current_user, require_admin, require_login, templates
+from services.cache import cache_delete
 from utils.phone import normalize_phone
 
 router = APIRouter()
@@ -125,6 +126,7 @@ async def vpk_criteria_add(request: Request, db: Session = Depends(get_db),
     new_order = (last.order + 1) if last else 1
     db.add(models.VpkCriterion(name=name.strip(), vpk_type=vpk_type, order=new_order))
     db.commit()
+    await cache_delete(f"vpk:criteria:{vpk_type}")
     return RedirectResponse("/admin/vpk-criteria?msg=Критерий добавлен", status_code=303)
 
 
@@ -137,6 +139,7 @@ async def vpk_criteria_edit(crit_id: int, request: Request,
     if c:
         c.name = name.strip()
         db.commit()
+        await cache_delete(f"vpk:criteria:{c.vpk_type}")
     return RedirectResponse("/admin/vpk-criteria?msg=Сохранено", status_code=303)
 
 
@@ -146,8 +149,10 @@ async def vpk_criteria_delete(crit_id: int, request: Request,
                                user: dict = Depends(require_admin)):
     c = db.query(models.VpkCriterion).filter(models.VpkCriterion.id == crit_id).first()
     if c:
+        vpk_type = c.vpk_type
         db.delete(c)
         db.commit()
+        await cache_delete(f"vpk:criteria:{vpk_type}")
     return RedirectResponse("/admin/vpk-criteria?msg=Удалено", status_code=303)
 
 

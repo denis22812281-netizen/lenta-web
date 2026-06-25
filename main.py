@@ -179,9 +179,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         ct = response.headers.get("content-type", "")
         if "text/html" not in ct:
+            # Static assets with version strings → cache 1 year in browser
+            if request.url.path.startswith("/static/"):
+                response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
             for k, v in base_headers.items():
                 response.headers[k] = v
             return response
+
+        # HTML pages are user-specific — never cache
+        base_headers["Cache-Control"] = "no-store"
 
         # Читаем тело, инжектируем nonce во все <script> теги
         chunks: list[bytes] = []
