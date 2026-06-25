@@ -106,6 +106,13 @@ function toggleTheme() {
     _applyThemeUI();
 }
 
+function toggleNavSect(el) {
+    const body = document.getElementById(el.dataset.target);
+    if (!body) return;
+    body.classList.toggle('collapsed');
+    el.classList.toggle('open');
+}
+
 // ── Global data-action dispatcher ────────────────────────────────────────────
 document.addEventListener('click', function(e) {
     const el = e.target.closest('[data-action]');
