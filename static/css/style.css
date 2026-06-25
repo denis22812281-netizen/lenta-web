@@ -1354,14 +1354,16 @@ h1, h2, h3, h4, h5, h6 {
 .btn {
     font-family: 'Inter', system-ui, sans-serif;
     font-weight: 500;
-    transition: transform var(--dur-fast) var(--ease-out),
-                box-shadow var(--dur-fast) var(--ease-out),
+    transition: box-shadow var(--dur-fast) var(--ease-out),
                 background var(--dur-fast),
                 border-color var(--dur-fast) !important;
-    will-change: transform;
+    /* will-change:transform убран — создаёт GPU-слой на каждую кнопку → iOS OOM */
 }
-.btn:active { transform: scale(0.97) !important; }
-.btn:not(:disabled):hover { transform: translateY(-1px); }
+/* transform на кнопках только на устройствах без touch — на iOS не нужен */
+@media (hover: hover) {
+    .btn:active { transform: scale(0.97) !important; }
+    .btn:not(:disabled):hover { transform: translateY(-1px); }
+}
 .btn-success {
     background: var(--lenta-green) !important;
     border-color: var(--lenta-green) !important;
@@ -1401,18 +1403,19 @@ h1, h2, h3, h4, h5, h6 {
     letter-spacing: 0.02em;
 }
 
-/* ── Page entrance — для основного контента ─────────────────── */
-.page-body > * {
-    animation: pageIn var(--dur-slow) var(--ease-out) both;
+/* ── Page entrance — только на десктопе (на мобильном GPU-слои → iOS OOM) ── */
+@media (hover: hover) and (min-width: 768px) {
+    .page-body > * {
+        animation: pageIn var(--dur-slow) var(--ease-out) both;
+    }
+    .page-body > *:nth-child(2) { animation-delay: 40ms; }
+    .page-body > *:nth-child(3) { animation-delay: 80ms; }
+    .page-body > *:nth-child(4) { animation-delay: 120ms; }
 }
 @keyframes pageIn {
     from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: none; }
 }
-/* Стаггер для рядов */
-.page-body > *:nth-child(2) { animation-delay: 40ms; }
-.page-body > *:nth-child(3) { animation-delay: 80ms; }
-.page-body > *:nth-child(4) { animation-delay: 120ms; }
 
 /* ── Loading state для кнопок ────────────────────────────────── */
 .btn-loading {
