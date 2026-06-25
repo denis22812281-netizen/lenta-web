@@ -40,8 +40,7 @@
                    placeholder="Поиск по номеру ТК или городу..."
                    autocomplete="off"
                    value="{% if selected_proj %}ТК {{ selected_proj.tk_number }}{% if selected_proj.city %} · {{ selected_proj.city }}{% endif %}{% endif %}"
-                   id="opening-tk-search"
-                   onfocus="showTkDropdown()">
+                   id="opening-tk-search">
             <div id="tkDropdown" class="position-absolute w-100 shadow-lg d-none"
                  style="top:calc(100% + 4px);left:0;z-index:1000;background:var(--bs-body-bg);
                         border:1px solid var(--bs-border-color);border-radius:10px;
@@ -52,9 +51,7 @@
                    data-id="{{ p.id }}"
                    data-label="ТК {{ p.tk_number }}{% if p.city %} · {{ p.city }}{% endif %}"
                    data-search="{{ p.tk_number|lower }}{% if p.city %} {{ p.city|lower }}{% endif %}"
-                   data-action="select-tk"
-                   onmouseover="this.style.background='rgba(60,179,74,.12)'"
-                   onmouseout="this.style.background=''">
+                   data-action="select-tk">
                 <span class="fw-semibold">ТК {{ p.tk_number }}</span>
                 {% if p.city %}<span class="text-muted ms-2 small">{{ p.city }}</span>{% endif %}
               </div>
@@ -74,9 +71,6 @@
           <!-- Dropzone -->
           <div id="dropzone"
                data-action="trigger-file" data-target="photoInput"
-               ondragover="event.preventDefault();this.classList.add('drag-over')"
-               ondragleave="this.classList.remove('drag-over')"
-               ondrop="handleDrop(event)"
                style="border:2px dashed #3CB34A;border-radius:12px;padding:32px 16px;
                       text-align:center;cursor:pointer;transition:background .2s;
                       background:var(--bs-body-bg)">
@@ -177,7 +171,7 @@
             <img src="{{ media_url(photo.photo_path) }}" alt="Фото"
                  style="width:100%;height:100%;object-fit:cover;display:block"
                  loading="lazy"
-                 onerror="this.src='/static/img/raccoon.png'">
+                 data-fallback="raccoon">
 
             <!-- Оверлей -->
             <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-between p-2"
@@ -362,7 +356,7 @@ function addPhotoCard(photoId, url) {
          id="photoFrame${photoId}">
       <img src="${url}" alt="Фото"
            style="width:100%;height:100%;object-fit:cover;display:block"
-           loading="lazy" onerror="this.src='/static/img/raccoon.png'">
+           loading="lazy" data-fallback="raccoon">
       <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-between p-2"
            style="background:linear-gradient(to bottom,rgba(0,0,0,.5) 0%,transparent 40%,transparent 60%,rgba(0,0,0,.6) 100%)">
         <div class="d-flex justify-content-between align-items-start">
@@ -453,7 +447,25 @@ function handleSendReport(form) {
 
 (function() {
     var tkSearch = document.getElementById('opening-tk-search');
-    if (tkSearch) tkSearch.addEventListener('input', function() { filterTk(this.value); });
+    if (tkSearch) {
+        tkSearch.addEventListener('input', function() { filterTk(this.value); });
+        tkSearch.addEventListener('focus', showTkDropdown);
+    }
+    var dropzone = document.getElementById('dropzone');
+    if (dropzone) {
+        dropzone.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('drag-over'); });
+        dropzone.addEventListener('dragleave', function() { this.classList.remove('drag-over'); });
+        dropzone.addEventListener('drop', handleDrop);
+    }
+    // TK option hover via event delegation (replaces onmouseover/onmouseout)
+    document.addEventListener('mouseover', function(e) {
+        var el = e.target.closest('.tk-option');
+        if (el) el.style.background = 'rgba(60,179,74,.12)';
+    });
+    document.addEventListener('mouseout', function(e) {
+        var el = e.target.closest('.tk-option');
+        if (el) el.style.background = '';
+    });
     var photoInput = document.getElementById('photoInput');
     if (photoInput) photoInput.addEventListener('change', function() { startUpload(this.files); });
     var sendReportForm = document.getElementById('send-report-form');

@@ -310,7 +310,7 @@
     {% set purl = media_url(photo.photo_path) %}
     <div class="fc" data-action="open-lb" data-url="{{ purl }}" data-idx="{{ loop.index0 }}">
       <img src="{{ purl }}" alt="Фото {{ loop.index }}" loading="lazy"
-           onerror="this.src='/static/img/raccoon.png'">
+           data-fallback="raccoon">
       <div class="feat-badge"><i class="bi bi-star-fill" style="font-size:9px"></i>В отчёт</div>
     </div>
     {% endfor %}
@@ -332,7 +332,7 @@
     {% set purl = media_url(photo.photo_path) %}
     <div class="mi" data-action="open-lb" data-url="{{ purl }}" data-idx="{{ (featured|length) + loop.index0 }}">
       <img src="{{ purl }}" alt="Фото" loading="lazy"
-           onerror="this.src='/static/img/raccoon.png'">
+           data-fallback="raccoon">
     </div>
     {% endfor %}
   </div>

@@ -96,7 +96,7 @@
                 <i class="bi bi-emoji-smile"></i>
             </button>
             <!-- Голосовое -->
-            <button type="button" class="chat-tool-btn" id="btnMic" onpointerdown="startRecord()" onpointerup="stopRecord()" ontouchstart="startRecord()" ontouchend="stopRecord()" title="Удержи для записи">
+            <button type="button" class="chat-tool-btn" id="btnMic" title="Удержи для записи">
                 <i class="bi bi-mic-fill"></i>
             </button>
             <!-- Фото -->
@@ -338,7 +338,7 @@ function _renderMentionDropdown() {
         const initials = u.name.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('');
         const src = u.photo ? (u.photo.startsWith('http') ? u.photo : '/static/' + u.photo) : '';
         return `<div class="mention-item${i === _mentionIdx ? ' selected' : ''}"
-                     onmousedown="event.preventDefault();_insertMention(${JSON.stringify(u.name)})">
+                     data-action="insert-mention" data-name="${u.name.replace(/"/g, '&quot;')}">
             <div class="mention-avatar">${src ? `<img src="${src}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : initials}</div>
             <span>${u.name}</span>
         </div>`;
@@ -752,6 +752,21 @@ async function _sendVoice(blob) {
     document.addEventListener('click', function(e) {
         var el = e.target.closest('[data-action="open-lightbox"]');
         if (el) openLightbox(el.dataset.url);
+    });
+    // Mic button — pointer + touch events (replaces inline handlers)
+    var mic = document.getElementById('btnMic');
+    if (mic) {
+        mic.addEventListener('pointerdown', startRecord);
+        mic.addEventListener('pointerup', stopRecord);
+        mic.addEventListener('touchstart', startRecord, { passive: true });
+        mic.addEventListener('touchend', stopRecord);
+    }
+    // Mention dropdown items
+    document.addEventListener('mousedown', function(e) {
+        var el = e.target.closest('[data-action="insert-mention"]');
+        if (!el) return;
+        e.preventDefault();
+        _insertMention(el.dataset.name);
     });
 })();
 </script>

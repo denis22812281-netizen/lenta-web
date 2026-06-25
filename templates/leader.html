@@ -12,7 +12,7 @@
     <div class="d-flex align-items-center gap-3">
         <div class="leader-hero-avatar">
             {% if current_manager_photo %}
-                <img src="{{ media_url(current_manager_photo) }}" alt="{{ uname }}" onerror="this.src='/static/img/raccoon.png'">
+                <img src="{{ media_url(current_manager_photo) }}" alt="{{ uname }}" data-fallback="raccoon">
             {% else %}
                 <img src="/static/img/raccoon.png" alt="{{ uname }}">
             {% endif %}
@@ -372,7 +372,7 @@
                         <div class="d-flex align-items-center gap-2">
                             <div class="leader-mgr-avatar" style="width:28px;height:28px;flex-shrink:0">
                                 <img src="{% if row.photo %}{{ media_url(row.photo) }}{% else %}/static/img/raccoon.png{% endif %}"
-                                     alt="{{ row.name }}" onerror="this.src='/static/img/raccoon.png'">
+                                     alt="{{ row.name }}" data-fallback="raccoon">
                             </div>
                             <span class="fw-semibold">{{ row.name.split()[0] }}</span>
                         </div>
@@ -484,7 +484,7 @@
                 <div class="leader-mgr-row">
                     <div class="leader-mgr-avatar">
                         <img src="{% if row.photo %}{{ media_url(row.photo) }}{% else %}/static/img/raccoon.png{% endif %}"
-                             alt="{{ row.name }}" onerror="this.src='/static/img/raccoon.png'">
+                             alt="{{ row.name }}" data-fallback="raccoon">
                     </div>
                     <div class="leader-mgr-name small fw-semibold">{{ row.name.split()[0] }}</div>
                     <div class="ms-auto">

@@ -351,7 +351,7 @@ strong { color: var(--green-deep); }
 <!-- Топбар -->
 <div class="topbar">
   <div class="topbar-brand">
-    <img src="/static/img/raccoon.png" alt="Лента" onerror="this.style.display='none'">
+    <img src="/static/img/raccoon.png" alt="Лента" data-fallback="hide">
     <div>
       <div class="brand-name">Лента<span>.PM</span></div>
       <div class="brand-sub">Управление проектами</div>
@@ -371,7 +371,7 @@ strong { color: var(--green-deep); }
 <div class="cover">
   <div class="cover-logo-wrap">
     <img src="/static/img/raccoon.png" alt="Лента.PM"
-         onerror="this.outerHTML='<div style=\'font-size:60px;text-align:center\'>🦝</div>'">
+         data-fallback="hide">
   </div>
   <div class="cover-text">
     <div class="cover-eyebrow"><i class="bi bi-book-fill"></i> &nbsp;Руководство пользователя</div>
@@ -945,7 +945,7 @@ strong { color: var(--green-deep); }
     <div class="contacts-grid">
       <div class="contact-card">
         <img src="/static/img/raccoon_mesmer.jpg" alt="Месмер Денис"
-             onerror="this.outerHTML='<div class=\'ci\'>🦝</div>'">
+             data-fallback="hide">
         <div class="contact-text">
           <div class="role">Разработчик · Администратор</div>
           <h3>Месмер Денис</h3>
@@ -954,7 +954,7 @@ strong { color: var(--green-deep); }
       </div>
       <div class="contact-card">
         <img src="/static/img/managers/gavrin.png" alt="Гаврин Игорь"
-             onerror="this.outerHTML='<div class=\'ci\'>👔</div>'">
+             data-fallback="hide">
         <div class="contact-text">
           <div class="role">Руководитель · Администратор</div>
           <h3>Гаврин Игорь</h3>
@@ -970,7 +970,7 @@ strong { color: var(--green-deep); }
 
 <div class="footer">
   <img src="/static/img/raccoon.png" style="height:24px;opacity:.4;vertical-align:middle;margin-right:8px"
-       onerror="this.style.display='none'">
+       data-fallback="hide">
   Лента.PM · Руководство пользователя v2.0 · Внутренний документ · Не для распространения · Июнь 2026
 </div>
 

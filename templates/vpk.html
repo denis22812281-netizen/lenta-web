@@ -663,7 +663,7 @@ function tkSearch(query) {
 
     dd.innerHTML = matches.map((p, i) =>
         `<li class="list-group-item list-group-item-action py-2 px-3 tk-option" data-i="${i}" style="cursor:pointer"
-             onmousedown="tkSelect(${p.id},'${p.tk}','${p.addr.replace(/'/g,"\\'")}','${p.mgr.replace(/'/g,"\\'")}')">
+             data-action="tk-select" data-id="${p.id}" data-tk="${p.tk.replace(/"/g,'&quot;')}" data-addr="${(p.addr||'').replace(/"/g,'&quot;')}" data-mgr="${(p.mgr||'').replace(/"/g,'&quot;')}">
             <span class="fw-bold me-2">ТК ${p.tk}</span>
             <span class="text-muted small">${p.addr ? p.addr.substring(0,50) : ''}</span>
             ${p.mgr ? `<span class="badge bg-secondary ms-1 small">${p.mgr}</span>` : ''}
@@ -763,6 +763,13 @@ async function markRead(reportId) {
             case 'vpk-set-precheck':    setPrecheck(parseInt(el.dataset.cid), el.dataset.val); break;
             case 'vpk-mark-read':       markRead(parseInt(el.dataset.rid)); break;
         }
+    });
+    // TK autocomplete items use mousedown to select before blur closes the list
+    document.addEventListener('mousedown', function(e) {
+        var el = e.target.closest('[data-action="tk-select"]');
+        if (!el) return;
+        e.preventDefault();
+        tkSelect(el.dataset.id, el.dataset.tk, el.dataset.addr, el.dataset.mgr);
     });
     document.addEventListener('change', function(e) {
         if (e.target.classList.contains('vpk-photo-input'))     onCriterionPhoto(parseInt(e.target.dataset.cid), e.target);

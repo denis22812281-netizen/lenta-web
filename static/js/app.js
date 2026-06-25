@@ -20,6 +20,25 @@
     };
 })();
 
+// ── Global image error handler (replaces all onerror= attrs, CSP compliance) ─
+document.addEventListener('error', function(e) {
+    const img = e.target;
+    if (img.tagName !== 'IMG' || img.dataset.errHandled) return;
+    img.dataset.errHandled = '1';
+    if (img.dataset.fallback === 'hide') {
+        img.style.display = 'none';
+        const showId = img.dataset.showSibling;
+        if (showId) { const el = document.getElementById(showId); if (el) el.style.display = ''; }
+    } else if (img.dataset.fallback === 'show-next') {
+        img.style.display = 'none';
+        if (img.nextElementSibling) img.nextElementSibling.style.display = '';
+    } else {
+        const RACCOON = '/static/img/raccoon.png';
+        if (img.src !== location.origin + RACCOON) img.src = RACCOON;
+        else img.style.display = 'none';
+    }
+}, true);
+
 // ── Navigation progress bar (npbar) ─────────────────────────────────────────
 (function () {
     const bar = document.getElementById('npbar');

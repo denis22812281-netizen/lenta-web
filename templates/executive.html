@@ -117,7 +117,7 @@
             {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}<span class="text-muted fw-bold">{{ loop.index }}</span>{% endif %}
           </div>
           <div class="exec-mgr-avatar">
-            {% if m.photo %}<img src="{{ media_url(m.photo) }}" onerror="this.src='/static/img/raccoon.png'">
+            {% if m.photo %}<img src="{{ media_url(m.photo) }}" data-fallback="raccoon">
             {% elif 'Месмер' in m.name %}<img src="/static/img/raccoon_mesmer.jpg">
             {% else %}<img src="/static/img/raccoon.png">{% endif %}
           </div>
