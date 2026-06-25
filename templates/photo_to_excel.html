@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+{% block page_title %}Фото → Excel — Лента.PM{% endblock %}
+{% block title %}<i class="bi bi-file-earmark-spreadsheet me-2 text-success"></i>Фото → Excel{% endblock %}
+
+{% block head %}
+<style>
+/* ── Upload zone ── */
+.p2e-dropzone {
+    border: 2px dashed #334155;
+    border-radius: 16px;
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    background: var(--bs-body-bg);
+    position: relative;
+}
+.p2e-dropzone.drag-over,
+.p2e-dropzone:hover {
+    border-color: var(--lenta-green, #3CB34A);
+    background: rgba(60,179,74,.06);
+}
+.p2e-dropzone input[type=file] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+}
+.p2e-preview {
+    width: 100%;
+    max-height: 280px;
+    object-fit: contain;
+    border-radius: 12px;
+    display: none;
+    margin-top: 12px;
+}
+
+/* ── Type selector ── */
+.p2e-type-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+.p2e-type-btn {
+    border: 2px solid #334155;
+    border-radius: 14px;
+    padding: 16px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all .18s;
+    background: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    user-select: none;
+}
+.p2e-type-btn:hover { border-color: #94a3b8; }
+.p2e-type-btn.active {
+    border-color: var(--lenta-green, #3CB34A);
+    background: rgba(60,179,74,.1);
+}
+.p2e-type-btn .p2e-icon { font-size: 2rem; margin-bottom: 6px; }
+.p2e-type-btn .p2e-label { font-weight: 700; font-size: .92rem; }
+.p2e-type-btn .p2e-desc { font-size: .75rem; color: #64748b; margin-top: 3px; }
+
+/* ── Result area ── */
+.p2e-result {
+    display: none;
+    border: 1px solid rgba(60,179,74,.4);
+    border-radius: 14px;
+    padding: 20px;
+    background: rgba(60,179,74,.07);
+    text-align: center;
+}
+.p2e-result .p2e-dl-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--lenta-green, #3CB34A);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 28px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity .15s;
+    margin-top: 10px;
+}
+.p2e-result .p2e-dl-btn:hover { opacity: .88; color: #fff; }
+
+/* ── Progress ── */
+.p2e-progress { display: none; text-align: center; padding: 24px 0; }
+.p2e-spinner {
+    width: 48px; height: 48px;
+    border: 4px solid #334155;
+    border-top-color: var(--lenta-green, #3CB34A);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    margin: 0 auto 14px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Error ── */
+.p2e-error {
+    display: none;
+    border: 1px solid #dc2626;
+    border-radius: 12px;
+    padding: 16px 20px;
+    background: rgba(220,38,38,.07);
+    color: #dc2626;
+    font-size: .92rem;
+}
+
+/* ── Mobile ── */
+@media (max-width: 576px) {
+    .p2e-type-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .p2e-type-btn { padding: 12px 6px; }
+    .p2e-type-btn .p2e-icon { font-size: 1.6rem; margin-bottom: 4px; }
+    .p2e-type-btn .p2e-label { font-size: .8rem; }
+    .p2e-type-btn .p2e-desc { display: none; }
+    .p2e-dropzone { padding: 32px 16px; }
+    .p2e-result .p2e-dl-btn { width: 100%; justify-content: center; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+<div class="col-12 col-md-8 col-lg-6">
+
+  <!-- Header badge -->
+  <div class="d-flex align-items-center gap-2 mb-4">
+    <span class="badge bg-warning text-dark">🔧 Dev</span>
+    <span class="text-muted small">Инструмент в разработке — только для администратора</span>
+  </div>
+
+  <!-- Step 1: Upload -->
+  <div class="data-card mb-3 p-4">
+    <div class="fw-bold mb-3 fs-6">
+      <span class="badge rounded-pill me-2" style="background:var(--lenta-green,#3CB34A)">1</span>
+      Загрузите фото
+    </div>
+    <div class="p2e-dropzone" id="dropzone">
+      <input type="file" id="photoInput" accept="image/*" capture="environment">
+      <div id="dropzoneContent">
+        <i class="bi bi-camera-fill" style="font-size:2.5rem;color:#64748b;display:block;margin-bottom:10px"></i>
+        <div class="fw-semibold mb-1">Нажмите или перетащите фото</div>
+        <div class="text-muted small">Таблица, график, диаграмма — любое фото с данными</div>
+        <div class="text-muted small mt-1">JPG, PNG, WEBP · до 10 МБ</div>
+      </div>
+      <img id="photoPreview" class="p2e-preview" alt="Предпросмотр">
+    </div>
+    <div id="photoName" class="text-muted small mt-2" style="display:none"></div>
+  </div>
+
+  <!-- Step 2: Output type -->
+  <div class="data-card mb-3 p-4">
+    <div class="fw-bold mb-3 fs-6">
+      <span class="badge rounded-pill me-2" style="background:var(--lenta-green,#3CB34A)">2</span>
+      Выберите формат
+    </div>
+    <div class="p2e-type-grid">
+      <div class="p2e-type-btn active" data-type="table">
+        <div class="p2e-icon">📋</div>
+        <div class="p2e-label">Таблица</div>
+        <div class="p2e-desc">Строки и столбцы</div>
+      </div>
+      <div class="p2e-type-btn" data-type="chart">
+        <div class="p2e-icon">📊</div>
+        <div class="p2e-label">График</div>
+        <div class="p2e-desc">Бар / линия</div>
+      </div>
+      <div class="p2e-type-btn" data-type="diagram">
+        <div class="p2e-icon">🥧</div>
+        <div class="p2e-label">Диаграмма</div>
+        <div class="p2e-desc">Круговая</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Convert -->
+  <div class="data-card mb-3 p-4">
+    <div class="fw-bold mb-3 fs-6">
+      <span class="badge rounded-pill me-2" style="background:var(--lenta-green,#3CB34A)">3</span>
+      Конвертировать
+    </div>
+    <button id="convertBtn" class="btn btn-success w-100 btn-lg fw-bold" disabled>
+      <i class="bi bi-magic me-2"></i>Создать Excel файл
+    </button>
+    <div class="text-muted small text-center mt-2">Claude AI анализирует фото и создаёт Excel</div>
+  </div>
+
+  <!-- Progress -->
+  <div class="p2e-progress" id="progressArea">
+    <div class="p2e-spinner"></div>
+    <div class="fw-semibold" id="progressText">Анализирую фото...</div>
+    <div class="text-muted small mt-1">Claude AI обрабатывает изображение</div>
+  </div>
+
+  <!-- Error -->
+  <div class="p2e-error" id="errorArea">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+    <span id="errorText"></span>
+  </div>
+
+  <!-- Result -->
+  <div class="p2e-result" id="resultArea">
+    <i class="bi bi-check-circle-fill text-success" style="font-size:2rem"></i>
+    <div class="fw-bold mt-2 mb-1" style="font-size:1.05rem">Excel готов!</div>
+    <div class="text-muted small mb-3" id="resultDesc"></div>
+    <a id="downloadLink" href="#" class="p2e-dl-btn">
+      <i class="bi bi-file-earmark-excel-fill"></i>
+      Скачать Excel
+    </a>
+    <div class="mt-3">
+      <button class="btn btn-outline-secondary btn-sm" id="resetBtn">
+        <i class="bi bi-arrow-counterclockwise me-1"></i>Новая конвертация
+      </button>
+    </div>
+  </div>
+
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    var photoInput   = document.getElementById('photoInput');
+    var dropzone     = document.getElementById('dropzone');
+    var preview      = document.getElementById('photoPreview');
+    var photoName    = document.getElementById('photoName');
+    var convertBtn   = document.getElementById('convertBtn');
+    var progressArea = document.getElementById('progressArea');
+    var progressText = document.getElementById('progressText');
+    var errorArea    = document.getElementById('errorArea');
+    var errorText    = document.getElementById('errorText');
+    var resultArea   = document.getElementById('resultArea');
+    var resultDesc   = document.getElementById('resultDesc');
+    var downloadLink = document.getElementById('downloadLink');
+    var resetBtn     = document.getElementById('resetBtn');
+
+    var selectedType = 'table';
+    var selectedFile = null;
+
+    // ── Type selector ───────────────────────────────────────────────────────
+    document.querySelectorAll('.p2e-type-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.p2e-type-btn').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            selectedType = btn.dataset.type;
+        });
+    });
+
+    // ── File input ──────────────────────────────────────────────────────────
+    function onFileSelected(file) {
+        if (!file) return;
+        if (file.size > 10 * 1024 * 1024) {
+            showError('Файл слишком большой. Максимум 10 МБ.');
+            return;
+        }
+        selectedFile = file;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+            document.getElementById('dropzoneContent').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+        photoName.textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' КБ)';
+        photoName.style.display = 'block';
+        convertBtn.disabled = false;
+        hideAll();
+    }
+
+    photoInput.addEventListener('change', function() {
+        if (this.files[0]) onFileSelected(this.files[0]);
+    });
+
+    // Drag & drop
+    dropzone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('drag-over');
+    });
+    dropzone.addEventListener('dragleave', function() {
+        this.classList.remove('drag-over');
+    });
+    dropzone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('drag-over');
+        var f = e.dataTransfer.files[0];
+        if (f && f.type.startsWith('image/')) onFileSelected(f);
+    });
+
+    // ── Convert ─────────────────────────────────────────────────────────────
+    convertBtn.addEventListener('click', async function() {
+        if (!selectedFile) return;
+
+        hideAll();
+        convertBtn.disabled = true;
+        progressArea.style.display = 'block';
+
+        var steps = [
+            'Загружаю фото...',
+            'Claude AI анализирует изображение...',
+            'Извлекаю данные...',
+            'Генерирую Excel файл...',
+        ];
+        var stepIdx = 0;
+        var stepTimer = setInterval(function() {
+            stepIdx = (stepIdx + 1) % steps.length;
+            progressText.textContent = steps[stepIdx];
+        }, 2200);
+
+        try {
+            var fd = new FormData();
+            fd.append('photo', selectedFile);
+            fd.append('output_type', selectedType);
+
+            var resp = await fetch('/api/tools/photo-to-excel', {
+                method: 'POST',
+                body: fd,
+            });
+
+            clearInterval(stepTimer);
+
+            if (!resp.ok) {
+                var errData = {};
+                try { errData = await resp.json(); } catch(_) {}
+                throw new Error(errData.error || 'Ошибка сервера: ' + resp.status);
+            }
+
+            var blob = await resp.blob();
+            var url  = URL.createObjectURL(blob);
+
+            // Extract filename from Content-Disposition
+            var cd   = resp.headers.get('Content-Disposition') || '';
+            var match = cd.match(/filename="([^"]+)"/);
+            var fname = match ? match[1] : 'data.xlsx';
+
+            downloadLink.href = url;
+            downloadLink.download = fname;
+
+            var typeLabels = { table: 'таблица', chart: 'график', diagram: 'диаграмма' };
+            resultDesc.textContent = fname + ' · ' + (blob.size / 1024).toFixed(0) + ' КБ';
+
+            progressArea.style.display = 'none';
+            resultArea.style.display = 'block';
+
+            // Auto-trigger download on desktop
+            if (window.innerWidth > 600) downloadLink.click();
+
+        } catch(err) {
+            clearInterval(stepTimer);
+            progressArea.style.display = 'none';
+            showError(err.message || 'Неизвестная ошибка');
+        } finally {
+            convertBtn.disabled = false;
+        }
+    });
+
+    // ── Reset ────────────────────────────────────────────────────────────────
+    resetBtn.addEventListener('click', function() {
+        selectedFile = null;
+        photoInput.value = '';
+        preview.style.display = 'none';
+        preview.src = '';
+        document.getElementById('dropzoneContent').style.display = '';
+        photoName.style.display = 'none';
+        convertBtn.disabled = true;
+        hideAll();
+    });
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    function hideAll() {
+        progressArea.style.display = 'none';
+        errorArea.style.display = 'none';
+        resultArea.style.display = 'none';
+    }
+
+    function showError(msg) {
+        errorText.textContent = msg;
+        errorArea.style.display = 'block';
+    }
+})();
+</script>
+{% endblock %}

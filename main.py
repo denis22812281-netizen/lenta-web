@@ -308,6 +308,7 @@ from routes.smr import router as smr_router
 from routes.stats import router as stats_router
 from routes.sync import router as sync_router
 from routes.tasks import router as tasks_router
+from routes.tools import router as tools_router
 from routes.vpk import router as vpk_router
 
 for r in [auth_router, dashboard_router, projects_router, sections_router,
@@ -316,7 +317,7 @@ for r in [auth_router, dashboard_router, projects_router, sections_router,
           ai_router, api_router, sync_router, smr_router, leader_router,
           executive_router, help_router, case_router, reconstruction_router,
           search_router, adaptation_router, analytics_router, map_router,
-          kanban_router, presence_router]:
+          kanban_router, presence_router, tools_router]:
     app.include_router(r)
 
 
