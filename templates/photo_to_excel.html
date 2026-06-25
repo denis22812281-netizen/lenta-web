@@ -254,25 +254,56 @@
         });
     });
 
+    // ── Image compression ───────────────────────────────────────────────────
+    var MAX_PX = 1920;
+    var JPEG_Q = 0.85;
+
+    function compressImage(file, cb) {
+        var img = new Image();
+        var url = URL.createObjectURL(file);
+        img.onload = function() {
+            URL.revokeObjectURL(url);
+            var w = img.naturalWidth, h = img.naturalHeight;
+            if (w <= MAX_PX && h <= MAX_PX && file.size <= 3 * 1024 * 1024) {
+                return cb(file); // already small enough
+            }
+            var scale = Math.min(MAX_PX / w, MAX_PX / h, 1);
+            var canvas = document.createElement('canvas');
+            canvas.width  = Math.round(w * scale);
+            canvas.height = Math.round(h * scale);
+            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(function(blob) {
+                cb(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }));
+            }, 'image/jpeg', JPEG_Q);
+        };
+        img.onerror = function() { URL.revokeObjectURL(url); cb(file); };
+        img.src = url;
+    }
+
     // ── File input ──────────────────────────────────────────────────────────
     function onFileSelected(file) {
         if (!file) return;
-        if (file.size > 10 * 1024 * 1024) {
-            showError('Файл слишком большой. Максимум 10 МБ.');
+        if (file.size > 50 * 1024 * 1024) {
+            showError('Файл слишком большой. Максимум 50 МБ.');
             return;
         }
-        selectedFile = file;
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            preview.src = e.target.result;
-            preview.style.display = 'block';
-            document.getElementById('dropzoneContent').style.display = 'none';
-        };
-        reader.readAsDataURL(file);
-        photoName.textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' КБ)';
-        photoName.style.display = 'block';
-        convertBtn.disabled = false;
-        hideAll();
+        compressImage(file, function(compressed) {
+            selectedFile = compressed;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                document.getElementById('dropzoneContent').style.display = 'none';
+            };
+            reader.readAsDataURL(compressed);
+            var sizeTxt = compressed.size < 1024 * 1024
+                ? (compressed.size / 1024).toFixed(0) + ' КБ'
+                : (compressed.size / 1024 / 1024).toFixed(1) + ' МБ';
+            photoName.textContent = file.name + ' → ' + sizeTxt;
+            photoName.style.display = 'block';
+            convertBtn.disabled = false;
+            hideAll();
+        });
     }
 
     photoInput.addEventListener('change', function() {
