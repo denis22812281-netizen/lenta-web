@@ -18,6 +18,7 @@ from deps import require_admin, templates
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+_GEMINI_KEY    = os.getenv("GEMINI_API_KEY", "")
 _ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
 _PROMPTS = {
@@ -47,9 +48,33 @@ _PROMPTS = {
 }
 
 
+def _call_gemini(image_bytes: bytes, mime: str, output_type: str) -> dict:
+    import urllib.request
+    b64 = base64.standard_b64encode(image_bytes).decode("ascii")
+    payload = json.dumps({
+        "contents": [{
+            "parts": [
+                {"inline_data": {"mime_type": mime, "data": b64}},
+                {"text": _PROMPTS[output_type]},
+            ]
+        }],
+        "generationConfig": {"maxOutputTokens": 2048, "temperature": 0.1},
+    }).encode()
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"gemini-2.0-flash:generateContent?key={_GEMINI_KEY}"
+    )
+    req = urllib.request.Request(url, data=payload,
+                                 headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        result = json.loads(r.read())
+    raw = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+    raw = re.sub(r"^```(?:json)?\s*", "", raw)
+    raw = re.sub(r"\s*```$", "", raw)
+    return json.loads(raw)
+
+
 def _call_claude(image_bytes: bytes, mime: str, output_type: str) -> dict:
-    if not _ANTHROPIC_KEY:
-        raise RuntimeError("ANTHROPIC_API_KEY не задан")
     import anthropic
     client = anthropic.Anthropic(api_key=_ANTHROPIC_KEY)
     b64 = base64.standard_b64encode(image_bytes).decode("ascii")
@@ -65,10 +90,18 @@ def _call_claude(image_bytes: bytes, mime: str, output_type: str) -> dict:
         }],
     )
     raw = resp.content[0].text.strip()
-    # Strip markdown code fences if present
     raw = re.sub(r"^```(?:json)?\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
     return json.loads(raw)
+
+
+def _call_ai(image_bytes: bytes, mime: str, output_type: str) -> dict:
+    """Try Gemini first (free), fall back to Claude if GEMINI_API_KEY not set."""
+    if _GEMINI_KEY:
+        return _call_gemini(image_bytes, mime, output_type)
+    if _ANTHROPIC_KEY:
+        return _call_claude(image_bytes, mime, output_type)
+    raise RuntimeError("Не задан ни GEMINI_API_KEY, ни ANTHROPIC_API_KEY")
 
 
 # ── Excel builders ────────────────────────────────────────────────────────────
@@ -262,7 +295,7 @@ async def photo_to_excel_api(
         content_type = "image/jpeg"
 
     try:
-        data = _call_claude(image_bytes, content_type, output_type)
+        data = _call_ai(image_bytes, content_type, output_type)
     except Exception as e:
         logger.error("Claude error: %s", e)
         return JSONResponse({"error": str(e)}, status_code=500)
