@@ -49,31 +49,14 @@ _PROMPTS = {
 
 
 def _call_gemini(image_bytes: bytes, mime: str, output_type: str) -> dict:
-    import urllib.error
-    import urllib.request
-    b64 = base64.standard_b64encode(image_bytes).decode("ascii")
-    payload = json.dumps({
-        "contents": [{
-            "parts": [
-                {"inline_data": {"mime_type": mime, "data": b64}},
-                {"text": _PROMPTS[output_type]},
-            ]
-        }],
-        "generationConfig": {"maxOutputTokens": 2048, "temperature": 0.1},
-    }).encode()
-    url = (
-        "https://generativelanguage.googleapis.com/v1/models/"
-        f"gemini-1.5-flash:generateContent?key={_GEMINI_KEY}"
-    )
-    req = urllib.request.Request(url, data=payload,
-                                 headers={"Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=60) as r:
-            result = json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"Gemini API {e.code}: {body[:300]}") from e
-    raw = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+    import google.generativeai as genai
+    genai.configure(api_key=_GEMINI_KEY)
+    model = genai.GenerativeModel("gemini-1.5-flash")
+    response = model.generate_content([
+        {"mime_type": mime, "data": image_bytes},
+        _PROMPTS[output_type],
+    ])
+    raw = response.text.strip()
     raw = re.sub(r"^```(?:json)?\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
     return json.loads(raw)

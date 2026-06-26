@@ -25,3 +25,5 @@ pyotp>=2.9.0
 qrcode[pil]>=7.4.2
 pywebpush>=2.0.0
 filetype>=1.2.0
+google-generativeai>=0.8.0
+google-generativeai>=0.8.0
