@@ -297,7 +297,59 @@ async def service_worker():
     from fastapi.responses import FileResponse
     return FileResponse("static/sw.js", media_type="application/javascript",
                         headers={"Service-Worker-Allowed": "/",
-                                 "Cache-Control": "no-cache"})
+                                 "Cache-Control": "no-cache, no-store"})
+
+
+@app.get("/clear-sw", include_in_schema=False)
+async def clear_sw():
+    """Страница для принудительного сброса Service Worker и кэша в браузере."""
+    html = """<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Сброс кэша — Лента.PM</title>
+<style>
+body{font-family:-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;
+     display:flex;flex-direction:column;align-items:center;justify-content:center;
+     min-height:100vh;margin:0;padding:24px;text-align:center;}
+h2{color:#3CB34A;margin-bottom:8px}
+#status{color:#94a3b8;margin:16px 0}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;
+     background:#3CB34A;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+a{color:#3CB34A;font-weight:700}
+</style>
+</head>
+<body>
+<h2>⚡ Сброс кэша Лента.PM</h2>
+<p id="status"><span class="dot"></span> Удаляем Service Worker...</p>
+<script>
+(async function() {
+    var s = document.getElementById('status');
+    var steps = [];
+    try {
+        if ('serviceWorker' in navigator) {
+            var regs = await navigator.serviceWorker.getRegistrations();
+            for (var r of regs) { await r.unregister(); }
+            steps.push('SW удалён ✓');
+        }
+        if ('caches' in window) {
+            var keys = await caches.keys();
+            for (var k of keys) { await caches.delete(k); }
+            steps.push('Кэш очищен ✓');
+        }
+        s.innerHTML = steps.join(' &nbsp;|&nbsp; ') + '<br><br>Готово! Перенаправляем...';
+        setTimeout(function(){ location.replace('/'); }, 1200);
+    } catch(e) {
+        s.innerHTML = 'Ошибка: ' + e.message + '<br><a href="/">← На главную</a>';
+    }
+})();
+</script>
+</body>
+</html>"""
+    return HTMLResponse(content=html, headers={"Cache-Control": "no-store"})
+
 
 # ─── Роутеры ─────────────────────────────────────────────────────────────────
 from routes.adaptation import router as adaptation_router

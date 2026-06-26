@@ -826,7 +826,27 @@ document.addEventListener('DOMContentLoaded', function() {
 (function() {
     if (!('serviceWorker' in navigator)) return;
 
+    // Авто-детект устаревшего SW: если версия не совпадает — чистим и перезагружаем
+    var _SW_EXPECTED = 'v5';
+    navigator.serviceWorker.addEventListener('message', function(e) {
+        if (e.data && e.data.type === 'SW_VERSION' && e.data.version !== _SW_EXPECTED) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+                return Promise.all(regs.map(function(r) { return r.unregister(); }));
+            }).then(function() {
+                return 'caches' in window ? caches.keys().then(function(ks) {
+                    return Promise.all(ks.map(function(k) { return caches.delete(k); }));
+                }) : null;
+            }).then(function() { location.replace('/clear-sw'); });
+        }
+    });
+
     navigator.serviceWorker.register('/sw.js', {scope: '/'}).then(function(reg) {
+        // Принудительная проверка обновлений + запрос версии
+        reg.update().catch(function(){});
+        setTimeout(function() {
+            var active = reg.active;
+            if (active) active.postMessage({ type: 'GET_VERSION' });
+        }, 500);
         // Кэшируем данные проектов в IndexedDB при первом посещении
         setTimeout(function() {
             fetch('/api/projects/cache-data', { credentials: 'same-origin' })

@@ -135,6 +135,13 @@ async function networkFirstWithTTL(req, ttl) {
     }
 }
 
+// ── Version ping (для авто-детекта старого SW на странице) ───────────────────
+self.addEventListener('message', e => {
+    if (e.data?.type === 'GET_VERSION') {
+        (e.source || e.ports?.[0])?.postMessage?.({ type: 'SW_VERSION', version: VERSION });
+    }
+});
+
 // ── Background Sync ───────────────────────────────────────────────────────────
 self.addEventListener('sync', e => {
     if (e.tag === 'lenta-sync-queue') e.waitUntil(flushSyncQueue());
