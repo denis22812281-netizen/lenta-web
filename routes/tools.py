@@ -60,7 +60,7 @@ def _call_gemini(image_bytes: bytes, mime: str, output_type: str) -> dict:
                 {"text": _PROMPTS[output_type]},
             ]
         }],
-        "generationConfig": {"maxOutputTokens": 2048, "temperature": 0.1},
+        "generationConfig": {"maxOutputTokens": 8192, "temperature": 0.1},
     }).encode()
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
@@ -77,7 +77,16 @@ def _call_gemini(image_bytes: bytes, mime: str, output_type: str) -> dict:
     raw = result["candidates"][0]["content"]["parts"][0]["text"].strip()
     raw = re.sub(r"^```(?:json)?\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
-    return json.loads(raw)
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        # Response was truncated — close open arrays/objects and retry
+        fixed = raw.rstrip().rstrip(",")
+        # Count unclosed brackets
+        depth_sq = fixed.count("[") - fixed.count("]")
+        depth_cu = fixed.count("{") - fixed.count("}")
+        fixed += "]" * max(0, depth_sq) + "}" * max(0, depth_cu)
+        return json.loads(fixed)
 
 
 def _call_claude(image_bytes: bytes, mime: str, output_type: str) -> dict:
