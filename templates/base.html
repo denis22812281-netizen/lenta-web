@@ -126,6 +126,15 @@
         </div>
 
         {% if user and user.is_admin %}
+        <a href="/tools/photo-to-excel"
+           class="nav-item {% if '/tools/photo-to-excel' in request.url.path %}active{% endif %}"
+           style="background:linear-gradient(90deg,rgba(60,179,74,.12),transparent);border-left:2px solid var(--lenta-green,#3CB34A)">
+            <i class="bi bi-camera-fill" style="color:var(--lenta-green,#3CB34A)"></i>
+            <span>Фото → Excel</span>
+        </a>
+        {% endif %}
+
+        {% if user and user.is_admin %}
         <div class="nav-sect-toggle" data-target="nav-import" data-action="nav-toggle">
             ИМПОРТ <i class="bi bi-chevron-down nav-chevron"></i>
         </div>
@@ -135,9 +144,6 @@
             </a>
             <a href="/import-construction" class="nav-item {% if '/import-construction' in request.url.path %}active{% endif %}">
                 <i class="bi bi-file-earmark-arrow-up"></i><span>Загрузить Констракшн</span>
-            </a>
-            <a href="/tools/photo-to-excel" class="nav-item {% if '/tools/photo-to-excel' in request.url.path %}active{% endif %}">
-                <i class="bi bi-file-earmark-spreadsheet"></i><span>Фото → Excel</span>
             </a>
         </div>
         {% endif %}
