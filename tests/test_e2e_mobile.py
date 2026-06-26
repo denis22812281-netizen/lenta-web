@@ -8,8 +8,14 @@ Run against Railway:
     PLAYWRIGHT_BASE_URL=https://lenta-web-production.up.railway.app \\
     PLAYWRIGHT_PHONE=+79997303914 PLAYWRIGHT_PASSWORD=yourpass \\
     pytest tests/test_e2e_mobile.py -v
+
+These tests are excluded from CI by default (mark: e2e).
 """
 import os
+
+import pytest
+
+pytestmark = pytest.mark.e2e
 
 from playwright.sync_api import Page, expect
 

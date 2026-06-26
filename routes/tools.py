@@ -145,7 +145,8 @@ async def _call_ai(image_bytes: bytes, mime: str, output_type: str) -> dict[str,
                 logger.warning("AI attempt 1 failed (%s), retrying in 2s…", exc)
                 await asyncio.sleep(2)
 
-    raise last_err  # type: ignore[misc]
+    assert last_err is not None
+    raise last_err
 
 
 # ── Excel builders ────────────────────────────────────────────────────────────
