@@ -89,3 +89,142 @@ jobs:
 
       - name: Run tests against PostgreSQL
         run: pytest tests/ -v --tb=short -x -m "not e2e"
+
+  e2e:
+    name: E2E Browser Tests
+    runs-on: ubuntu-latest
+    needs: [test-sqlite]
+
+    env:
+      DATABASE_URL: "sqlite:///./e2e_test.db"
+      SECRET_KEY: "e2e-ci-test-secret-key"
+      ADMIN_PHONE: "+79997303914"
+      PLAYWRIGHT_BASE_URL: "http://localhost:8000"
+      PLAYWRIGHT_PHONE: "+79997303914"
+      PLAYWRIGHT_PASSWORD: "test1234"
+      SENTRY_DSN: ""
+      CLOUDINARY_CLOUD_NAME: ""
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies (including playwright)
+        run: pip install -r requirements-dev.txt
+
+      - name: Install Chromium
+        run: python -m playwright install chromium --with-deps
+
+      - name: Seed E2E test user
+        run: python scripts/seed_e2e.py
+
+      - name: Start server in background
+        run: |
+          uvicorn main:app --host 0.0.0.0 --port 8000 &
+          echo $! > /tmp/uvicorn.pid
+
+      - name: Wait for server to be ready
+        run: |
+          for i in $(seq 1 20); do
+            if curl -sf http://localhost:8000/health; then
+              echo "Server ready after ${i}s"
+              break
+            fi
+            echo "Waiting... ($i/20)"
+            sleep 1
+          done
+
+      - name: Run E2E tests
+        run: pytest tests/test_e2e_mobile.py -v --tb=short -m e2e
+
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
+
+      - name: Cleanup
+        if: always()
+        run: |
+          kill $(cat /tmp/uvicorn.pid) 2>/dev/null || true
+          rm -f e2e_test.db
+
+  load-smoke:
+    name: Load Smoke Test
+    runs-on: ubuntu-latest
+    needs: [test-sqlite]
+
+    env:
+      DATABASE_URL: "sqlite:///./load_test.db"
+      SECRET_KEY: "load-ci-test-secret-key"
+      ADMIN_PHONE: "+79997303914"
+      PLAYWRIGHT_PHONE: "+79997303914"
+      PLAYWRIGHT_PASSWORD: "test1234"
+      SENTRY_DSN: ""
+      CLOUDINARY_CLOUD_NAME: ""
+      TESTING: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies (including locust)
+        run: pip install -r requirements-dev.txt
+
+      - name: Seed test user
+        run: |
+          DATABASE_URL=sqlite:///./load_test.db python scripts/seed_e2e.py
+
+      - name: Start server in background
+        run: |
+          uvicorn main:app --host 0.0.0.0 --port 8000 &
+          echo $! > /tmp/uvicorn.pid
+
+      - name: Wait for server
+        run: |
+          for i in $(seq 1 20); do
+            if curl -sf http://localhost:8000/health; then break; fi
+            sleep 1
+          done
+
+      - name: Run locust smoke (10 users, 30s)
+        run: |
+          locust -f tests/locustfile.py \
+            --host=http://localhost:8000 \
+            --headless -u 10 -r 2 --run-time 30s \
+            --csv=load_results \
+            --exit-code-on-error 1
+
+      - name: Show load test summary
+        if: always()
+        run: |
+          if [ -f load_results_stats.csv ]; then
+            echo "=== Load Test Results ==="
+            cat load_results_stats.csv
+          fi
+
+      - name: Upload load test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-results
+          path: load_results*.csv
+          retention-days: 7
+
+      - name: Cleanup
+        if: always()
+        run: |
+          kill $(cat /tmp/uvicorn.pid) 2>/dev/null || true
+          rm -f load_test.db

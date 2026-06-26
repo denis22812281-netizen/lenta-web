@@ -71,17 +71,15 @@
                     </div>
                     {% if cfg and cfg.file_path %}
                     <div class="mt-2">
-                        <form method="post" action="/sync-settings/run-now" class="d-inline">
-                            <input type="hidden" name="project_type" value="{{ ptype }}">
-                            <button type="submit" class="btn btn-sm btn-outline-success">
-                                <i class="bi bi-arrow-clockwise me-1"></i>Синхронизировать сейчас
-                            </button>
-                        </form>
+                        <button type="button" class="btn btn-sm btn-outline-success js-run-now"
+                                data-type="{{ ptype }}">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Синхронизировать сейчас
+                        </button>
                     </div>
                     {% endif %}
                 </div>
                 {% endfor %}
-                <button type="submit" class="btn btn-danger w-100">
+                <button type="submit" class="btn btn-primary w-100">
                     <i class="bi bi-save me-1"></i>Сохранить настройки
                 </button>
                 </form>
@@ -107,4 +105,24 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.js-run-now').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var ptype = btn.dataset.type;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Запускаю...';
+        var fd = new FormData();
+        fd.append('project_type', ptype);
+        fetch('/sync-settings/run-now', { method: 'POST', body: fd })
+            .then(function() { window.location.href = '/sync-settings?ran=1'; })
+            .catch(function() {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>Синхронизировать сейчас';
+            });
+    });
+});
+</script>
 {% endblock %}

@@ -9,7 +9,7 @@ Manages store openings, timelines, VPK checklists, SMR schedules, tasks, manager
 
 **Stack:** FastAPI 0.115 + SQLAlchemy 2.0 + Jinja2 + Bootstrap 5.3 dark theme  
 **Deploy:** Railway.app (PostgreSQL), auto-migrations on startup  
-**Tests:** 84 tests via pytest + pytest-asyncio (SQLite in-memory)
+**Tests:** 121 unit/integration tests via pytest (SQLite in-memory) + E2E browser tests via Playwright
 
 ---
 
