@@ -32,15 +32,23 @@ self.addEventListener('install', e => {
     );
 });
 
-// ── Activate: удаляем ВСЕ старые кэши ───────────────────────────────────────
+// ── Activate: удаляем старые кэши, захватываем клиентов, перезагружаем ───────
 self.addEventListener('activate', e => {
     e.waitUntil(
-        caches.keys().then(keys =>
-            Promise.all(
+        caches.keys()
+            .then(keys => Promise.all(
                 keys.filter(k => k !== CACHE_STATIC && k !== CACHE_API)
                     .map(k => caches.delete(k))
-            )
-        ).then(() => self.clients.claim())
+            ))
+            .then(() => self.clients.claim())
+            .then(() => self.clients.matchAll({ type: 'window' }))
+            .then(clientList => {
+                // Force-reload every open tab once so pages that were stuck on
+                // ERR_FAILED (caused by the old broken SW) recover immediately
+                // without requiring the user to manually refresh.
+                // This fires only once — when this SW version first activates.
+                clientList.forEach(c => c.navigate(c.url).catch(() => {}));
+            })
     );
 });
 
