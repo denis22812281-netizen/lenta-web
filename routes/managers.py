@@ -6,53 +6,62 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session, joinedload
 
 import models
+from config import MANAGER_LEADER_ORDER, MANAGER_NONLEADER_ORDER
 from database import get_db
-from deps import get_current_user, require_admin, require_login, templates
+from deps import require_admin, require_login, templates
 from services.cloud_storage import upload_photo
 from services.online import ONLINE_TIMEOUT, ONLINE_USERS
 from utils.phone import normalize_phone
 
 router = APIRouter()
 
+_UPLOAD_PHOTO_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
+
+
+def _manager_sort_key(m: models.Manager) -> tuple[int, int]:
+    order = MANAGER_LEADER_ORDER if m.is_leader else MANAGER_NONLEADER_ORDER
+    pos   = order.index(m.name) if m.name in order else len(order)
+    return (0 if m.is_leader else 1, pos)
+
 
 @router.get("/managers", response_class=HTMLResponse)
 async def managers_view(request: Request, db: Session = Depends(get_db),
                         user: dict = Depends(require_login)):
-    today = date.today()
-    _order = [
-        "Месмер Денис", "Митько Роберт", "Ловчиков Александр",
-        "Хачатурова Жанна", "Шевченко Наталья",
-        "Валеев Борис", "Косило Сергей", "Студеникин Сергей",
-    ]
+    today    = date.today()
     managers = db.query(models.Manager).options(
         joinedload(models.Manager.projects),
         joinedload(models.Manager.tasks),
     ).all()
-    managers.sort(key=lambda m: (
-        0 if m.is_leader else 1,
-        _order.index(m.name) if m.name in _order else 99
-    ))
-    stats = []
+    managers.sort(key=_manager_sort_key)
+
+    stats        = []
     leader_stats = []
     for m in managers:
-        recon  = [p for p in m.projects if p.project_type == "Реконструкция"]
-        constr = [p for p in m.projects if p.project_type == "Констракшн"]
-        active = sum(1 for p in m.projects if p.status == "Активный")
-        open_t = sum(1 for t in m.tasks if t.status != "Завершена")
-        overdue = sum(1 for t in m.tasks
-                      if t.status != "Завершена" and t.deadline and t.deadline < today)
+        recon    = [p for p in m.projects if p.project_type == "Реконструкция"]
+        constr   = [p for p in m.projects if p.project_type == "Констракшн"]
+        active   = sum(1 for p in m.projects if p.status == "Активный")
+        open_t   = sum(1 for t in m.tasks if t.status != "Завершена")
+        overdue  = sum(1 for t in m.tasks
+                       if t.status != "Завершена" and t.deadline and t.deadline < today)
         urgent_p = [p for p in m.projects
                     if p.status == "Активный" and p.end_date
                     and 0 <= (p.end_date - today).days <= 14]
-        stat = {"manager": m, "active_projects": active,
-                "open_tasks": open_t, "overdue_tasks": overdue,
-                "urgent_projects": urgent_p,
-                "recon_projects": recon, "constr_projects": constr}
-        if m.is_leader:
-            leader_stats.append(stat)
-        else:
-            stats.append(stat)
-    leader_stats.sort(key=lambda s: 0 if "Комаров" in s["manager"].name else 1)
+        stat = {
+            "manager":         m,
+            "active_projects": active,
+            "open_tasks":      open_t,
+            "overdue_tasks":   overdue,
+            "urgent_projects": urgent_p,
+            "recon_projects":  recon,
+            "constr_projects": constr,
+        }
+        (leader_stats if m.is_leader else stats).append(stat)
+
+    leader_stats.sort(
+        key=lambda s: MANAGER_LEADER_ORDER.index(s["manager"].name)
+        if s["manager"].name in MANAGER_LEADER_ORDER else 99
+    )
+
     now = datetime.utcnow()
     online_set = {
         name for name, ts in ONLINE_USERS.items()
@@ -70,24 +79,28 @@ async def add_manager(request: Request, db: Session = Depends(get_db),
                       name: str = Form(...), phone: str = Form(""),
                       email: str = Form(""), is_leader: str = Form(""),
                       user: dict = Depends(require_admin)):
-    mgr = models.Manager(name=name.strip(), is_leader=bool(is_leader),
-                         email=email.strip().lower() if email.strip() else "")
+    mgr = models.Manager(
+        name=name.strip(),
+        is_leader=bool(is_leader),
+        email=email.strip().lower() if email.strip() else "",
+    )
     db.add(mgr)
     db.flush()
     if phone.strip():
         normalized = normalize_phone(phone.strip())
-        if not db.query(models.PhoneWhitelist).filter(
-                models.PhoneWhitelist.phone == normalized).first():
+        if not db.query(models.PhoneWhitelist).filter_by(phone=normalized).first():
             db.add(models.PhoneWhitelist(
-                phone=normalized, display_name=name.strip(), is_admin=False))
+                phone=normalized, display_name=name.strip(), is_admin=False,
+            ))
     db.commit()
     return RedirectResponse("/managers", status_code=303)
 
 
 @router.post("/managers/{manager_id}/delete")
-async def delete_manager(manager_id: int, request: Request, db: Session = Depends(get_db),
+async def delete_manager(manager_id: int, request: Request,
+                         db: Session = Depends(get_db),
                          user: dict = Depends(require_admin)):
-    mgr = db.query(models.Manager).filter(models.Manager.id == manager_id).first()
+    mgr = db.query(models.Manager).filter_by(id=manager_id).first()
     if mgr:
         for p in mgr.projects:
             p.manager_id = None
@@ -100,18 +113,17 @@ async def delete_manager(manager_id: int, request: Request, db: Session = Depend
 
 @router.post("/managers/{manager_id}/email")
 async def update_manager_email(manager_id: int, request: Request,
-                                db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user or not user.get("is_admin"):
-        return {"error": "Нет доступа"}
-    data = await request.json()
-    mgr = db.query(models.Manager).filter(models.Manager.id == manager_id).first()
+                                db: Session = Depends(get_db),
+                                user: dict = Depends(require_admin)):
+    data  = await request.json()
+    mgr   = db.query(models.Manager).filter_by(id=manager_id).first()
     if not mgr:
-        return {"error": "Менеджер не найден"}
+        raise HTTPException(status_code=404, detail="Менеджер не найден")
     email = data.get("email", "").strip().lower()
-    parts = email.split("@")
-    if email and (len(parts) != 2 or not parts[0] or "." not in parts[1]):
-        return {"error": "Некорректный email"}
+    if email:
+        parts = email.split("@")
+        if len(parts) != 2 or not parts[0] or "." not in parts[1]:
+            raise HTTPException(status_code=422, detail="Некорректный email")
     mgr.email = email
     db.commit()
     return {"ok": True, "email": mgr.email}
@@ -121,17 +133,14 @@ async def update_manager_email(manager_id: int, request: Request,
 async def upload_manager_photo(manager_id: int, request: Request,
                                 file: UploadFile = File(...),
                                 db: Session = Depends(get_db),
-                                user: dict = Depends(require_login)):
-    if user.get("display_name") != "Месмер Денис" and not user.get("is_admin"):
-        return RedirectResponse("/managers", status_code=302)
-    mgr = db.query(models.Manager).filter(models.Manager.id == manager_id).first()
+                                user: dict = Depends(require_admin)):
+    mgr = db.query(models.Manager).filter_by(id=manager_id).first()
     if not mgr:
         raise HTTPException(status_code=404)
     ext = Path(file.filename).suffix.lower() if file.filename else ".jpg"
-    if ext not in ('.jpg', '.jpeg', '.png', '.webp'):
-        ext = '.jpg'
-    filename = f"manager_{manager_id}{ext}"
-    content = await file.read()
-    mgr.photo = upload_photo(content, "managers", filename)
+    if ext not in _UPLOAD_PHOTO_EXTS:
+        ext = ".jpg"
+    content  = await file.read()
+    mgr.photo = upload_photo(content, "managers", f"manager_{manager_id}{ext}")
     db.commit()
     return RedirectResponse("/managers", status_code=303)
