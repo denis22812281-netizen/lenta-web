@@ -331,13 +331,21 @@ async def photo_to_excel_api(
         wb.save(buf)
         buf.seek(0)
 
-        safe_title = re.sub(r"[^\w\- ]", "", data.get("title", "data"))[:40].strip() or "data"
-        filename = f"{safe_title}_{_TYPE_NAMES[output_type]}.xlsx"
+        raw_title = data.get("title", "data")
+        # Keep only ASCII-safe chars for Content-Disposition header
+        ascii_title = re.sub(r"[^\w\- ]", "", raw_title, flags=re.ASCII)[:40].strip() or "data"
+        type_en = {"таблица": "table", "график": "chart", "диаграмма": "diagram"}
+        type_suffix = type_en.get(_TYPE_NAMES[output_type], output_type)
+        filename = f"{ascii_title}_{type_suffix}.xlsx"
+
+        import urllib.parse
+        encoded_name = urllib.parse.quote(f"{raw_title[:40]}_{_TYPE_NAMES[output_type]}.xlsx")
+        content_disp = f'attachment; filename="{filename}"; filename*=UTF-8\'\'{encoded_name}'
 
         return StreamingResponse(
             buf,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            headers={"Content-Disposition": content_disp},
         )
     except Exception as e:
         logger.error("photo-to-excel error: %s", e, exc_info=True)
