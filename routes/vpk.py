@@ -5,6 +5,7 @@ import logging as _logging
 import os
 from datetime import date, datetime, timedelta
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
@@ -166,7 +167,7 @@ async def vpk_submit(request: Request, background_tasks: BackgroundTasks,
     background_tasks.add_task(_send_emails)
 
     return RedirectResponse(
-        f"/vpk?tab=reports&msg=Отчёт ВПК{vpk_type} по ТК {tk} отправлен",
+        f"/vpk?tab=reports&msg={quote(f'Отчёт ВПК{vpk_type} по ТК {tk} отправлен')}",
         status_code=303)
 
 
@@ -261,7 +262,7 @@ async def precheck_submit(request: Request, background_tasks: BackgroundTasks,
         _vpk_logger.warning("Precheck: email не отправлен — NOTIFY_PRECHECK_EMAIL не задан и у менеджера нет email")
 
     return RedirectResponse(
-        f"/vpk?tab=precheck&msg=Предосмотр ВПК{vpk_type} по ТК {tk} отправлен",
+        f"/vpk?tab=precheck&msg={quote(f'Предосмотр ВПК{vpk_type} по ТК {tk} отправлен')}",
         status_code=303,
     )
 
@@ -510,11 +511,11 @@ async def opening_send_report(request: Request, background_tasks: BackgroundTask
     form = await request.form()
     project_id = form.get("project_id")
     if not project_id:
-        return RedirectResponse("/opening?msg=Выберите ТК", status_code=303)
+        return RedirectResponse(f"/opening?msg={quote('Выберите ТК')}", status_code=303)
 
     proj = db.query(models.Project).filter(models.Project.id == int(project_id)).first()
     if not proj:
-        return RedirectResponse("/opening?msg=ТК не найден", status_code=303)
+        return RedirectResponse(f"/opening?msg={quote('ТК не найден')}", status_code=303)
 
     # Сначала starred, потом остальные — чтобы лучшие шли первыми в письме
     all_photos = db.query(models.OpeningPhoto).filter(
@@ -523,7 +524,7 @@ async def opening_send_report(request: Request, background_tasks: BackgroundTask
 
     if not all_photos:
         return RedirectResponse(
-            f"/opening?project_id={project_id}&msg=Сначала загрузите фото",
+            f"/opening?project_id={project_id}&msg={quote('Сначала загрузите фото')}",
             status_code=303,
         )
 
@@ -554,7 +555,7 @@ async def opening_send_report(request: Request, background_tasks: BackgroundTask
         msg = "NOTIFY_PRECHECK_EMAIL не задан"
 
     return RedirectResponse(
-        f"/opening?project_id={project_id}&msg={msg}",
+        f"/opening?project_id={project_id}&msg={quote(msg)}",
         status_code=303,
     )
 

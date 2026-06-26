@@ -1,5 +1,6 @@
 import io
 from datetime import date, datetime
+from urllib.parse import quote
 
 import openpyxl
 from fastapi import APIRouter, Depends, File, Request, UploadFile
@@ -101,7 +102,7 @@ async def stats_upload(request: Request, db: Session = Depends(get_db),
     try:
         content = await read_limited(file, 10 * 1024 * 1024)
     except ValueError:
-        return RedirectResponse("/stats?error=Файл слишком большой (макс 10 МБ)", status_code=303)
+        return RedirectResponse(f"/stats?error={quote('Файл слишком большой (макс 10 МБ)')}", status_code=303)
     try:
         from utils.excel import safe_date
         wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
@@ -126,7 +127,7 @@ async def stats_upload(request: Request, db: Session = Depends(get_db),
                         updated += 1
         db.commit()
     except Exception as e:
-        return RedirectResponse(f"/stats?error={str(e)[:80]}", status_code=303)
+        return RedirectResponse(f"/stats?error={quote(str(e)[:80])}", status_code=303)
     return RedirectResponse(f"/stats?updated={updated}", status_code=303)
 
 

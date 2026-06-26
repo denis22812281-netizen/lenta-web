@@ -3,6 +3,7 @@ import io
 import os
 from datetime import date, datetime
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import (
     APIRouter,
@@ -496,7 +497,7 @@ async def import_excel(request: Request, db: Session = Depends(get_db),
     try:
         content = await read_limited(file, _MAX_EXCEL_BYTES)
     except ValueError:
-        return RedirectResponse("/projects?error=Файл слишком большой (макс 10 МБ)", status_code=303)
+        return RedirectResponse(f"/projects?error={quote('Файл слишком большой (макс 10 МБ)')}", status_code=303)
     try:
         parse_excel_file(content, "", int(manager_id) if manager_id else None, db)
     except Exception:
@@ -515,7 +516,7 @@ async def import_excel_section(request: Request, db: Session = Depends(get_db),
     try:
         content = await read_limited(file, _MAX_EXCEL_BYTES)
     except ValueError:
-        return RedirectResponse(f"{redirect_to}?error=Файл слишком большой (макс 10 МБ)", status_code=303)
+        return RedirectResponse(f"{redirect_to}?error={quote('Файл слишком большой (макс 10 МБ)')}", status_code=303)
     try:
         if project_type == "Реконструкция":
             result = import_reconstruct_excel(content, db)
@@ -528,7 +529,7 @@ async def import_excel_section(request: Request, db: Session = Depends(get_db),
             f"{redirect_to}?msg=created:{result['created']},updated:{result['updated']}",
             status_code=303)
     except Exception as e:
-        return RedirectResponse(f"{redirect_to}?error={str(e)[:80]}", status_code=303)
+        return RedirectResponse(f"{redirect_to}?error={quote(str(e)[:80])}", status_code=303)
 
 
 @router.get("/api/export/projects-excel")

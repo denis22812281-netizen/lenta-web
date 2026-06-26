@@ -1,4 +1,5 @@
 import os
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -127,7 +128,7 @@ async def vpk_criteria_add(request: Request, db: Session = Depends(get_db),
     db.add(models.VpkCriterion(name=name.strip(), vpk_type=vpk_type, order=new_order))
     db.commit()
     await cache_delete(f"vpk:criteria:{vpk_type}")
-    return RedirectResponse("/admin/vpk-criteria?msg=Критерий добавлен", status_code=303)
+    return RedirectResponse(f"/admin/vpk-criteria?msg={quote('Критерий добавлен')}", status_code=303)
 
 
 @router.post("/admin/vpk-criteria/{crit_id}/edit")
@@ -140,7 +141,7 @@ async def vpk_criteria_edit(crit_id: int, request: Request,
         c.name = name.strip()
         db.commit()
         await cache_delete(f"vpk:criteria:{c.vpk_type}")
-    return RedirectResponse("/admin/vpk-criteria?msg=Сохранено", status_code=303)
+    return RedirectResponse(f"/admin/vpk-criteria?msg={quote('Сохранено')}", status_code=303)
 
 
 @router.post("/admin/vpk-criteria/{crit_id}/delete")
@@ -153,7 +154,7 @@ async def vpk_criteria_delete(crit_id: int, request: Request,
         db.delete(c)
         db.commit()
         await cache_delete(f"vpk:criteria:{vpk_type}")
-    return RedirectResponse("/admin/vpk-criteria?msg=Удалено", status_code=303)
+    return RedirectResponse(f"/admin/vpk-criteria?msg={quote('Удалено')}", status_code=303)
 
 
 @router.post("/api/admin/vpk-criteria/reorder")

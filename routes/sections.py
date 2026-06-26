@@ -1,5 +1,6 @@
 """Реконструкции, Констракшн — список проектов + импорт + очистка."""
 from datetime import date
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -79,17 +80,18 @@ async def do_import_reconstruct(request: Request, db: Session = Depends(get_db),
         content = await read_limited(file, _MAX_EXCEL_BYTES)
     except ValueError:
         return RedirectResponse(
-            f"/import-reconstruct?error=Файл слишком большой (макс {_MAX_EXCEL_MB} МБ)",
+            f"/import-reconstruct?error={quote(f'Файл слишком большой (макс {_MAX_EXCEL_MB} МБ)')}",
             status_code=303)
     try:
         result = import_reconstruct_excel(content, db)
         warn = result.get("cross_type_warn", 0)
         warn_txt = f" ⚠️ Дублей с Констракшн: {warn}" if warn else ""
+        msg = f"Импорт завершён: создано {result['created']}, обновлено {result['updated']} проектов{warn_txt}"
         return RedirectResponse(
-            f"/import-reconstruct?msg=Импорт завершён: создано {result['created']}, обновлено {result['updated']} проектов{warn_txt}",
+            f"/import-reconstruct?msg={quote(msg)}",
             status_code=303)
     except Exception as e:
-        return RedirectResponse(f"/import-reconstruct?error={str(e)[:120]}", status_code=303)
+        return RedirectResponse(f"/import-reconstruct?error={quote(str(e)[:120])}", status_code=303)
 
 
 @router.get("/import-construction", response_class=HTMLResponse)
@@ -113,7 +115,7 @@ async def do_import_construction(request: Request, db: Session = Depends(get_db)
         content = await read_limited(file, _MAX_EXCEL_BYTES)
     except ValueError:
         return RedirectResponse(
-            f"/import-construction?error=Файл слишком большой (макс {_MAX_EXCEL_MB} МБ)",
+            f"/import-construction?error={quote(f'Файл слишком большой (макс {_MAX_EXCEL_MB} МБ)')}",
             status_code=303)
     try:
         result = import_construction_excel(content, db)
@@ -123,9 +125,9 @@ async def do_import_construction(request: Request, db: Session = Depends(get_db)
                f"Строк:{result.get('rows_with_tk',0)} "
                f"Форматы:[{','.join(result.get('sample_formats',[]))}] "
                f"Менеджеры:[{','.join(result.get('sample_managers',[]))}]{warn_txt}")
-        return RedirectResponse(f"/import-construction?msg={msg}", status_code=303)
+        return RedirectResponse(f"/import-construction?msg={quote(msg)}", status_code=303)
     except Exception as e:
-        return RedirectResponse(f"/import-construction?error={str(e)[:120]}", status_code=303)
+        return RedirectResponse(f"/import-construction?error={quote(str(e)[:120])}", status_code=303)
 
 
 # ─── Административные операции очистки (только admin) ────────────────────────
@@ -139,7 +141,7 @@ async def clear_all_projects(request: Request, db: Session = Depends(get_db),
             models.Project.project_type.in_(["Реконструкция", "Констракшн"])).all():
         db.delete(p)
     db.commit()
-    return RedirectResponse("/?msg=Все проекты удалены", status_code=303)
+    return RedirectResponse(f"/?msg={quote('Все проекты удалены')}", status_code=303)
 
 
 @router.post("/construction/clear-all")
@@ -152,7 +154,7 @@ async def clear_all_construction(request: Request, db: Session = Depends(get_db)
         db.delete(p)
     db.commit()
     return RedirectResponse(
-        "/construction?msg=Все проекты Констракшн удалены. Загрузите файл заново.",
+        f"/construction?msg={quote('Все проекты Констракшн удалены. Загрузите файл заново.')}",
         status_code=303)
 
 
@@ -174,7 +176,7 @@ async def delete_construction_non_2026(request: Request, db: Session = Depends(g
     ).delete()
     db.commit()
     return RedirectResponse(
-        f"/construction?msg=Удалено объектов 2025 года: {d1 + d2}", status_code=303)
+        f"/construction?msg={quote(f'Удалено объектов 2025 года: {d1 + d2}')}", status_code=303)
 
 
 @router.post("/reconstruct/delete-tk-prefix")
@@ -190,4 +192,4 @@ async def delete_tk_prefix(request: Request, db: Session = Depends(get_db),
     for p in projects:
         db.delete(p)
     db.commit()
-    return RedirectResponse(f"/reconstruct?msg=Удалено: {count} проектов", status_code=303)
+    return RedirectResponse(f"/reconstruct?msg={quote(f'Удалено: {count} проектов')}", status_code=303)

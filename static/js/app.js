@@ -329,6 +329,23 @@ function showToast(msg, type = 'warning', duration = 7000) {
     setTimeout(() => div.remove(), duration);
 }
 
+// ── Flash messages from redirect query params ─────────────────────────────────
+(function () {
+    try {
+        var p = new URLSearchParams(window.location.search);
+        var err = p.get('error');
+        var msg = p.get('msg');
+        if (err) showToast(decodeURIComponent(err), 'danger', 9000);
+        if (msg) showToast(decodeURIComponent(msg), 'success', 7000);
+        if (err || msg) {
+            var clean = window.location.pathname + (window.location.search
+                .replace(/[?&]error=[^&]*/g, '').replace(/[?&]msg=[^&]*/g, '')
+                .replace(/^&/, '?') || '');
+            history.replaceState(null, '', clean);
+        }
+    } catch (_) {}
+}());
+
 // ── Browser push notification ─────────────────────────────────────────────────
 function sendBrowserNotif(title, body) {
     if (Notification.permission !== 'granted') return;

@@ -1,6 +1,7 @@
 import io
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote
 
 import openpyxl
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
@@ -50,7 +51,7 @@ async def kso_import(request: Request, db: Session = Depends(get_db),
     try:
         content = await read_limited(file, 10 * 1024 * 1024)
     except ValueError as e:
-        return RedirectResponse(f"/kso?error={str(e)[:80]}&tab=objects", status_code=303)
+        return RedirectResponse(f"/kso?error={quote(str(e)[:80])}&tab=objects", status_code=303)
     try:
         wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
         ws = wb.worksheets[0]
@@ -80,10 +81,10 @@ async def kso_import(request: Request, db: Session = Depends(get_db),
                 db.add(models.KsoObject(tk_number=tk, address=addr, manager_id=mgr_id))
                 created += 1
         db.commit()
-        return RedirectResponse(f"/kso?msg=Загружено: {created} объектов&tab=objects",
+        return RedirectResponse(f"/kso?msg={quote(f'Загружено: {created} объектов')}&tab=objects",
                                 status_code=303)
     except Exception as e:
-        return RedirectResponse(f"/kso?error={str(e)[:100]}&tab=objects", status_code=303)
+        return RedirectResponse(f"/kso?error={quote(str(e)[:100])}&tab=objects", status_code=303)
 
 
 @router.post("/kso/objects/{obj_id}/toggle")
@@ -130,11 +131,11 @@ async def kso_schedule_upload(request: Request, db: Session = Depends(get_db),
     _ALLOWED_KSO = {".pdf", ".xlsx", ".xls", ".doc", ".docx", ".jpg", ".jpeg", ".png"}
     ext = Path(file.filename or "").suffix.lower()
     if ext not in _ALLOWED_KSO:
-        return RedirectResponse("/kso?tab=schedules&msg=Недопустимый тип файла", status_code=303)
+        return RedirectResponse(f"/kso?tab=schedules&msg={quote('Недопустимый тип файла')}", status_code=303)
     try:
         content = await read_limited(file, 50 * 1024 * 1024)
     except ValueError:
-        return RedirectResponse("/kso?tab=schedules&msg=Файл слишком большой (макс 50MB)", status_code=303)
+        return RedirectResponse(f"/kso?tab=schedules&msg={quote('Файл слишком большой (макс 50MB)')}", status_code=303)
     save_dir = Path("static/uploads/kso")
     save_dir.mkdir(parents=True, exist_ok=True)
     safe_name = f"{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
@@ -145,7 +146,7 @@ async def kso_schedule_upload(request: Request, db: Session = Depends(get_db),
         description=description, uploaded_by=user.get("display_name", ""),
     ))
     db.commit()
-    return RedirectResponse("/kso?tab=schedules&msg=Файл загружен", status_code=303)
+    return RedirectResponse(f"/kso?tab=schedules&msg={quote('Файл загружен')}", status_code=303)
 
 
 _KSO_UPLOAD_DIR = Path("static/uploads/kso")
