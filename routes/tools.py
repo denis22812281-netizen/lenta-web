@@ -301,6 +301,20 @@ async def photo_to_excel_page(request: Request, user: dict = Depends(require_adm
     })
 
 
+@router.get("/api/tools/gemini-test", response_class=HTMLResponse)
+async def gemini_test(request: Request, user: dict = Depends(require_admin)):
+    """Diagnostic: test Gemini API key and list available models."""
+    try:
+        import urllib.request as ur
+        url = f"https://generativelanguage.googleapis.com/v1beta/models?key={_GEMINI_KEY}&pageSize=50"
+        with ur.urlopen(url, timeout=15) as r:
+            data = json.loads(r.read())
+        names = [m["name"] for m in data.get("models", [])]
+        return HTMLResponse(f"<pre>KEY set: {bool(_GEMINI_KEY)}\nModels:\n" + "\n".join(names) + "</pre>")
+    except Exception as e:
+        return HTMLResponse(f"<pre>ERROR: {e}</pre>", status_code=500)
+
+
 @router.post("/api/tools/photo-to-excel")
 async def photo_to_excel_api(
     request: Request,
@@ -308,35 +322,30 @@ async def photo_to_excel_api(
     photo: UploadFile = File(...),
     output_type: str = Form("table"),
 ):
-    if output_type not in _BUILDERS:
-        output_type = "table"
-
-    image_bytes = await photo.read()
-    content_type = photo.content_type or "image/jpeg"
-    if content_type not in ("image/jpeg", "image/png", "image/gif", "image/webp"):
-        content_type = "image/jpeg"
-
     try:
+        if output_type not in _BUILDERS:
+            output_type = "table"
+
+        image_bytes = await photo.read()
+        content_type = photo.content_type or "image/jpeg"
+        if content_type not in ("image/jpeg", "image/png", "image/gif", "image/webp"):
+            content_type = "image/jpeg"
+
         data = _call_ai(image_bytes, content_type, output_type)
-    except Exception as e:
-        logger.error("Claude error: %s", e)
-        return JSONResponse({"error": str(e)}, status_code=500)
 
-    try:
         wb = _BUILDERS[output_type](data)
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+
+        safe_title = re.sub(r"[^\w\- ]", "", data.get("title", "data"))[:40].strip() or "data"
+        filename = f"{safe_title}_{_TYPE_NAMES[output_type]}.xlsx"
+
+        return StreamingResponse(
+            buf,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
     except Exception as e:
-        logger.error("Excel build error: %s", e)
-        return JSONResponse({"error": f"Ошибка генерации Excel: {e}"}, status_code=500)
-
-    buf = io.BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-
-    safe_title = re.sub(r"[^\w\- ]", "", data.get("title", "data"))[:40].strip() or "data"
-    filename = f"{safe_title}_{_TYPE_NAMES[output_type]}.xlsx"
-
-    return StreamingResponse(
-        buf,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
-    )
+        logger.error("photo-to-excel error: %s", e, exc_info=True)
+        return JSONResponse({"error": str(e)}, status_code=500)
