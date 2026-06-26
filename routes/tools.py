@@ -24,10 +24,15 @@ _ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 _PROMPTS = {
     "table": (
         "Ты эксперт по извлечению данных из изображений. "
-        "Посмотри на изображение и извлеки ВСЕ данные в формате таблицы. "
+        "Посмотри на изображение и извлеки ВСЕ данные таблицы. "
+        "Правила: "
+        "1) title — реальное название таблицы с изображения (если нет — придумай по содержимому). "
+        "2) headers — только названия столбцов (не строка данных). "
+        "3) rows — все строки данных начиная с первой, НЕ включая заголовок. "
+        "4) Если в таблице есть столбец с порядковыми номерами — включи его как есть, НЕ дублируй. "
         "Верни ТОЛЬКО валидный JSON без пояснений:\n"
-        '{"title":"Название таблицы","headers":["Столбец1","Столбец2"],'
-        '"rows":[["значение1","значение2"],["значение3","значение4"]]}'
+        '{"title":"Реальное название","headers":["№","Столбец1","Столбец2"],'
+        '"rows":[["1","значение1","значение2"],["2","значение3","значение4"]]}'
     ),
     "chart": (
         "Ты эксперт по извлечению данных из изображений. "
@@ -60,7 +65,7 @@ def _call_gemini(image_bytes: bytes, mime: str, output_type: str) -> dict:
                 {"text": _PROMPTS[output_type]},
             ]
         }],
-        "generationConfig": {"maxOutputTokens": 8192, "temperature": 0.1},
+        "generationConfig": {"maxOutputTokens": 16384, "temperature": 0.0},
     }).encode()
     url = (
         "https://generativelanguage.googleapis.com/v1beta/models/"
@@ -111,12 +116,22 @@ def _call_claude(image_bytes: bytes, mime: str, output_type: str) -> dict:
 
 
 def _call_ai(image_bytes: bytes, mime: str, output_type: str) -> dict:
-    """Try Gemini first (free), fall back to Claude if GEMINI_API_KEY not set."""
-    if _GEMINI_KEY:
-        return _call_gemini(image_bytes, mime, output_type)
-    if _ANTHROPIC_KEY:
-        return _call_claude(image_bytes, mime, output_type)
-    raise RuntimeError("Не задан ни GEMINI_API_KEY, ни ANTHROPIC_API_KEY")
+    """Try Gemini first (free), fall back to Claude. Retry once on failure."""
+    import time
+    if not _GEMINI_KEY and not _ANTHROPIC_KEY:
+        raise RuntimeError("Не задан ни GEMINI_API_KEY, ни ANTHROPIC_API_KEY")
+    last_err: Exception | None = None
+    for attempt in range(2):
+        try:
+            if _GEMINI_KEY:
+                return _call_gemini(image_bytes, mime, output_type)
+            return _call_claude(image_bytes, mime, output_type)
+        except Exception as e:
+            last_err = e
+            if attempt == 0:
+                logger.warning("AI attempt 1 failed (%s), retrying...", e)
+                time.sleep(2)
+    raise last_err  # type: ignore[misc]
 
 
 # ── Excel builders ────────────────────────────────────────────────────────────
@@ -139,6 +154,14 @@ def _build_table(data: dict) -> Workbook:
     title = data.get("title", "Таблица")
     headers = data.get("headers", [])
     rows = data.get("rows", [])
+
+    # Auto-fix row numbering: if first column is "№"-like and values aren't 1,2,3...
+    _NUM_HEADERS = {"№", "n", "#", "no", "номер", "num", "п/п", "п.п."}
+    if headers and str(headers[0]).strip().lower() in _NUM_HEADERS:
+        for i, row in enumerate(rows, 1):
+            if row:
+                row[0] = str(i)
+
     ncols = max(len(headers), max((len(r) for r in rows), default=0))
 
     # Title row
