@@ -62,8 +62,8 @@ def _call_gemini(image_bytes: bytes, mime: str, output_type: str) -> dict:
         "generationConfig": {"maxOutputTokens": 2048, "temperature": 0.1},
     }).encode()
     url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-1.5-flash-latest:generateContent?key={_GEMINI_KEY}"
+        "https://generativelanguage.googleapis.com/v1/models/"
+        f"gemini-1.5-flash:generateContent?key={_GEMINI_KEY}"
     )
     req = urllib.request.Request(url, data=payload,
                                  headers={"Content-Type": "application/json"})
