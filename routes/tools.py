@@ -48,10 +48,42 @@ _PROMPTS = {
 }
 
 
+_gemini_model_name: str | None = None
+
+
+def _discover_gemini_model() -> str:
+    """Ask Google which models are available for this key and pick the best one."""
+    global _gemini_model_name
+    if _gemini_model_name:
+        return _gemini_model_name
+    import urllib.request
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models"
+        f"?key={_GEMINI_KEY}&pageSize=50"
+    )
+    with urllib.request.urlopen(url, timeout=15) as r:
+        data = json.loads(r.read())
+    # Prefer flash models; skip embedding/aqa models
+    preferred = []
+    for m in data.get("models", []):
+        name = m.get("name", "").replace("models/", "")
+        methods = m.get("supportedGenerationMethods", [])
+        if "generateContent" in methods and "embed" not in name and "aqa" not in name:
+            preferred.append(name)
+    if not preferred:
+        raise RuntimeError("Нет доступных моделей Gemini с generateContent")
+    # Pick flash first, then anything else
+    flash = [n for n in preferred if "flash" in n]
+    _gemini_model_name = flash[0] if flash else preferred[0]
+    logger.info("Gemini model selected: %s", _gemini_model_name)
+    return _gemini_model_name
+
+
 def _call_gemini(image_bytes: bytes, mime: str, output_type: str) -> dict:
     import google.generativeai as genai
     genai.configure(api_key=_GEMINI_KEY)
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model_name = _discover_gemini_model()
+    model = genai.GenerativeModel(model_name)
     response = model.generate_content([
         {"mime_type": mime, "data": image_bytes},
         _PROMPTS[output_type],
