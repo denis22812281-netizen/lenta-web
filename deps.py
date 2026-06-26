@@ -1,3 +1,5 @@
+import os
+
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -32,8 +34,16 @@ def _avatar_color(name: str) -> str:
 
 templates.env.filters["avatar_color"] = _avatar_color
 
-# Rate limiter (shared между роутерами)
-limiter = Limiter(key_func=get_remote_address)
+# Rate limiter — в тестах возвращаем уникальный ключ, чтобы лимиты не срабатывали
+_TESTING = bool(os.getenv("TESTING"))
+
+def _rate_key(request: Request) -> str:
+    if _TESTING:
+        import uuid
+        return str(uuid.uuid4())
+    return get_remote_address(request)
+
+limiter = Limiter(key_func=_rate_key)
 
 
 def get_current_user(request: Request):

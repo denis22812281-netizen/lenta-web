@@ -1,21 +1,26 @@
 name: Deploy → Railway
 
+# Railway auto-deploys on push to main via GitHub integration.
+# This workflow is disabled to avoid double-deploys and expired-token failures.
+# To re-enable: add RAILWAY_TOKEN secret and set on.push below.
+
 on:
-  workflow_run:
-    workflows: ["CI — Tests"]
-    types: [completed]
-    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type 'deploy' to confirm manual deploy"
+        required: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.event.inputs.confirm == 'deploy'
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Railway CLI
-        run: npm install -g @railway/cli
+        run: npm install -g @railway/cli@latest
 
       - name: Deploy to Railway
         env:

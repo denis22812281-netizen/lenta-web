@@ -218,6 +218,13 @@ _POSTGRES_MIGRATIONS = [
         uploaded_at TIMESTAMP DEFAULT NOW()
     )""",
     "CREATE INDEX IF NOT EXISTS ix_adapt_photos_card ON adaptation_photos (card_id)",
+    # Частые WHERE-фильтры на projects
+    "CREATE INDEX IF NOT EXISTS ix_projects_status     ON projects (status)",
+    "CREATE INDEX IF NOT EXISTS ix_projects_city       ON projects (city)",
+    # project_comments часто читаются по project_id
+    "CREATE INDEX IF NOT EXISTS ix_proj_comments_proj  ON project_comments (project_id)",
+    # chat_messages сортируется по дате
+    "CREATE INDEX IF NOT EXISTS ix_chat_created_at     ON chat_messages (created_at DESC)",
 ]
 
 _SQLITE_MIGRATIONS = [
