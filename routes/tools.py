@@ -80,14 +80,16 @@ def _discover_gemini_model() -> str:
 
 
 def _call_gemini(image_bytes: bytes, mime: str, output_type: str) -> dict:
+    import io
+
     import google.generativeai as genai
+    from PIL import Image as PILImage
+
     genai.configure(api_key=_GEMINI_KEY)
     model_name = _discover_gemini_model()
     model = genai.GenerativeModel(model_name)
-    response = model.generate_content([
-        {"mime_type": mime, "data": image_bytes},
-        _PROMPTS[output_type],
-    ])
+    img = PILImage.open(io.BytesIO(image_bytes))
+    response = model.generate_content([_PROMPTS[output_type], img])
     raw = response.text.strip()
     raw = re.sub(r"^```(?:json)?\s*", "", raw)
     raw = re.sub(r"\s*```$", "", raw)
