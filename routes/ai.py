@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import get_current_user, require_login, templates
+from deps import get_current_user, require_api_user, require_login, templates
 from utils.files import read_limited
 
 _MAX_AI_EXCEL_BYTES = 10 * 1024 * 1024  # 10 MB
@@ -23,10 +23,8 @@ async def ai_page(request: Request, user: dict = Depends(require_login)):
 
 
 @router.post("/api/ai/chat")
-async def ai_chat(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return {"error": "Не авторизован"}
+async def ai_chat(request: Request, db: Session = Depends(get_db),
+                  user: dict = Depends(require_api_user)):
     body = await request.json()
     user_message = body.get("message", "").strip()
     if not user_message:
@@ -136,10 +134,8 @@ async def ai_history(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/api/ai/clear-history")
-async def ai_clear_history(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return {"error": "Не авторизован"}
+async def ai_clear_history(request: Request, db: Session = Depends(get_db),
+                            user: dict = Depends(require_api_user)):
     db.query(models.AiChatMessage).filter(
         models.AiChatMessage.user_name == user.get("display_name", "")).delete()
     db.commit()
@@ -148,10 +144,8 @@ async def ai_clear_history(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/api/ai/check-excel")
 async def ai_check_excel(request: Request, db: Session = Depends(get_db),
+                          user: dict = Depends(require_api_user),
                           file: UploadFile = File(...)):
-    user = get_current_user(request)
-    if not user:
-        return {"error": "Не авторизован"}
     api_key = os.getenv("ANTHROPIC_API_KEY", "")
     if not api_key:
         return {"report": "ANTHROPIC_API_KEY не задан."}

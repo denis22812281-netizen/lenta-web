@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import get_current_user, require_login, templates
+from deps import get_current_user, require_api_user, require_login, templates
 from services.cloud_storage import media_url, upload_audio, upload_photo
 from services.online import ONLINE_TIMEOUT, ONLINE_USERS
 from services.ws_manager import ws_manager
@@ -89,10 +89,8 @@ async def chat_page(request: Request, db: Session = Depends(get_db), partner: st
 
 @router.get("/api/chat/messages")
 async def chat_messages(request: Request, db: Session = Depends(get_db),
+                        user: dict = Depends(require_api_user),
                         partner: str = "", since_id: int = 0):
-    user = get_current_user(request)
-    if not user:
-        return {"messages": []}
     my_name = user.get("display_name", "")
     if partner == "":
         q = db.query(models.ChatMessage).filter(
@@ -145,10 +143,8 @@ async def chat_ws(websocket: WebSocket, partner: str = ""):
 
 @router.post("/api/chat/send")
 async def chat_send(request: Request, background_tasks: BackgroundTasks,
-                    db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return {"error": "Не авторизован"}
+                    db: Session = Depends(get_db),
+                    user: dict = Depends(require_api_user)):
     data = await request.json()
     text = data.get("text", "").strip()
     if not text:
@@ -171,11 +167,9 @@ async def chat_send(request: Request, background_tasks: BackgroundTasks,
 @router.post("/api/chat/send-photo")
 async def chat_send_photo(request: Request, background_tasks: BackgroundTasks,
                           db: Session = Depends(get_db),
+                          user: dict = Depends(require_api_user),
                           file: UploadFile = File(...),
                           partner: str = Form(""), text: str = Form("")):
-    user = get_current_user(request)
-    if not user:
-        return {"error": "Не авторизован"}
     ext = Path(file.filename).suffix.lower() if file.filename else ".jpg"
     if ext not in ('.jpg', '.jpeg', '.png', '.webp', '.gif'):
         ext = '.jpg'
@@ -200,11 +194,9 @@ async def chat_send_photo(request: Request, background_tasks: BackgroundTasks,
 @router.post("/api/chat/send-voice")
 async def chat_send_voice(request: Request, background_tasks: BackgroundTasks,
                           db: Session = Depends(get_db),
+                          user: dict = Depends(require_api_user),
                           file: UploadFile = File(...),
                           partner: str = Form("")):
-    user = get_current_user(request)
-    if not user:
-        return {"error": "Не авторизован"}
     ext = Path(file.filename).suffix.lower() if file.filename else ".webm"
     if ext not in ('.webm', '.ogg', '.mp3', '.wav', '.m4a'):
         ext = '.webm'

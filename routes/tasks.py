@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, joinedload
 import models
 from config import PRIORITIES, TASK_STATUSES
 from database import get_db
-from deps import get_current_user, require_login, templates
+from deps import get_current_user, require_api_user, require_login, templates
 from services.cloud_storage import upload_photo
 from services.email_service import (
     notify_task_assigned,
@@ -221,10 +221,8 @@ async def delete_task(task_id: int, request: Request, db: Session = Depends(get_
 
 @router.get("/api/tasks")
 async def api_tasks_json(request: Request, db: Session = Depends(get_db),
+                         user: dict = Depends(require_api_user),
                          manager_id: str = None, status: str = None):
-    user = get_current_user(request)
-    if not user:
-        raise HTTPException(status_code=401)
     my_name  = user.get("display_name", "")
     is_admin = user.get("is_admin", False)
     my_manager = db.query(models.Manager).filter(models.Manager.name == my_name).first()
