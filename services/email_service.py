@@ -851,6 +851,51 @@ def notify_adaptation_card(to_email: str, tk_number: str, author: str,
     )
 
 
+def notify_server_error(url: str, method: str, user_name: str,
+                        error_type: str, error_msg: str, traceback_str: str,
+                        timestamp: str) -> bool:
+    """Уведомление об ошибке сервера 500 — замена Sentry для prod-мониторинга."""
+    tb_html = traceback_str.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    content = f"""
+        <h2 style="color:#dc2626">🔴 Ошибка сервера</h2>
+        <p style="font-size:15px;margin-bottom:16px">Произошла необработанная ошибка на продакшн-сервере.</p>
+
+        <table width="100%" cellpadding="0" cellspacing="0"
+               style="background:#fef2f2;border-left:4px solid #dc2626;
+                      border-radius:0 8px 8px 0;margin-bottom:16px">
+          <tr>
+            <td style="padding:14px 18px">
+              <div style="font-size:13px;color:#7f1d1d;margin-bottom:6px">
+                <b>{method}</b> &nbsp;{url}
+              </div>
+              <div style="font-size:16px;font-weight:800;color:#dc2626">{error_type}</div>
+              <div style="font-size:13px;color:#374151;margin-top:4px">{error_msg[:300]}</div>
+            </td>
+          </tr>
+        </table>
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:14px">
+          <tr>
+            <td style="padding:4px 0;font-size:12px;color:#6b7280">
+              <b>Пользователь:</b> {user_name or '—'}
+            </td>
+            <td align="right" style="font-size:12px;color:#6b7280">{timestamp}</td>
+          </tr>
+        </table>
+
+        <div style="background:#1e293b;border-radius:8px;padding:14px 16px;margin-top:8px;overflow:auto">
+          <pre style="margin:0;font-family:monospace;font-size:11px;color:#94a3b8;
+                      white-space:pre-wrap;word-break:break-all">{tb_html[-3000:]}</pre>
+        </div>
+    """
+    to = os.getenv("NOTIFY_PRECHECK_EMAIL", "denis.mesmer@lenta.com")
+    return send_email(
+        to,
+        f"🔴 {error_type}: {method} {url[:60]}",
+        _base_template(content, title="🔴 Ошибка сервера 500"),
+    )
+
+
 def notify_deadline_tomorrow(to_email: str, manager_name: str, projects: list) -> bool:
     if not projects:
         return False

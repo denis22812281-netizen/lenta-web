@@ -30,6 +30,8 @@ class _NoHealthFilter(logging.Filter):
 logging.getLogger("uvicorn.access").addFilter(_NoHealthFilter())
 # ─────────────────────────────────────────────────────────────────────────────
 
+import traceback as _traceback
+
 import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.middleware.gzip import GZipMiddleware
@@ -57,6 +59,10 @@ from services.online import ONLINE_TIMEOUT, ONLINE_USERS
 from services.seed import seed_all
 
 logger = logging.getLogger(__name__)
+
+# Rate-limit error emails: max 1 per 5 min per (error_type, url)
+_ERROR_EMAIL_CACHE: dict[str, float] = {}
+_ERROR_EMAIL_TTL = 300  # seconds
 
 _SENTRY_DSN = os.getenv("SENTRY_DSN", "")
 if _SENTRY_DSN:
@@ -95,6 +101,37 @@ async def not_found_handler(request: Request, exc: Exception):
 
 @app.exception_handler(500)
 async def server_error_handler(request: Request, exc: Exception):
+    import asyncio as _aio
+    from datetime import datetime as _dt
+
+    tb = _traceback.format_exc()
+    error_type = type(exc).__name__
+    url  = str(request.url.path)
+    key  = f"{error_type}:{url}"
+    now  = _dt.utcnow().timestamp()
+
+    # Log always
+    logger.error("500 %s %s | %s: %s", request.method, url, error_type, exc, exc_info=True)
+
+    # Email with rate-limit (skip if same error was just reported)
+    last_sent = _ERROR_EMAIL_CACHE.get(key, 0)
+    if now - last_sent > _ERROR_EMAIL_TTL:
+        _ERROR_EMAIL_CACHE[key] = now
+        # Purge stale keys to avoid memory leak
+        stale = [k for k, t in list(_ERROR_EMAIL_CACHE.items()) if now - t > _ERROR_EMAIL_TTL * 10]
+        for k in stale:
+            del _ERROR_EMAIL_CACHE[k]
+        user_name = (request.session.get("user") or {}).get("display_name", "")
+        ts = _dt.utcnow().strftime("%d.%m.%Y %H:%M:%S UTC")
+        try:
+            from services.email_service import notify_server_error
+            _aio.get_event_loop().run_in_executor(
+                None, notify_server_error,
+                url, request.method, user_name, error_type, str(exc), tb, ts,
+            )
+        except Exception:
+            pass  # never block the response
+
     return templates.TemplateResponse(
         "500.html", {"request": request, "user": None}, status_code=500,
     )
