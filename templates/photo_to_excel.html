@@ -729,16 +729,29 @@ async function loadHistory() {
             var typeIcons = {table:'📋',chart:'📊',diagram:'🥧',gantt:'📅',
                              compare:'⚖️',merge:'🔀',auto:'🤖'};
             var icon = typeIcons[it.type] || '📄';
-            return '<div class="history-item">' +
+            return '<div class="history-item" id="hi-' + it.id + '">' +
                 '<span style="font-size:1.4rem">' + icon + '</span>' +
                 '<div class="history-meta">' +
                 '<div class="h-name">' + it.filename + '</div>' +
                 '<div class="h-age">' + fmtSize(it.size) + ' · ' + it.age_min + ' мин назад</div>' +
                 '</div>' +
-                '<a href="/api/tools/history/' + it.id + '" class="btn btn-sm btn-outline-success">' +
-                '<i class="bi bi-download"></i></a></div>';
+                '<a href="/api/tools/history/' + it.id + '" class="btn btn-sm btn-outline-success me-1">' +
+                '<i class="bi bi-download"></i></a>' +
+                '<button class="btn btn-sm btn-outline-danger" onclick="deleteHistory(\'' + it.id + '\')">' +
+                '<i class="bi bi-trash"></i></button></div>';
         }).join('');
     } catch(_) {}
+}
+
+async function deleteHistory(id) {
+    var el = $('hi-' + id);
+    if (el) el.style.opacity = '0.4';
+    try {
+        await fetch('/api/tools/history/' + id, { method: 'DELETE' });
+        loadHistory();
+    } catch(_) {
+        if (el) el.style.opacity = '';
+    }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────

@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import require_admin, templates
+from deps import require_admin, require_api_user, templates
 from services.tools_service import (
     _PROMPTS,
     _TEXT_PROMPTS,
@@ -386,6 +386,14 @@ async def download_history_item(item_id: str, request: Request,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{item["filename"]}"; filename*=UTF-8\'\'{encoded}'},
     )
+
+
+@router.delete("/api/tools/history/{item_id}")
+async def delete_history_item(item_id: str, user: dict = Depends(require_api_user)):
+    """Remove one item from in-memory history."""
+    uid = user["id"]
+    _HISTORY[uid] = [i for i in _HISTORY.get(uid, []) if i["id"] != item_id]
+    return {"ok": True}
 
 
 # ── Templates (DB-backed, survive server restarts) ─────────────────────────────
