@@ -381,7 +381,7 @@ strong { color: var(--green-deep); }
       Реконструкции · Констракшн · СМР · Адаптация · AI-аналитика
     </div>
     <div class="cover-meta">
-      <span class="cover-badge"><i class="bi bi-calendar3"></i> Версия 2.0 · Июнь 2026</span>
+      <span class="cover-badge"><i class="bi bi-calendar3"></i> Версия 2.1 · Июнь 2026</span>
       <span class="cover-badge"><i class="bi bi-people-fill"></i> Команда 10 человек</span>
       <span class="cover-badge"><i class="bi bi-shield-fill-check"></i> Конфиденциально</span>
     </div>
@@ -389,7 +389,7 @@ strong { color: var(--green-deep); }
       <span class="cm">Дашборд</span><span class="cm">Проекты</span><span class="cm">Дедлайны</span>
       <span class="cm">Задачи</span><span class="cm">ВПК</span><span class="cm">СМР</span>
       <span class="cm">Адаптация</span><span class="cm">Аналитика</span><span class="cm">AI-чат</span>
-      <span class="cm">Поиск</span><span class="cm">2FA</span><span class="cm">Мобиль</span>
+      <span class="cm">Чат</span><span class="cm">AI-Excel</span><span class="cm">Push</span><span class="cm">Мобиль</span>
     </div>
   </div>
 </div>
@@ -405,24 +405,27 @@ strong { color: var(--green-deep); }
   <div class="toc-grid">
     <a href="#s1"><span class="num">01</span> Назначение системы</a>
     <a href="#s11"><span class="num">11</span> Менеджеры</a>
-    <a href="#s2"><span class="num">02</span> Вход и двухфакторная защита</a>
-    <a href="#s12"><span class="num">12</span> Карточки адаптации <span class="badge-new">NEW</span></a>
+    <a href="#s2"><span class="num">02</span> Вход в систему</a>
+    <a href="#s12"><span class="num">12</span> Карточки адаптации</a>
     <a href="#s3"><span class="num">03</span> Дашборд</a>
     <a href="#s13"><span class="num">13</span> AI-ассистент</a>
     <a href="#s4"><span class="num">04</span> Проекты — Реконструкция</a>
-    <a href="#s14"><span class="num">14</span> Интерактивная аналитика <span class="badge-new">NEW</span></a>
+    <a href="#s14"><span class="num">14</span> Интерактивная аналитика</a>
     <a href="#s5"><span class="num">05</span> Проекты — Констракшн</a>
     <a href="#s15"><span class="num">15</span> Исполнительный дашборд <span style="background:#FFD200;color:#0D2010;font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px">ТОП</span></a>
     <a href="#s6"><span class="num">06</span> Задачи</a>
-    <a href="#s16"><span class="num">16</span> Глобальный поиск <span class="badge-new">NEW</span></a>
+    <a href="#s16"><span class="num">16</span> Глобальный поиск</a>
     <a href="#s7"><span class="num">07</span> Дедлайны</a>
     <a href="#s17"><span class="num">17</span> Экспорт отчётов</a>
     <a href="#s8"><span class="num">08</span> СМР — стройконтроль</a>
-    <a href="#s18"><span class="num">18</span> Мобильная версия <span class="badge-new">NEW</span></a>
+    <a href="#s18"><span class="num">18</span> Мобильная версия</a>
     <a href="#s9"><span class="num">09</span> ВПК — внутренний контроль</a>
-    <a href="#s19"><span class="num">19</span> Для администратора</a>
+    <a href="#s19"><span class="num">19</span> Чат <span class="badge-new">NEW</span></a>
     <a href="#s10"><span class="num">10</span> КСО — отчётность</a>
-    <a href="#s20"><span class="num">20</span> Техническая поддержка</a>
+    <a href="#s20"><span class="num">20</span> Push-уведомления <span class="badge-new">NEW</span></a>
+    <a href="#s21"><span class="num">21</span> AI-конвертер (Фото→Excel) <span class="badge-new">NEW</span></a>
+    <a href="#s22"><span class="num">22</span> Для администратора</a>
+    <a href="#s23"><span class="num">23</span> Техническая поддержка</a>
   </div>
 </div>
 
@@ -473,32 +476,45 @@ strong { color: var(--green-deep); }
   </div>
 </div>
 
-<!-- ── 2. Вход и 2FA ──────────────────────────────────────── -->
+<!-- ── 2. Вход ──────────────────────────────────────────── -->
 <div class="section" id="s2">
-  <div class="section-head"><i class="bi bi-key-fill"></i><h2>2. Вход в систему и двухфакторная защита</h2></div>
+  <div class="section-head"><i class="bi bi-key-fill"></i><h2>2. Вход в систему</h2></div>
   <div class="section-body">
     <h3>Первый вход</h3>
     <ol class="steps">
       <li>Откройте браузер и перейдите по адресу системы</li>
       <li>Введите номер телефона в формате <strong>+7XXXXXXXXXX</strong></li>
-      <li>Если номер зарегистрирован — введите пароль. При первом входе задайте новый</li>
+      <li>Если номер зарегистрирован — введите пароль. <strong>При первом входе придумайте пароль</strong> — он сохранится и будет использоваться всегда</li>
       <li>Нажмите «Войти» — откроется главный дашборд</li>
     </ol>
-    <div class="tip"><strong>Совет:</strong> Добавьте сайт в закладки или на рабочий стол — на мобильном телефоне он работает как приложение.</div>
+    <div class="warn"><strong>Важно:</strong> войти можно только с номера телефона, заранее добавленного администратором. Если номер не принимается — обратитесь к Месмеру Денису.</div>
+
+    <h3>Безопасность входа</h3>
+    <div class="feat-grid">
+      <div class="feat-item">
+        <i class="bi bi-telephone-fill"></i>
+        <div><strong>Белый список</strong><span>Только добавленные номера могут войти в систему</span></div>
+      </div>
+      <div class="feat-item">
+        <i class="bi bi-shield-fill-check"></i>
+        <div><strong>Защита от перебора</strong><span>Не более 5 попыток входа в минуту</span></div>
+      </div>
+      <div class="feat-item">
+        <i class="bi bi-lock-fill"></i>
+        <div><strong>Шифрование пароля</strong><span>Пароль хранится в зашифрованном виде, сотрудники системы его не видят</span></div>
+      </div>
+      <div class="feat-item">
+        <i class="bi bi-arrow-repeat"></i>
+        <div><strong>Сессия</strong><span>Сессия активна 30 дней. При смене пароля — все сессии сбрасываются</span></div>
+      </div>
+    </div>
 
     <h3>Если забыли пароль</h3>
-    <p>Обратитесь к администратору — Месмер Денис. Он сбросит пароль, при следующем входе вы зададите новый самостоятельно.</p>
+    <p>Обратитесь к администратору — Месмер Денис. Он сбросит аккаунт, при следующем входе вы зададите новый пароль самостоятельно.</p>
 
-    <h3>Двухфакторная аутентификация (2FA)</h3>
-    <p>Дополнительный уровень защиты аккаунта — после ввода пароля система запросит 6-значный код из приложения-аутентификатора.</p>
-    <ol class="steps">
-      <li>Перейдите в <strong>Профиль → Двухфакторная аутентификация</strong> (иконка щита в боковой панели)</li>
-      <li>Отсканируйте QR-код через <strong>Google Authenticator</strong>, <strong>Microsoft Authenticator</strong> или аналог</li>
-      <li>Введите 6-значный код из приложения и нажмите «Подключить»</li>
-      <li>При каждом входе после пароля система будет запрашивать текущий код</li>
-    </ol>
-    <div class="info"><strong>Рекомендуется</strong> всем сотрудникам с правами администратора. Код меняется каждые 30 секунд — используйте актуальный.</div>
-    <div class="tip"><strong>Если потеряли доступ к приложению</strong> — обратитесь к администратору для отключения 2FA.</div>
+    <h3>Выход из системы</h3>
+    <p>Кнопка «Выйти» в правом верхнем углу или внизу бокового меню. После выхода сессия немедленно завершается.</p>
+    <div class="tip"><strong>Совет:</strong> Добавьте сайт в закладки или на рабочий стол — на мобильном телефоне он работает как полноценное приложение (см. раздел 18).</div>
   </div>
 </div>
 
@@ -662,6 +678,23 @@ strong { color: var(--green-deep); }
       <li>Экспорт реестра в Excel одним кликом</li>
     </ul>
     <div class="tip"><strong>Индикатор ВПК:</strong> цифра рядом с пунктом меню — количество новых непрочитанных отчётов. Обнуляется при просмотре.</div>
+
+    <h3>Предосмотр ВПК</h3>
+    <ol class="steps">
+      <li>Нажать «Новый предосмотр» → выбрать объект и тип (ВПК-1 / ВПК-2)</li>
+      <li>Пройти по чеклисту критериев — отметить каждый пункт</li>
+      <li>Прикрепить фотографии к нужным позициям</li>
+      <li>Нажать «Отправить» — отчёт сохраняется и уходит на email</li>
+    </ol>
+
+    <h3>Галерея фото открытия</h3>
+    <p>Раздел «Фото открытия» на странице объекта — отдельная галерея фотографий с церемонии открытия или с объекта.</p>
+    <ul>
+      <li>Загрузить фото с телефона прямо в браузере (до 10 МБ каждое)</li>
+      <li>Пометить ключевые фото звёздочкой ★ — они выделяются в галерее</li>
+      <li>Кнопка «Скачать ZIP» — архив всех фото объекта одним файлом</li>
+      <li>Удалить отдельное фото кнопкой корзины</li>
+    </ul>
   </div>
 </div>
 
@@ -905,9 +938,120 @@ strong { color: var(--green-deep); }
   </div>
 </div>
 
-<!-- ── 19. Администратор ──────────────────────────────────── -->
+<!-- ── 19. Чат ─────────────────────────────────────────────── -->
 <div class="section" id="s19">
-  <div class="section-head"><i class="bi bi-gear-fill"></i><h2>19. Для администратора</h2></div>
+  <div class="section-head"><i class="bi bi-chat-dots-fill"></i><h2>19. Чат</h2><span class="new-tag">НОВЫЙ</span></div>
+  <div class="section-body">
+    <p>Встроенный мессенджер команды — общий чат и личные сообщения без выхода из системы.</p>
+
+    <h3>Отправка сообщений</h3>
+    <ol class="steps">
+      <li>Раздел «Чат» в боковом меню</li>
+      <li>Ввести текст в поле внизу → Enter или кнопка «Отправить»</li>
+      <li>Прикрепить фото: иконка скрепки → выбрать изображение</li>
+    </ol>
+
+    <h3>Общий и личный чат</h3>
+    <div class="feat-grid">
+      <div class="feat-item">
+        <i class="bi bi-people-fill"></i>
+        <div><strong>Общий чат</strong><span>Виден всем пользователям системы — для рабочих обсуждений</span></div>
+      </div>
+      <div class="feat-item">
+        <i class="bi bi-person-fill"></i>
+        <div><strong>Личные сообщения</strong><span>Нажать имя коллеги в правой панели → открывается приватный диалог</span></div>
+      </div>
+    </div>
+
+    <h3>Онлайн-статусы</h3>
+    <p>Зелёная точка рядом с именем — коллега активен в системе прямо сейчас. Обновляется автоматически.</p>
+
+    <div class="tip"><strong>Уведомления:</strong> при новом сообщении приходит push-уведомление, если вкладка закрыта. Красный счётчик на иконке чата показывает число непрочитанных.</div>
+  </div>
+</div>
+
+<!-- ── 20. Push-уведомления ──────────────────────────────── -->
+<div class="section" id="s20">
+  <div class="section-head"><i class="bi bi-bell-fill"></i><h2>20. Push-уведомления</h2><span class="new-tag">НОВЫЙ</span></div>
+  <div class="section-body">
+    <p>Система присылает оповещения прямо на телефон — даже когда браузер закрыт.</p>
+
+    <h3>Включить уведомления</h3>
+    <ol class="steps">
+      <li>При первом входе браузер покажет запрос — нажать <strong>«Разрешить»</strong></li>
+      <li>Если пропустили: нажать иконку 🔔 в шапке → «Включить уведомления»</li>
+    </ol>
+
+    <h3>Какие уведомления приходят</h3>
+    <table class="tbl">
+      <tr><th>Событие</th><th>Текст уведомления</th></tr>
+      <tr><td>Новое сообщение в чате</td><td>«Имя: текст сообщения»</td></tr>
+      <tr><td>Дедлайн через 3 дня</td><td>«ТК XXX — срок через 3 дня»</td></tr>
+      <tr><td>Просроченный дедлайн</td><td>«ТК XXX — просрочен на N дней»</td></tr>
+      <tr><td>Новый ВПК-отчёт</td><td>«Новый отчёт по объекту XXX»</td></tr>
+    </table>
+
+    <h3>Выключить уведомления</h3>
+    <p>Настройки браузера → Уведомления → найти адрес системы → <strong>«Заблокировать»</strong>.</p>
+    <div class="warn"><strong>iPhone:</strong> push-уведомления работают только если сайт добавлен на рабочий стол как PWA (Safari → Поделиться → «На экран Домой»). В обычном браузере Safari на iOS они не работают.</div>
+  </div>
+</div>
+
+<!-- ── 21. AI-конвертер ───────────────────────────────────── -->
+<div class="section" id="s21">
+  <div class="section-head"><i class="bi bi-file-earmark-spreadsheet-fill"></i><h2>21. AI-конвертер (Фото → Excel)</h2><span class="new-tag">НОВЫЙ</span></div>
+  <div class="section-body">
+    <div class="info"><strong>Доступ:</strong> только администраторы. Раздел «Инструменты» в боковом меню.</div>
+    <p>Загружаете фото акта, таблицы или рукописных данных — AI распознаёт содержимое и создаёт готовый файл Excel.</p>
+
+    <h3>Режимы конвертации</h3>
+    <table class="tbl">
+      <tr><th>Режим</th><th>Что делает</th></tr>
+      <tr><td><i class="bi bi-camera-fill"></i> Фото</td><td>Одно фото (акт, накладная, таблица) → Excel</td></tr>
+      <tr><td><i class="bi bi-textarea-t"></i> Текст</td><td>Вставить текст или продиктовать голосом → Excel</td></tr>
+      <tr><td><i class="bi bi-images"></i> Несколько фото</td><td>До 5 фото → один Excel с несколькими листами</td></tr>
+      <tr><td><i class="bi bi-subtract"></i> Сравнение</td><td>Два фото → Excel с выделенными различиями (жёлтым)</td></tr>
+      <tr><td><i class="bi bi-union"></i> Объединение</td><td>До 5 фото → один общий лист</td></tr>
+    </table>
+
+    <h3>Типы результата</h3>
+    <div class="badge-row">
+      <span class="badge b-blue">📋 Таблица — стандартная с заголовками</span>
+      <span class="badge b-green">📊 Диаграмма — данные + бар-чарт</span>
+      <span class="badge b-purple">🥧 Круговая — данные + пирог</span>
+      <span class="badge b-yellow">📅 Ганта — временная шкала задач</span>
+    </div>
+
+    <h3>Пошагово (режим Фото)</h3>
+    <ol class="steps">
+      <li>Выбрать режим <strong>«Фото»</strong></li>
+      <li>Перетащить фото в зону загрузки или нажать на неё</li>
+      <li>Выбрать тип результата (Таблица / Диаграмма / …)</li>
+      <li>Нажать <strong>«Конвертировать»</strong> — ждать до 45 секунд</li>
+      <li>Excel скачается автоматически</li>
+    </ol>
+
+    <h3>Голосовой ввод (режим Текст)</h3>
+    <ol class="steps">
+      <li>Выбрать режим <strong>«Текст»</strong></li>
+      <li>Нажать иконку микрофона 🎤 → разрешить доступ к микрофону</li>
+      <li>Говорить — текст появляется в поле в реальном времени</li>
+      <li>Нажать микрофон снова чтобы остановить → «Конвертировать»</li>
+    </ol>
+    <div class="tip"><strong>Голос работает только в Chrome/Edge.</strong> Если AI не отвечает больше 90 секунд — система покажет ошибку. Попробуйте ещё раз.</div>
+
+    <h3>История конвертаций</h3>
+    <p>Раздел «Последние конвертации» внизу страницы — хранится 10 последних файлов в течение 24 часов.</p>
+    <div class="badge-row">
+      <span class="badge b-green"><i class="bi bi-download"></i> ⬇ — скачать повторно</span>
+      <span class="badge b-red"><i class="bi bi-trash"></i> 🗑 — удалить из истории</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── 22. Администратор ──────────────────────────────────── -->
+<div class="section" id="s22">
+  <div class="section-head"><i class="bi bi-gear-fill"></i><h2>22. Для администратора</h2></div>
   <div class="section-body">
     <div class="info"><strong>Доступ к этому разделу:</strong> Гаврин Игорь и Месмер Денис.</div>
 
@@ -937,9 +1081,9 @@ strong { color: var(--green-deep); }
   </div>
 </div>
 
-<!-- ── 20. Поддержка ──────────────────────────────────────── -->
-<div class="section" id="s20">
-  <div class="section-head"><i class="bi bi-headset"></i><h2>20. Техническая поддержка</h2></div>
+<!-- ── 23. Поддержка ──────────────────────────────────────── -->
+<div class="section" id="s23">
+  <div class="section-head"><i class="bi bi-headset"></i><h2>23. Техническая поддержка</h2></div>
   <div class="section-body">
     <p>При технических проблемах, ошибках или вопросах по работе системы — обращайтесь:</p>
     <div class="contacts-grid">
@@ -963,7 +1107,7 @@ strong { color: var(--green-deep); }
       </div>
     </div>
     <div class="info" style="margin-top:16px">
-      <strong>Версия 2.0</strong> — обновлено Июнь 2026. Добавлены: карточки адаптации с мастером, интерактивная аналитика (7 графиков), глобальный поиск, двухфакторная аутентификация, мобильная версия.
+      <strong>Версия 2.1</strong> — обновлено Июнь 2026. Добавлены: чат с push-уведомлениями, AI-конвертер Фото→Excel (5 режимов), галерея фото открытия ВПК, удаление истории конвертаций, таймаут AI 90 сек.
     </div>
   </div>
 </div>
@@ -971,7 +1115,7 @@ strong { color: var(--green-deep); }
 <div class="footer">
   <img src="/static/img/raccoon.png" style="height:24px;opacity:.4;vertical-align:middle;margin-right:8px"
        data-fallback="hide">
-  Лента.PM · Руководство пользователя v2.0 · Внутренний документ · Не для распространения · Июнь 2026
+  Лента.PM · Руководство пользователя v2.1 · Внутренний документ · Не для распространения · Июнь 2026
 </div>
 
 </div>
