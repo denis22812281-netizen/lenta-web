@@ -60,9 +60,9 @@ from services.seed import seed_all
 
 logger = logging.getLogger(__name__)
 
-# Rate-limit error emails: max 1 per 5 min per (error_type, url)
+# Rate-limit error emails: max 1 per minute per (error_type, url)
 _ERROR_EMAIL_CACHE: dict[str, float] = {}
-_ERROR_EMAIL_TTL = 300  # seconds
+_ERROR_EMAIL_TTL = 60  # seconds
 
 _SENTRY_DSN = os.getenv("SENTRY_DSN", "")
 if _SENTRY_DSN:

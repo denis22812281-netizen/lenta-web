@@ -5,6 +5,7 @@ from models.misc import (
     AiChatMessage,
     AuditLog,
     ChatMessage,
+    ConversionTemplate,
     KsoObject,
     KsoSchedule,
     Manager,
@@ -33,7 +34,7 @@ from models.vpk import (
 
 __all__ = [
     "PhoneWhitelist", "User", "WebAuthnCredential",
-    "Manager", "KsoObject", "KsoSchedule", "ChatMessage", "AiChatMessage", "AuditLog", "PushSubscription",
+    "Manager", "KsoObject", "KsoSchedule", "ChatMessage", "AiChatMessage", "AuditLog", "PushSubscription", "ConversionTemplate",
     "Project", "ProjectStage", "ProjectComment", "OpeningPhoto", "SyncConfig", "ProjectHistory", "ProjectAttachment",
     "Task", "TaskPhoto", "TaskNotification",
     "VpkCriterion", "VpkReport", "VpkReportRead", "VpkReportItem", "PreVpkReport", "PreVpkReportItem",

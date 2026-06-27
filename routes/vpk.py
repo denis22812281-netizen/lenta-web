@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import get_current_user, require_admin, require_login, templates
+from deps import get_current_user, require_admin, require_api_user, require_login, templates
 from services.cache import cache_delete, cache_get, cache_set
 from services.cloud_storage import upload_photo
 from services.email_service import notify_opening_photos, notify_precheck_report, notify_vpk_report
@@ -268,10 +268,8 @@ async def precheck_submit(request: Request, background_tasks: BackgroundTasks,
 
 
 @router.post("/vpk/reports/{report_id}/read")
-async def vpk_mark_read(report_id: int, request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return {"error": "Не авторизован"}
+async def vpk_mark_read(report_id: int, request: Request, db: Session = Depends(get_db),
+                        user: dict = Depends(require_api_user)):
     report = db.query(models.VpkReport).filter(models.VpkReport.id == report_id).first()
     if not report:
         raise HTTPException(status_code=404)
@@ -424,11 +422,9 @@ async def opening_page(request: Request, db: Session = Depends(get_db),
 
 
 @router.post("/api/vpk/opening/upload-one")
-async def opening_upload_one(request: Request, db: Session = Depends(get_db)):
+async def opening_upload_one(request: Request, db: Session = Depends(get_db),
+                              user: dict = Depends(require_api_user)):
     """Загрузка одного фото открытия (AJAX, один за раз). /api/ — CSRF exempt."""
-    user = get_current_user(request)
-    if not user:
-        return {"error": "Не авторизован"}
     form = await request.form()
     project_id = form.get("project_id")
     if not project_id:
@@ -473,11 +469,9 @@ async def opening_upload_one(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/api/vpk/opening/{photo_id}/feature")
 async def opening_toggle_feature(photo_id: int, request: Request,
-                                  db: Session = Depends(get_db)):
+                                  db: Session = Depends(get_db),
+                                  user: dict = Depends(require_api_user)):
     """Toggle is_featured для фото (AJAX)."""
-    user = get_current_user(request)
-    if not user:
-        return {"error": "Не авторизован"}
     photo = db.query(models.OpeningPhoto).filter(models.OpeningPhoto.id == photo_id).first()
     if not photo:
         raise HTTPException(status_code=404)
@@ -488,11 +482,9 @@ async def opening_toggle_feature(photo_id: int, request: Request,
 
 @router.post("/api/vpk/opening/{photo_id}/delete")
 async def opening_delete_photo(photo_id: int, request: Request,
-                                db: Session = Depends(get_db)):
+                                db: Session = Depends(get_db),
+                                user: dict = Depends(require_api_user)):
     """Удалить фото."""
-    user = get_current_user(request)
-    if not user:
-        return {"error": "Не авторизован"}
     photo = db.query(models.OpeningPhoto).filter(models.OpeningPhoto.id == photo_id).first()
     if not photo:
         raise HTTPException(status_code=404)

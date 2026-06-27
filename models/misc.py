@@ -92,3 +92,17 @@ class PushSubscription(Base):
     p256dh = Column(Text, default="")
     auth_key = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ConversionTemplate(Base):
+    """Именованные пресеты для инструмента Photo→Excel (переживают рестарт)."""
+    __tablename__ = "conversion_templates"
+    id          = Column(String(8), primary_key=True)
+    user_id     = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    name        = Column(String(100), nullable=False)
+    output_type = Column(String(20), default="table")
+    mode        = Column(String(20), default="photo")
+    created_at  = Column(DateTime, default=datetime.utcnow)
+    __table_args__ = (
+        Index("ix_conv_tmpl_user", "user_id"),
+    )

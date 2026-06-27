@@ -225,6 +225,16 @@ _POSTGRES_MIGRATIONS = [
     "CREATE INDEX IF NOT EXISTS ix_proj_comments_proj  ON project_comments (project_id)",
     # chat_messages сортируется по дате
     "CREATE INDEX IF NOT EXISTS ix_chat_created_at     ON chat_messages (created_at DESC)",
+    """CREATE TABLE IF NOT EXISTS conversion_templates (
+        id VARCHAR(8) PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        output_type VARCHAR(20) DEFAULT 'table',
+        mode VARCHAR(20) DEFAULT 'photo',
+        created_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(user_id, name)
+    )""",
+    "CREATE INDEX IF NOT EXISTS ix_conv_tmpl_user ON conversion_templates (user_id)",
 ]
 
 _SQLITE_MIGRATIONS = [
@@ -354,6 +364,15 @@ _SQLITE_MIGRATIONS = [
         original_name VARCHAR(300) DEFAULT '',
         uploaded_by VARCHAR(100) DEFAULT '',
         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""",
+    """CREATE TABLE IF NOT EXISTS conversion_templates (
+        id VARCHAR(8) PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        output_type VARCHAR(20) DEFAULT 'table',
+        mode VARCHAR(20) DEFAULT 'photo',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, name)
     )""",
 ]
 

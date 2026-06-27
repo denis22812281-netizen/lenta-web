@@ -158,11 +158,9 @@ async def vpk_criteria_delete(crit_id: int, request: Request,
 
 
 @router.post("/api/admin/vpk-criteria/reorder")
-async def vpk_criteria_reorder(request: Request, db: Session = Depends(get_db)):
+async def vpk_criteria_reorder(request: Request, db: Session = Depends(get_db),
+                                user: dict = Depends(require_admin)):
     """AJAX: принимает [{id, order}, ...] и сохраняет порядок."""
-    user = get_current_user(request)
-    if not user or not user.get("is_admin"):
-        return {"error": "forbidden"}
     data = await request.json()
     for item in data:
         c = db.query(models.VpkCriterion).filter(

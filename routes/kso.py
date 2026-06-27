@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import get_current_user, require_admin, require_login, templates
+from deps import get_current_user, require_admin, require_api_user, require_login, templates
 from utils.excel import match_manager
 from utils.files import read_limited
 
@@ -88,10 +88,8 @@ async def kso_import(request: Request, db: Session = Depends(get_db),
 
 
 @router.post("/kso/objects/{obj_id}/toggle")
-async def kso_toggle(obj_id: int, request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return {"error": "Не авторизован"}
+async def kso_toggle(obj_id: int, request: Request, db: Session = Depends(get_db),
+                     user: dict = Depends(require_api_user)):
     obj = db.query(models.KsoObject).filter(models.KsoObject.id == obj_id).first()
     if not obj:
         raise HTTPException(status_code=404)
@@ -101,10 +99,8 @@ async def kso_toggle(obj_id: int, request: Request, db: Session = Depends(get_db
 
 
 @router.post("/api/kso/{obj_id}/comment")
-async def kso_comment(obj_id: int, request: Request, db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return {"error": "Не авторизован"}
+async def kso_comment(obj_id: int, request: Request, db: Session = Depends(get_db),
+                      user: dict = Depends(require_api_user)):
     data = await request.json()
     obj = db.query(models.KsoObject).filter(models.KsoObject.id == obj_id).first()
     if not obj:

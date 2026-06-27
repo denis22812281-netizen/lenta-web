@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import get_current_user, require_login, templates
+from deps import get_current_user, require_api_user, require_login, templates
 from services.email_service import (
     send_smr_confirmation,
     send_smr_progress_report,
@@ -382,10 +382,8 @@ async def smr_view(project_id: int, request: Request,
 
 @router.post("/api/smr/task/{task_id}/status")
 async def smr_task_status(task_id: int, request: Request,
-                          db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return JSONResponse({"error": "Не авторизован"}, status_code=401)
+                          db: Session = Depends(get_db),
+                          user: dict = Depends(require_api_user)):
     data = await request.json()
     task = db.query(models.SmrTask).filter(models.SmrTask.id == task_id).first()
     if not task:
@@ -419,10 +417,8 @@ async def smr_task_status(task_id: int, request: Request,
 
 @router.post("/api/smr/task/{task_id}/emails")
 async def smr_task_emails(task_id: int, request: Request,
-                          db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return JSONResponse({"error": "Не авторизован"}, status_code=401)
+                          db: Session = Depends(get_db),
+                          user: dict = Depends(require_api_user)):
     data = await request.json()
     task = db.query(models.SmrTask).filter(models.SmrTask.id == task_id).first()
     if not task:
@@ -437,11 +433,8 @@ async def smr_task_emails(task_id: int, request: Request,
 
 @router.post("/api/smr/task/{task_id}/send-confirm")
 async def smr_send_confirm(task_id: int, request: Request,
-                           db: Session = Depends(get_db)):
-    user = get_current_user(request)
-    if not user:
-        return JSONResponse({"error": "Не авторизован"}, status_code=401)
-
+                           db: Session = Depends(get_db),
+                           user: dict = Depends(require_api_user)):
     task = db.query(models.SmrTask).filter(models.SmrTask.id == task_id).first()
     if not task:
         return JSONResponse({"error": "Не найдено"}, status_code=404)
@@ -467,8 +460,9 @@ async def smr_send_confirm(task_id: int, request: Request,
                 reject_url=reject_url,
             )
             sent.append(email)
-        except Exception:
-            pass
+        except Exception as exc:
+            import logging as _log
+            _log.getLogger(__name__).warning("SMR confirm email failed to %s: %s", email, exc)
 
     db.commit()
     return {"ok": True, "sent": sent}
@@ -591,12 +585,9 @@ async def smr_confirm_submit(token: str, request: Request,
 
 @router.post("/api/smr/{project_id}/send-report")
 async def smr_send_report(project_id: int, request: Request,
-                          db: Session = Depends(get_db)):
+                          db: Session = Depends(get_db),
+                          user: dict = Depends(require_api_user)):
     """Отправляет отчёт по графику СМР на указанный email."""
-    user = get_current_user(request)
-    if not user:
-        return JSONResponse({"error": "Не авторизован"}, status_code=401)
-
     data   = await request.json()
     to_email = data.get("email", "").strip().lower()
     if not to_email:
