@@ -1,7 +1,7 @@
 # Лента.PM — Система управления проектами
 
 Внутренняя операционная система для дирекции строительства ЛЕНТА.  
-Управляет открытиями магазинов, реконструкциями, задачами, ВПК-отчётами и командой из ~10 менеджеров.
+Управляет открытиями магазинов, реконструкциями, задачами, ВПК-отчётами и командой.
 
 ---
 
@@ -9,32 +9,33 @@
 
 | Модуль | Функции |
 |--------|---------|
-| **Проекты** | Реконструкции и констракшн: статусы, этапы, дедлайны, история, вложения, экспорт Excel |
+| **Проекты** | Реконструкции и констракшн: статусы, этапы, дедлайны, история, вложения, комментарии, экспорт Excel |
 | **Gantt** | Интерактивная диаграмма Ганта с drag-and-drop (frappe-gantt) |
-| **Задачи** | Постановка с приоритетами, исполнителями, фото-отчётами |
-| **ВПК-отчёты** | Чеклисты ВПК-1 и ВПК-2 с фото, экспорт в Excel, учёт прочтения |
+| **Задачи** | Постановка с приоритетами, исполнителями, дедлайнами, фото |
+| **ВПК-отчёты** | Чеклисты ВПК-1/ВПК-2 с фото, экспорт Excel, учёт прочтения, галерея открытий |
 | **Адаптационные карточки** | Цифровые анкеты на основе XLSX-шаблона + фото объекта |
 | **График СМР** | Временная шкала с вехами, email-подтверждения, push-уведомления |
 | **Чат** | Личные и общий чат с фото, онлайн-статусы, push-уведомления |
-| **ИИ-ассистент** | Claude / Groq / DeepSeek с контекстом проектов |
+| **ИИ-конвертер** | Фото/текст → Excel (таблица, диаграмма, Ганта, сравнение, объединение) |
+| **ИИ-ассистент** | Claude / Groq / Gemini с контекстом проектов |
+| **Дедлайны** | Единый экран всех сроков по реконструкции и констракшн |
+| **КСО** | Объекты соцответственности, готовность, комментарии |
 | **Аналитика** | Дашборд открытий, просрочки, статистика по менеджерам |
-| **Дедлайны** | Единый экран всех сроков по проектам и задачам |
-| **КСО** | Объекты соцответственности, готовность, графики |
-| **PWA** | Устанавливается как приложение, работает offline, push-уведомления |
+| **PWA** | Устанавливается как приложение, push-уведомления, offline |
 
 ---
 
 ## Технологии
 
-- **Backend:** Python 3.11 / FastAPI 0.115 / SQLAlchemy 2.0
-- **Frontend:** Jinja2 + Bootstrap 5.3 dark theme + Vanilla JS
+- **Backend:** Python 3.11+ / FastAPI 0.115 / SQLAlchemy 2.0
+- **Frontend:** Jinja2 + Bootstrap 5.3 + Vanilla JS (без фреймворков)
 - **БД:** PostgreSQL (production) / SQLite (локальная разработка)
 - **Хранилище фото:** Cloudinary (auto-quality, auto-format)
-- **Email:** Brevo (SMTP)
+- **Email:** Brevo (SMTP + API)
 - **Push:** Web Push API / VAPID / pywebpush
-- **Деплой:** Railway.app (NIXPACKS, auto-deploy)
-- **CI/CD:** GitHub Actions (тесты + `railway up` на merge в main)
-- **Тесты:** pytest + pytest-asyncio (84 тестов)
+- **AI:** Gemini (фото→Excel), Claude/Groq/DeepSeek (чат-ассистент)
+- **Деплой:** Railway.app (автодеплой при push в main)
+- **Тесты:** pytest + pytest-asyncio — 152 теста (E2E запуск: `pytest -m e2e`)
 
 ---
 
@@ -53,56 +54,116 @@ source venv/bin/activate    # Linux/Mac
 pip install -r requirements.txt
 
 # 4. Минимальный .env
-SECRET_KEY=local-dev-key-change-me
+SECRET_KEY=local-dev-key-32-chars-minimum
 DATABASE_URL=sqlite:///./lenta.db
 ADMIN_PHONE=+79997303914
 
 # 5. Запуск
 uvicorn main:app --reload
-
 # Открыть: http://localhost:8000
 ```
 
-Войти с номером `+79997303914` → создать пароль при первом входе.
+Войти с номером из `ADMIN_PHONE` → создать пароль при первом входе.
 
 ---
 
 ## Тесты
 
 ```bash
-pytest tests/ -v            # все 84 теста
-pytest tests/test_auth.py   # отдельный модуль
+pytest                          # 152 unit-теста (E2E исключены по умолчанию)
+pytest -m e2e                   # E2E тесты (нужен запущенный сервер + Playwright)
+pytest tests/test_auth.py -v    # один модуль
 ```
 
-Тесты используют SQLite — PostgreSQL не нужен. `TESTING=1` отключает CSRF.
+Тесты используют SQLite в памяти — PostgreSQL не нужен. `TESTING=1` отключает CSRF.
+
+---
+
+## Переменные окружения
+
+Все переменные описаны в `.env.example`. Ниже — минимальный набор по группам.
+
+### Обязательные
+
+| Переменная | Описание |
+|-----------|---------|
+| `SECRET_KEY` | Секрет сессий, минимум 32 символа. `python -c "import secrets; print(secrets.token_hex(32))"` |
+| `DATABASE_URL` | `postgresql://user:pass@host:5432/db` или `sqlite:///./lenta.db` для локальной разработки |
+| `ADMIN_PHONE` | Телефон первого администратора (+7XXXXXXXXXX) |
+
+### Email (Brevo)
+
+| Переменная | Описание |
+|-----------|---------|
+| `SMTP_HOST` | `smtp-relay.brevo.com` |
+| `SMTP_PORT` | `587` |
+| `SMTP_USER` | Логин из Brevo |
+| `SMTP_PASS` | SMTP-ключ из Brevo |
+| `SMTP_FROM` | `Лента.PM <noreply@ваш-домен.ru>` |
+| `BREVO_API_KEY` | API-ключ для Brevo (транзакционные письма) |
+| `NOTIFY_PRECHECK_EMAIL` | Адрес для уведомлений о предосмотрах ВПК |
+| `NOTIFY_ERROR_EMAIL` | Адрес для уведомлений об ошибках сервера |
+| `NOTIFY_OVERRIDE_EMAIL` | Режим тестирования: все письма → только этот адрес |
+
+### Push-уведомления (VAPID)
+
+```bash
+# Сгенерировать ключи один раз:
+python -c "from py_vapid import Vapid; v=Vapid(); v.generate_keys(); print('PRIVATE:', v.private_key); print('PUBLIC:', v.public_key)"
+```
+
+| Переменная | Описание |
+|-----------|---------|
+| `VAPID_PRIVATE_KEY` | Приватный VAPID-ключ |
+| `VAPID_PUBLIC_KEY` | Публичный VAPID-ключ |
+| `APP_URL` | `https://ваш-домен.up.railway.app` (для push payload) |
+
+### AI-сервисы (опционально)
+
+| Переменная | Сервис | Получить |
+|-----------|--------|---------|
+| `GEMINI_API_KEY` | Фото→Excel | aistudio.google.com |
+| `ANTHROPIC_API_KEY` | Claude-ассистент + fallback для фото | anthropic.com |
+| `GROQ_API_KEY` | Быстрый текстовый AI | console.groq.com |
+| `DEEPSEEK_API_KEY` | Альтернативный AI | platform.deepseek.com |
+
+### Хранилище фото (Cloudinary)
+
+| Переменная | Описание |
+|-----------|---------|
+| `CLOUDINARY_CLOUD_NAME` | Cloud name из Cloudinary Dashboard |
+| `CLOUDINARY_API_KEY` | API Key |
+| `CLOUDINARY_API_SECRET` | API Secret |
+
+### Мониторинг (опционально)
+
+| Переменная | Описание |
+|-----------|---------|
+| `SENTRY_DSN` | DSN из Sentry.io для трекинга ошибок |
+| `LOG_LEVEL` | `DEBUG` / `INFO` / `WARNING` (по умолчанию `INFO`) |
 
 ---
 
 ## Деплой на Railway
 
-### Новый деплой
+### Первый деплой
 
 ```bash
+# Установить Railway CLI
 npm install -g @railway/cli
 railway login
 railway init
 railway up
 ```
 
-### Переменные окружения (обязательные)
-
-```
-SECRET_KEY=<random 64 hex chars>
-DATABASE_URL=<railway postgres url>
-ADMIN_PHONE=+7XXXXXXXXXX
-APP_DOMAIN=<your-app>.up.railway.app
-APP_URL=https://<your-app>.up.railway.app
-```
-
-### CI/CD автодеплой
+### Автодеплой (GitHub Actions)
 
 В GitHub → Settings → Secrets добавить `RAILWAY_TOKEN` (из Railway Dashboard → Account → Tokens).  
 После этого каждый push в `main` → тесты → автодеплой.
+
+### Обновление
+
+Просто `git push` — Railway подхватит автоматически. Миграции БД запускаются при старте приложения (`migrations.py`).
 
 ---
 
@@ -110,7 +171,7 @@ APP_URL=https://<your-app>.up.railway.app
 
 1. Войти как администратор
 2. Перейти в `/admin/users`
-3. Нажать «Добавить» → ввести номер телефона `+7XXXXXXXXXX`
+3. Нажать «Добавить» → ввести номер телефона `+7XXXXXXXXXX`, имя, галочку «Администратор» если нужно
 4. Пользователь при первом входе создаёт пароль самостоятельно
 
 ---
@@ -119,46 +180,83 @@ APP_URL=https://<your-app>.up.railway.app
 
 ```
 lenta-web/
-├── main.py               Точка входа, middleware, роутеры, startup
-├── deps.py               Shared зависимости (auth, templates, limiter)
-├── database.py           SQLAlchemy engine, get_db, db_session
-├── config.py             Константы (типы проектов, статусы, команда)
-├── migrations.py         Идемпотентные миграции схемы БД
-├── worker.py             Standalone worker (backup + push, APScheduler)
-├── models/               SQLAlchemy модели (33 класса в 8 файлах)
-├── routes/               25 FastAPI роутеров
-├── services/             Бизнес-логика
-│   ├── background.py     3 async loop (sync, smr, digest)
-│   ├── push_service.py   Web Push / VAPID
-│   ├── backup.py         PostgreSQL backup
-│   ├── cloud_storage.py  Cloudinary
-│   ├── email_service.py  Brevo SMTP
-│   └── excel_import.py   Парсинг Excel → Project
-├── templates/            39 Jinja2 шаблонов
+├── main.py               # Точка входа, middleware, роутеры, startup
+├── deps.py               # Shared зависимости (auth, templates, limiter)
+├── database.py           # SQLAlchemy engine, get_db
+├── config.py             # Константы (типы проектов, статусы, команда)
+├── migrations.py         # Идемпотентные SQL-миграции (запускаются при старте)
+├── worker.py             # Standalone worker (backup, APScheduler)
+├── middleware.py         # CSRF, security headers
+│
+├── models/               # SQLAlchemy модели
+│   ├── auth.py           # User, PhoneWhitelist, AuditLog
+│   ├── project.py        # Project, ProjectStage, ProjectHistory, Attachment
+│   ├── task.py           # Task
+│   ├── vpk.py            # VpkReport, VpkCriteria, OpeningPhoto
+│   ├── smr.py            # SmrProject, SmrTask
+│   ├── recon.py          # ReconProject (реконструкция/констракшн)
+│   ├── adaptation.py     # AdaptationCard
+│   └── misc.py           # ChatMessage, PushSubscription, ConversionTemplate, …
+│
+├── routes/               # FastAPI роутеры (по одному на модуль)
+│   ├── auth.py           # /login, /logout, /qr
+│   ├── projects.py       # /projects, /api/projects
+│   ├── vpk.py            # /vpk, /api/vpk
+│   ├── smr.py            # /smr, /api/smr
+│   ├── tools.py          # /tools, /api/tools (AI-конвертер)
+│   ├── admin.py          # /admin
+│   └── …                 # chat, tasks, deadlines, kso, adaptation, …
+│
+├── services/             # Бизнес-логика
+│   ├── tools_service.py  # AI-вызовы + Excel builders (build_table, build_gantt, …)
+│   ├── push_service.py   # Web Push / VAPID
+│   ├── email_service.py  # Brevo SMTP
+│   ├── excel_import.py   # Парсинг XLSX → Project
+│   ├── cloud_storage.py  # Cloudinary upload/delete
+│   └── background.py     # Async фоновые задачи
+│
+├── templates/            # Jinja2 HTML-шаблоны
 ├── static/
-│   ├── css/style.css     900+ строк кастомного CSS
-│   ├── js/app.js         Клиентская логика (toast, theme, deadlines)
-│   └── sw.js             Service Worker (push + offline cache)
-└── tests/                84 pytest теста
+│   ├── css/style.css     # ~1000 строк кастомного CSS
+│   ├── js/app.js         # Toast, theme, deadlines, SW-регистрация
+│   └── sw.js             # Service Worker (push + offline cache)
+│
+├── tests/                # 152 pytest-теста
+│   ├── conftest.py       # Фикстуры (client, auth_client, SQLite test DB)
+│   ├── test_auth.py
+│   ├── test_projects.py
+│   ├── test_vpk_audit.py
+│   ├── test_tools.py     # Excel builders + шаблоны
+│   ├── test_smr_kso.py   # Auth requirements
+│   ├── test_security.py  # Magic bytes + CSRF
+│   └── test_e2e_mobile.py # Playwright E2E (запуск: pytest -m e2e)
+│
+├── docs/
+│   └── USER_GUIDE.md     # Руководство пользователя
+│
+├── .env.example          # Шаблон переменных окружения
+├── pytest.ini            # Конфигурация тестов (E2E исключены по умолчанию)
+├── requirements.txt
+└── Procfile              # Railway: web + worker
 ```
 
 ---
 
 ## Безопасность
 
-| Механизм | Статус |
-|---------|--------|
-| Хеширование паролей | PBKDF2-SHA256 + Argon2 fallback |
-| CSRF-токены | Все POST-формы |
-| 2FA TOTP | Google Authenticator |
-| WebAuthn | Face ID / Touch ID (passkeys) |
-| Rate limiting | 5/мин login, 20/мин phone check |
-| IP whitelist | `/admin/*` только из разрешённых IP |
-| Audit log | Все действия авторизованных пользователей |
-| Phone whitelist | Только добавленные номера могут войти |
-| Session version | Инвалидация сессий после смены пароля |
-| CSP / Security headers | X-Frame-Options DENY, nosniff, Referrer-Policy |
+| Механизм | Реализация |
+|---------|-----------|
+| Хеширование паролей | PBKDF2-SHA256 (utils/passwords.py) |
+| CSRF-защита | Токен в форме и в заголовке `X-CSRFToken` (middleware.py) |
+| Rate limiting | 5 попыток/мин на вход, 20/мин на проверку телефона |
+| Phone whitelist | Только номера из `/admin/users` могут войти |
+| Session fixation | Новый session ID при каждом входе |
+| Magic bytes | Валидация MIME по содержимому файла, не расширению |
+| Security headers | `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy` |
+| Admin IP whitelist | `ADMIN_IP_WHITELIST` env var (опционально) |
 | HTTPS | Автоматически через Railway |
+| Sentry | Подключается через `SENTRY_DSN` (аккаунт создать на sentry.io) |
+| Error monitoring | Email-алертинг через Brevo (1 письмо/мин макс.) |
 
 ---
 
@@ -166,4 +264,4 @@ lenta-web/
 
 **Разработчик:** Месмер Денис  
 **Email:** denis.mesmer@lenta.com  
-**Версия:** 2.0.0 (июнь 2026)
+**Версия:** 2.1.0 (июнь 2026)
