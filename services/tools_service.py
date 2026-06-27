@@ -126,7 +126,7 @@ async def _call_gemini(image_bytes: bytes, mime: str, output_type: str) -> dict[
             "temperature":     0.0,
         },
     }
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=45.0) as client:
         resp = await client.post(
             _GEMINI_ENDPOINT,
             params={"key": _GEMINI_KEY},
@@ -158,24 +158,16 @@ async def _call_claude(image_bytes: bytes, mime: str, output_type: str) -> dict[
 
 
 async def call_ai(image_bytes: bytes, mime: str, output_type: str) -> dict[str, Any]:
-    """Tries Gemini first (free tier), falls back to Claude. Retries once on failure."""
+    """Tries Gemini first (free tier), falls back to Claude. No retry to stay under 90s client timeout."""
     if not _GEMINI_KEY and not _ANTHROPIC_KEY:
         raise RuntimeError("Не задан ни GEMINI_API_KEY, ни ANTHROPIC_API_KEY")
 
-    caller   = _call_gemini if _GEMINI_KEY else _call_claude
-    last_err: Exception | None = None
-
-    for attempt in range(2):
-        try:
-            return await caller(image_bytes, mime, output_type)
-        except Exception as exc:
-            last_err = exc
-            if attempt == 0:
-                logger.warning("AI attempt 1 failed (%s), retrying in 2s…", exc)
-                await asyncio.sleep(2)
-
-    assert last_err is not None
-    raise last_err
+    caller = _call_gemini if _GEMINI_KEY else _call_claude
+    try:
+        return await caller(image_bytes, mime, output_type)
+    except Exception as exc:
+        logger.warning("AI call failed (%s)", exc)
+        raise
 
 
 async def call_text_ai(prompt: str) -> dict[str, Any]:

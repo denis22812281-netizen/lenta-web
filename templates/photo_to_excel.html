@@ -640,7 +640,17 @@ async function doMergeConvert() {
 }
 
 async function fetchExcel(url, fd) {
-    var resp = await fetch(url, { method: 'POST', body: fd });
+    var controller = new AbortController();
+    var tid = setTimeout(function() { controller.abort(); }, 90000);
+    var resp;
+    try {
+        resp = await fetch(url, { method: 'POST', body: fd, signal: controller.signal });
+    } catch(e) {
+        if (e.name === 'AbortError') throw new Error('AI не ответил за 90 секунд — попробуйте ещё раз');
+        throw e;
+    } finally {
+        clearTimeout(tid);
+    }
     if (!resp.ok) {
         var err = {};
         try { err = await resp.json(); } catch(_) {}
