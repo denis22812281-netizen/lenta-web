@@ -3,7 +3,7 @@ from datetime import date, datetime
 from urllib.parse import quote
 
 import openpyxl
-from fastapi import APIRouter, Depends, File, Request, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import get_current_user, require_login, templates
+from deps import get_current_user, require_admin, require_api_user, require_login, templates
 from utils.files import read_limited
 
 router = APIRouter()
@@ -78,13 +78,8 @@ async def stats_page(request: Request, db: Session = Depends(get_db),
 
 
 @router.post("/api/projects/{project_id}/delay-reason")
-async def save_delay_reason(project_id: int, request: Request, db: Session = Depends(get_db)):
-    from fastapi import HTTPException
-    user = get_current_user(request)
-    if not user:
-        return {"error": "Не авторизован"}
-    if not user.get("is_admin"):
-        return {"error": "Нет доступа"}
+async def save_delay_reason(project_id: int, request: Request, db: Session = Depends(get_db),
+                            user: dict = Depends(require_admin)):
     data = await request.json()
     p = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not p:

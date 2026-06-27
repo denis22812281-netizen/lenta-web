@@ -40,6 +40,27 @@ _COL_MIN_WIDTH = 12
 _COL_MAX_WIDTH = 40
 _COL_PADDING   = 4
 
+# ── In-memory templates (per user, persistent until server restart) ───────────
+# {user_id: [{id, name, output_type, mode, created_at}]}
+_TEMPLATES: dict[int, list[dict]] = {}
+_TEMPLATES_MAX = 20
+
+def _template_save(user_id: int, name: str, output_type: str, mode: str) -> str:
+    uid = str(uuid.uuid4())[:8]
+    items = _TEMPLATES.get(user_id, [])
+    # prevent duplicate names
+    items = [i for i in items if i["name"] != name]
+    items.append({"id": uid, "name": name, "output_type": output_type,
+                  "mode": mode, "created_at": _time.strftime("%d.%m.%Y %H:%M")})
+    _TEMPLATES[user_id] = items[-_TEMPLATES_MAX:]
+    return uid
+
+def _template_delete(user_id: int, template_id: str) -> bool:
+    items = _TEMPLATES.get(user_id, [])
+    before = len(items)
+    _TEMPLATES[user_id] = [i for i in items if i["id"] != template_id]
+    return len(_TEMPLATES[user_id]) < before
+
 # ── In-memory history (per user, max 10 items, TTL 24h) ──────────────────────
 _HISTORY: dict[int, list[dict]] = {}  # user_id → [{id, ts, filename, type, blob, size}]
 _HISTORY_MAX = 10
@@ -902,3 +923,36 @@ async def download_history_item(item_id: str, request: Request,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{item["filename"]}"; filename*=UTF-8\'\'{encoded}'},
     )
+
+
+# ── Templates ─────────────────────────────────────────────────────────────────
+
+@router.get("/api/tools/templates")
+async def list_templates(request: Request, user: dict = Depends(require_admin)):
+    """List saved conversion templates for current user."""
+    return JSONResponse({"templates": _TEMPLATES.get(user["id"], [])})
+
+
+@router.post("/api/tools/templates")
+async def save_template(request: Request, user: dict = Depends(require_admin)):
+    """Save a named template (output_type + mode)."""
+    data = await request.json()
+    name = (data.get("name") or "").strip()[:60]
+    if not name:
+        return JSONResponse({"error": "Название обязательно"}, status_code=400)
+    output_type = data.get("output_type", "auto")
+    mode        = data.get("mode", "photo")
+    if output_type not in _PROMPTS:
+        output_type = "auto"
+    uid = _template_save(user["id"], name, output_type, mode)
+    return JSONResponse({"ok": True, "id": uid})
+
+
+@router.delete("/api/tools/templates/{template_id}")
+async def delete_template(template_id: str, request: Request,
+                          user: dict = Depends(require_admin)):
+    """Delete a saved template by ID."""
+    ok = _template_delete(user["id"], template_id)
+    if not ok:
+        return JSONResponse({"error": "Шаблон не найден"}, status_code=404)
+    return JSONResponse({"ok": True})

@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 import models
 from config import PROJECT_TYPES, STAGE_NAMES, STATUSES
 from database import get_db
-from deps import limiter, require_api_user, require_login, templates
+from deps import limiter, require_admin, require_api_user, require_login, templates
 from services.cloud_storage import upload_file, upload_photo
 from services.email_service import notify_opening_photos
 from services.excel_import import (
@@ -194,10 +194,8 @@ async def delete_project(
     project_id: int,
     request: Request,
     db: Session = Depends(get_db),
-    user: dict = Depends(require_login),
+    user: dict = Depends(require_admin),
 ):
-    if not user.get("is_admin"):
-        raise HTTPException(status_code=403)
     p = db.query(models.Project).filter(models.Project.id == project_id).first()
     if p:
         db.delete(p)

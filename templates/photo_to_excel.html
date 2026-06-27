@@ -265,6 +265,17 @@
     </div>
 </div>
 
+<!-- ── Templates ───────────────────────────────────────────────── -->
+<div class="data-card mb-3 p-4" id="templatesCard" style="display:none">
+    <div class="fw-bold mb-2 fs-6">
+        <i class="bi bi-bookmark-star me-2 text-warning"></i>Шаблоны
+        <button class="btn btn-sm btn-outline-secondary ms-2" id="saveTemplateBtn">
+            <i class="bi bi-bookmark-plus me-1"></i>Сохранить текущий
+        </button>
+    </div>
+    <div id="templatesList" class="d-flex flex-wrap gap-2"></div>
+</div>
+
 <!-- ── Step 3: Convert ─────────────────────────────────────────── -->
 <div class="data-card mb-3 p-4">
     <div class="fw-bold mb-3 fs-6">
@@ -795,8 +806,79 @@ async function compressImage(file) {
     });
 }
 
+// ── Templates ──────────────────────────────────────────────────────────────
+var TYPE_ICONS = {table:'📋',chart:'📊',diagram:'🥧',gantt:'📅',auto:'🤖'};
+var MODE_LABELS = {photo:'Фото',text:'Текст',multi:'Несколько',compare:'Сравнение',merge:'Объединить'};
+
+async function loadTemplates() {
+    try {
+        var resp = await fetch('/api/tools/templates');
+        var data = await resp.json();
+        var items = data.templates || [];
+        var card = $('templatesCard');
+        var list = $('templatesList');
+        if (!items.length) { card.style.display = 'none'; return; }
+        card.style.display = '';
+        list.innerHTML = items.map(function(t) {
+            var icon = TYPE_ICONS[t.output_type] || '📄';
+            return '<div class="d-flex align-items-center gap-1 border rounded-pill px-2 py-1" style="font-size:.8rem;cursor:pointer;background:var(--bs-body-bg)" onclick="applyTemplate(\'' + t.id + '\',\'' + t.output_type + '\',\'' + t.mode + '\')" title="Нажмите чтобы применить">' +
+                icon + ' <span class="fw-semibold">' + t.name + '</span>' +
+                '<span class="text-muted ms-1">(' + (MODE_LABELS[t.mode] || t.mode) + ')</span>' +
+                '<button class="btn btn-link btn-sm p-0 ms-1 text-danger" style="line-height:1" onclick="event.stopPropagation();deleteTemplate(\'' + t.id + '\')" title="Удалить">×</button>' +
+                '</div>';
+        }).join('');
+    } catch(_) {}
+}
+
+function applyTemplate(id, outputType, templateMode) {
+    // Switch mode
+    document.querySelectorAll('.mode-tab').forEach(function(t) { t.classList.remove('active'); });
+    var modeTab = document.querySelector('[data-mode="' + templateMode + '"]');
+    if (modeTab) { modeTab.click(); }
+    // Switch type
+    document.querySelectorAll('.type-btn').forEach(function(b) { b.classList.remove('active'); });
+    var typeBtn = document.querySelector('[data-type="' + outputType + '"]');
+    if (typeBtn) { typeBtn.classList.add('active'); outputType = typeBtn.dataset.type; }
+    showToast && showToast('Шаблон применён', 'success', 2000);
+}
+
+async function deleteTemplate(id) {
+    try {
+        await fetch('/api/tools/templates/' + id, {method:'DELETE'});
+        loadTemplates();
+    } catch(_) {}
+}
+
+$('saveTemplateBtn').addEventListener('click', async function() {
+    var name = prompt('Название шаблона:');
+    if (!name || !name.trim()) return;
+    var activeType = document.querySelector('.type-btn.active');
+    try {
+        var resp = await fetch('/api/tools/templates', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                name: name.trim(),
+                output_type: activeType ? activeType.dataset.type : 'auto',
+                mode: mode,
+            })
+        });
+        var data = await resp.json();
+        if (data.ok) { loadTemplates(); showToast && showToast('Шаблон сохранён', 'success', 2000); }
+    } catch(_) {}
+});
+
+// show templates panel only for non-compare/merge modes
+document.querySelectorAll('.mode-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+        var m = tab.dataset.mode;
+        $('templatesCard').style.display = (m === 'compare' || m === 'merge') ? 'none' : '';
+    });
+});
+
 // ── Init ───────────────────────────────────────────────────────────────────
 loadHistory();
+loadTemplates();
 
 }());
 </script>

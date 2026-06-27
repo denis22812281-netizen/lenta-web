@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 
 import models
 from database import get_db
-from deps import get_current_user, require_login, templates
+from deps import get_current_user, require_admin, require_login, templates
 from services.cache import cache_delete, cache_get, cache_set
 from services.cloud_storage import upload_photo
 from services.email_service import notify_opening_photos, notify_precheck_report, notify_vpk_report
@@ -388,9 +388,7 @@ async def reports_export(request: Request, db: Session = Depends(get_db),
 
 @router.post("/reports/clear-all")
 async def clear_all_reports(request: Request, db: Session = Depends(get_db),
-                             user: dict = Depends(require_login)):
-    if not user.get("is_admin"):
-        return RedirectResponse("/reports", status_code=302)
+                             user: dict = Depends(require_admin)):
     db.query(models.VpkReportItem).delete()
     db.query(models.VpkReport).delete()
     db.commit()
