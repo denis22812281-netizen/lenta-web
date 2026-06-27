@@ -888,7 +888,7 @@ def notify_server_error(url: str, method: str, user_name: str,
                       white-space:pre-wrap;word-break:break-all">{tb_html[-3000:]}</pre>
         </div>
     """
-    to = os.getenv("NOTIFY_PRECHECK_EMAIL", "denis.mesmer@lenta.com")
+    to = os.getenv("NOTIFY_ERROR_EMAIL") or os.getenv("NOTIFY_PRECHECK_EMAIL", "denis.mesmer@lenta.com")
     return send_email(
         to,
         f"🔴 {error_type}: {method} {url[:60]}",
