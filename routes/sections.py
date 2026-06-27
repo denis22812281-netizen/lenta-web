@@ -134,9 +134,7 @@ async def do_import_construction(request: Request, db: Session = Depends(get_db)
 
 @router.post("/projects/clear-all")
 async def clear_all_projects(request: Request, db: Session = Depends(get_db),
-                              user: dict = Depends(require_login)):
-    if not user.get("is_admin"):
-        return RedirectResponse("/", status_code=302)
+                              user: dict = Depends(require_admin)):
     for p in db.query(models.Project).filter(
             models.Project.project_type.in_(["Реконструкция", "Констракшн"])).all():
         db.delete(p)
@@ -146,9 +144,7 @@ async def clear_all_projects(request: Request, db: Session = Depends(get_db),
 
 @router.post("/construction/clear-all")
 async def clear_all_construction(request: Request, db: Session = Depends(get_db),
-                                  user: dict = Depends(require_login)):
-    if not user.get("is_admin"):
-        return RedirectResponse("/login", status_code=302)
+                                  user: dict = Depends(require_admin)):
     for p in db.query(models.Project).filter(
             models.Project.project_type == "Констракшн").all():
         db.delete(p)
@@ -160,9 +156,7 @@ async def clear_all_construction(request: Request, db: Session = Depends(get_db)
 
 @router.post("/construction/delete-non-2026")
 async def delete_construction_non_2026(request: Request, db: Session = Depends(get_db),
-                                        user: dict = Depends(require_login)):
-    if not user.get("is_admin"):
-        return RedirectResponse("/login", status_code=302)
+                                        user: dict = Depends(require_admin)):
     from datetime import date as date_cls
     d1 = db.query(models.Project).filter(
         models.Project.project_type == "Констракшн",
@@ -181,9 +175,7 @@ async def delete_construction_non_2026(request: Request, db: Session = Depends(g
 
 @router.post("/reconstruct/delete-tk-prefix")
 async def delete_tk_prefix(request: Request, db: Session = Depends(get_db),
-                            user: dict = Depends(require_login)):
-    if not user.get("is_admin"):
-        return RedirectResponse("/login", status_code=302)
+                            user: dict = Depends(require_admin)):
     projects = db.query(models.Project).filter(
         models.Project.project_type == "Реконструкция",
         models.Project.tk_number.op("~")("^(ТК|TK|L)")

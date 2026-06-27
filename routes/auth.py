@@ -88,6 +88,7 @@ async def login_enter(request: Request, db: Session = Depends(get_db),
             "display_name": user.display_name or "",
         }
         return RedirectResponse("/login?step=2fa", status_code=302)
+    request.session.clear()
     _set_session(request, user, db)
     return RedirectResponse("/", status_code=302)
 
@@ -126,6 +127,7 @@ async def create_password(request: Request, db: Session = Depends(get_db),
         db.add(user)
     db.commit()
     db.refresh(user)
+    request.session.clear()
     _set_session(request, user, db)
     return RedirectResponse("/", status_code=302)
 
@@ -152,7 +154,7 @@ async def login_2fa(request: Request, db: Session = Depends(get_db),
             "display_name": pending.get("display_name", ""),
             "error": "Неверный код. Откройте приложение и введите текущий код.",
         })
-    request.session.pop("pending_2fa", None)
+    request.session.clear()
     _set_session(request, user, db)
     return RedirectResponse("/", status_code=302)
 

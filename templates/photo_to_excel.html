@@ -1,219 +1,341 @@
 {% extends "base.html" %}
-{% block page_title %}Фото → Excel — Лента.PM{% endblock %}
-{% block title %}<i class="bi bi-file-earmark-spreadsheet me-2 text-success"></i>Фото → Excel{% endblock %}
+{% block page_title %}Данные → Excel — Лента.PM{% endblock %}
+{% block title %}<i class="bi bi-file-earmark-spreadsheet me-2 text-success"></i>Данные → Excel{% endblock %}
 
 {% block head %}
 <style>
-/* ── Upload zone ── */
-.p2e-dropzone {
-    border: 2px dashed #334155;
-    border-radius: 16px;
-    padding: 48px 24px;
-    text-align: center;
-    cursor: pointer;
-    transition: border-color .2s, background .2s;
-    background: var(--bs-body-bg);
-    position: relative;
+/* ── Mode tabs ── */
+.mode-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+.mode-tab {
+    border:2px solid #334155; border-radius:12px; padding:10px 16px;
+    cursor:pointer; transition:all .18s; background:var(--bs-body-bg);
+    color:var(--bs-body-color); user-select:none; font-size:.88rem; font-weight:600;
+    display:flex; align-items:center; gap:7px;
 }
-.p2e-dropzone.drag-over,
-.p2e-dropzone:hover {
-    border-color: var(--lenta-green, #3CB34A);
-    background: rgba(60,179,74,.06);
-}
-.p2e-dropzone input[type=file] {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    cursor: pointer;
-    width: 100%;
-    height: 100%;
-}
-.p2e-preview {
-    width: 100%;
-    max-height: 280px;
-    object-fit: contain;
-    border-radius: 12px;
-    display: none;
-    margin-top: 12px;
+.mode-tab:hover { border-color:#64748b; }
+.mode-tab.active { border-color:var(--lenta-green,#3CB34A); background:rgba(60,179,74,.1); }
+.mode-tab .badge-new {
+    background:#3CB34A; color:#fff; font-size:9px; font-weight:800;
+    padding:1px 5px; border-radius:4px; text-transform:uppercase;
 }
 
 /* ── Type selector ── */
-.p2e-type-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+.type-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+.type-btn {
+    border:2px solid #334155; border-radius:12px; padding:12px 8px;
+    text-align:center; cursor:pointer; transition:all .18s;
+    background:var(--bs-body-bg); color:var(--bs-body-color); user-select:none;
 }
-.p2e-type-btn {
-    border: 2px solid #334155;
-    border-radius: 14px;
-    padding: 16px 10px;
-    text-align: center;
-    cursor: pointer;
-    transition: all .18s;
-    background: var(--bs-body-bg);
-    color: var(--bs-body-color);
-    user-select: none;
-}
-.p2e-type-btn:hover { border-color: #94a3b8; }
-.p2e-type-btn.active {
-    border-color: var(--lenta-green, #3CB34A);
-    background: rgba(60,179,74,.1);
-}
-.p2e-type-btn .p2e-icon { font-size: 2rem; margin-bottom: 6px; }
-.p2e-type-btn .p2e-label { font-weight: 700; font-size: .92rem; }
-.p2e-type-btn .p2e-desc { font-size: .75rem; color: #64748b; margin-top: 3px; }
+.type-btn:hover { border-color:#94a3b8; }
+.type-btn.active { border-color:var(--lenta-green,#3CB34A); background:rgba(60,179,74,.1); }
+.type-btn .t-icon { font-size:1.6rem; margin-bottom:4px; }
+.type-btn .t-label { font-weight:700; font-size:.8rem; }
 
-/* ── Result area ── */
-.p2e-result {
-    display: none;
-    border: 1px solid rgba(60,179,74,.4);
-    border-radius: 14px;
-    padding: 20px;
-    background: rgba(60,179,74,.07);
-    text-align: center;
+/* ── Dropzone ── */
+.dropzone {
+    border:2px dashed #334155; border-radius:14px; padding:36px 20px;
+    text-align:center; cursor:pointer; transition:border-color .2s,background .2s;
+    background:var(--bs-body-bg); position:relative; min-height:120px;
 }
-.p2e-result .p2e-dl-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--lenta-green, #3CB34A);
-    color: #fff;
-    border: none;
-    border-radius: 12px;
-    padding: 14px 28px;
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    text-decoration: none;
-    transition: opacity .15s;
-    margin-top: 10px;
+.dropzone.drag-over, .dropzone:hover { border-color:var(--lenta-green,#3CB34A); background:rgba(60,179,74,.05); }
+.dropzone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+.dropzone-preview { display:none; }
+.dropzone-preview img { max-width:100%; max-height:220px; object-fit:contain; border-radius:10px; margin-top:10px; }
+.multi-thumbs { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; justify-content:center; }
+.multi-thumbs img { width:80px; height:60px; object-fit:cover; border-radius:6px; border:1px solid #475569; }
+
+/* ── Text input ── */
+.text-area-wrap { position:relative; }
+.text-area-wrap textarea {
+    border:2px solid #334155; border-radius:12px; padding:14px 50px 14px 14px;
+    font-family:inherit; font-size:.88rem; resize:vertical; min-height:140px;
+    width:100%; background:var(--bs-body-bg); color:var(--bs-body-color);
+    transition:border-color .15s;
 }
-.p2e-result .p2e-dl-btn:hover { opacity: .88; color: #fff; }
+.text-area-wrap textarea:focus { outline:none; border-color:var(--lenta-green,#3CB34A); }
+.mic-btn {
+    position:absolute; right:10px; top:10px;
+    background:none; border:none; cursor:pointer; font-size:1.4rem;
+    color:#64748b; transition:color .15s; padding:4px;
+}
+.mic-btn:hover { color:var(--lenta-green,#3CB34A); }
+.mic-btn.recording { color:#ef4444; animation:pulse-mic 1s infinite; }
+@keyframes pulse-mic { 0%,100%{opacity:1} 50%{opacity:.4} }
 
 /* ── Progress ── */
-.p2e-progress { display: none; text-align: center; padding: 24px 0; }
-.p2e-spinner {
-    width: 48px; height: 48px;
-    border: 4px solid #334155;
-    border-top-color: var(--lenta-green, #3CB34A);
-    border-radius: 50%;
-    animation: spin .8s linear infinite;
-    margin: 0 auto 14px;
+.progress-area { display:none; text-align:center; padding:20px 0; }
+.spinner { width:44px; height:44px; border:4px solid #334155; border-top-color:var(--lenta-green,#3CB34A);
+           border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 12px; }
+@keyframes spin { to{transform:rotate(360deg)} }
+
+/* ── Preview table ── */
+.preview-area { display:none; }
+.preview-table-wrap { overflow-x:auto; max-height:320px; overflow-y:auto; border-radius:10px;
+                      border:1px solid rgba(60,179,74,.3); }
+.preview-table-wrap table { width:100%; border-collapse:collapse; font-size:.82rem; }
+.preview-table-wrap th { background:#1E3A5F; color:#fff; padding:7px 10px; white-space:nowrap; position:sticky; top:0; }
+.preview-table-wrap td { padding:5px 10px; border-bottom:1px solid #e2e8f0; }
+.preview-table-wrap tr:nth-child(even) td { background:rgba(60,179,74,.04); }
+.preview-gantt { font-size:.8rem; }
+.preview-gantt td,.preview-gantt th { white-space:nowrap; }
+
+/* ── Result ── */
+.result-area { display:none; border:1px solid rgba(60,179,74,.4); border-radius:14px;
+               padding:18px; background:rgba(60,179,74,.06); text-align:center; }
+.dl-btn {
+    display:inline-flex; align-items:center; gap:8px;
+    background:var(--lenta-green,#3CB34A); color:#fff; border:none;
+    border-radius:12px; padding:12px 26px; font-size:.95rem; font-weight:700;
+    cursor:pointer; text-decoration:none; transition:opacity .15s; margin-top:8px;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+.dl-btn:hover { opacity:.88; color:#fff; }
 
 /* ── Error ── */
-.p2e-error {
-    display: none;
-    border: 1px solid #dc2626;
-    border-radius: 12px;
-    padding: 16px 20px;
-    background: rgba(220,38,38,.07);
-    color: #dc2626;
-    font-size: .92rem;
-}
+.error-area { display:none; border:1px solid #dc2626; border-radius:12px; padding:14px 18px;
+              background:rgba(220,38,38,.06); color:#dc2626; font-size:.88rem; }
+
+/* ── History ── */
+.history-item { display:flex; align-items:center; gap:10px; padding:8px 0;
+                border-bottom:1px solid rgba(255,255,255,.07); }
+.history-item:last-child { border-bottom:none; }
+.history-meta { flex:1; min-width:0; }
+.history-meta .h-name { font-size:.83rem; font-weight:600; white-space:nowrap;
+                         overflow:hidden; text-overflow:ellipsis; }
+.history-meta .h-age { font-size:.72rem; color:#64748b; }
 
 /* ── Mobile ── */
-@media (max-width: 576px) {
-    .p2e-type-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .p2e-type-btn { padding: 12px 6px; }
-    .p2e-type-btn .p2e-icon { font-size: 1.6rem; margin-bottom: 4px; }
-    .p2e-type-btn .p2e-label { font-size: .8rem; }
-    .p2e-type-btn .p2e-desc { display: none; }
-    .p2e-dropzone { padding: 32px 16px; }
-    .p2e-result .p2e-dl-btn { width: 100%; justify-content: center; }
+@media (max-width:576px) {
+    .type-grid { grid-template-columns:repeat(3,1fr); }
+    .mode-tabs { gap:6px; }
+    .mode-tab { padding:8px 12px; font-size:.82rem; }
 }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-<div class="col-12 col-md-8 col-lg-6">
+<div class="col-12 col-lg-9 col-xl-7">
 
-  <!-- Step 1: Upload -->
-  <div class="data-card mb-3 p-4">
-    <div class="fw-bold mb-3 fs-6">
-      <span class="badge rounded-pill me-2" style="background:var(--lenta-green,#3CB34A)">1</span>
-      Загрузите фото
+<!-- ── Mode tabs ───────────────────────────────────────────────── -->
+<div class="mode-tabs">
+    <div class="mode-tab active" data-mode="photo">
+        <i class="bi bi-camera-fill"></i> Фото
     </div>
-    <div class="p2e-dropzone" id="dropzone">
-      <input type="file" id="photoInput" accept="image/*">
-      <div id="dropzoneContent">
-        <i class="bi bi-camera-fill" style="font-size:2.5rem;color:#64748b;display:block;margin-bottom:10px"></i>
-        <div class="fw-semibold mb-1">Нажмите или перетащите фото</div>
-        <div class="text-muted small">Таблица, график, диаграмма — любое фото с данными</div>
-        <div class="text-muted small mt-1">JPG, PNG, WEBP · до 10 МБ</div>
-      </div>
-      <img id="photoPreview" class="p2e-preview" alt="Предпросмотр">
+    <div class="mode-tab" data-mode="text">
+        <i class="bi bi-textarea-t"></i> Текст <span class="badge-new">NEW</span>
     </div>
-    <div id="photoName" class="text-muted small mt-2" style="display:none"></div>
-  </div>
+    <div class="mode-tab" data-mode="multi">
+        <i class="bi bi-images"></i> Несколько фото <span class="badge-new">NEW</span>
+    </div>
+    <div class="mode-tab" data-mode="compare">
+        <i class="bi bi-intersect"></i> Сравнение <span class="badge-new">NEW</span>
+    </div>
+    <div class="mode-tab" data-mode="merge">
+        <i class="bi bi-union"></i> Объединить <span class="badge-new">NEW</span>
+    </div>
+</div>
 
-  <!-- Step 2: Output type -->
-  <div class="data-card mb-3 p-4">
+<!-- ── Step 1: Source ──────────────────────────────────────────── -->
+<div class="data-card mb-3 p-4" id="sourceCard">
     <div class="fw-bold mb-3 fs-6">
-      <span class="badge rounded-pill me-2" style="background:var(--lenta-green,#3CB34A)">2</span>
-      Выберите формат
+        <span class="badge rounded-pill me-2" style="background:var(--lenta-green,#3CB34A)">1</span>
+        <span id="sourceLabel">Загрузите фото</span>
     </div>
-    <div class="p2e-type-grid">
-      <div class="p2e-type-btn active" data-type="table">
-        <div class="p2e-icon">📋</div>
-        <div class="p2e-label">Таблица</div>
-        <div class="p2e-desc">Строки и столбцы</div>
-      </div>
-      <div class="p2e-type-btn" data-type="chart">
-        <div class="p2e-icon">📊</div>
-        <div class="p2e-label">График</div>
-        <div class="p2e-desc">Бар / линия</div>
-      </div>
-      <div class="p2e-type-btn" data-type="diagram">
-        <div class="p2e-icon">🥧</div>
-        <div class="p2e-label">Диаграмма</div>
-        <div class="p2e-desc">Круговая</div>
-      </div>
-    </div>
-  </div>
 
-  <!-- Step 3: Convert -->
-  <div class="data-card mb-3 p-4">
+    <!-- Photo mode -->
+    <div id="modePhoto">
+        <div class="dropzone" id="dropzone1">
+            <input type="file" id="photoInput" accept="image/*">
+            <div id="dz1Content">
+                <i class="bi bi-camera-fill" style="font-size:2rem;color:#64748b;display:block;margin-bottom:8px"></i>
+                <div class="fw-semibold mb-1">Нажмите или перетащите фото</div>
+                <div class="text-muted small">JPG, PNG, WEBP · до 50 МБ</div>
+            </div>
+            <div class="dropzone-preview" id="dz1Preview">
+                <img id="photoPreview" alt="preview">
+                <div class="text-muted small mt-1" id="photoName"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Text mode -->
+    <div id="modeText" style="display:none">
+        <div class="text-area-wrap">
+            <textarea id="textInput" placeholder="Вставьте данные или продиктуйте...&#10;&#10;Пример: Менеджер, Проекты, Статус&#10;Петров, 5, Активный&#10;Сидоров, 8, Завершён"></textarea>
+            <button class="mic-btn" id="micBtn" title="Голосовой ввод (только Chrome)">
+                <i class="bi bi-mic-fill"></i>
+            </button>
+        </div>
+        <div class="text-muted small mt-2" id="micStatus"></div>
+    </div>
+
+    <!-- Multi-photo mode -->
+    <div id="modeMulti" style="display:none">
+        <div class="dropzone" id="dropzoneMulti">
+            <input type="file" id="multiInput" accept="image/*" multiple>
+            <div id="dzMultiContent">
+                <i class="bi bi-images" style="font-size:2rem;color:#64748b;display:block;margin-bottom:8px"></i>
+                <div class="fw-semibold mb-1">Выберите несколько фото</div>
+                <div class="text-muted small">Каждое фото → отдельный лист Excel · до 10 файлов</div>
+            </div>
+            <div class="dropzone-preview" id="dzMultiPreview">
+                <div class="multi-thumbs" id="multiThumbs"></div>
+                <div class="text-muted small mt-1" id="multiCount"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compare mode -->
+    <div id="modeCompare" style="display:none">
+        <div class="row g-3">
+            <div class="col-6">
+                <div class="fw-semibold small mb-1 text-muted">Источник 1</div>
+                <div class="dropzone" id="dropzoneCmp1">
+                    <input type="file" id="cmpInput1" accept="image/*">
+                    <div id="dzCmp1Content">
+                        <i class="bi bi-1-circle" style="font-size:1.8rem;color:#64748b;display:block"></i>
+                        <div class="small mt-1">Фото 1</div>
+                    </div>
+                    <div class="dropzone-preview" id="dzCmp1Preview">
+                        <img id="cmpPreview1" alt="p1" style="max-height:100px">
+                    </div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="fw-semibold small mb-1 text-muted">Источник 2</div>
+                <div class="dropzone" id="dropzoneCmp2">
+                    <input type="file" id="cmpInput2" accept="image/*">
+                    <div id="dzCmp2Content">
+                        <i class="bi bi-2-circle" style="font-size:1.8rem;color:#64748b;display:block"></i>
+                        <div class="small mt-1">Фото 2</div>
+                    </div>
+                    <div class="dropzone-preview" id="dzCmp2Preview">
+                        <img id="cmpPreview2" alt="p2" style="max-height:100px">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="text-muted small mt-2">Результат: 3 листа — Источник 1 / Источник 2 / Разница</div>
+    </div>
+
+    <!-- Merge mode -->
+    <div id="modeMerge" style="display:none">
+        <div class="dropzone" id="dropzoneMerge">
+            <input type="file" id="mergeInput" accept="image/*" multiple>
+            <div id="dzMergeContent">
+                <i class="bi bi-union" style="font-size:2rem;color:#64748b;display:block;margin-bottom:8px"></i>
+                <div class="fw-semibold mb-1">Выберите фото для объединения</div>
+                <div class="text-muted small">AI объединит данные в одну таблицу · до 5 файлов</div>
+            </div>
+            <div class="dropzone-preview" id="dzMergePreview">
+                <div class="multi-thumbs" id="mergeThumbs"></div>
+                <div class="text-muted small mt-1" id="mergeCount"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Step 2: Output type (not shown for compare/merge) ─────── -->
+<div class="data-card mb-3 p-4" id="typeCard">
     <div class="fw-bold mb-3 fs-6">
-      <span class="badge rounded-pill me-2" style="background:var(--lenta-green,#3CB34A)">3</span>
-      Конвертировать
+        <span class="badge rounded-pill me-2" style="background:var(--lenta-green,#3CB34A)">2</span>
+        Формат вывода
+    </div>
+    <div class="type-grid">
+        <div class="type-btn active" data-type="auto">
+            <div class="t-icon">🤖</div>
+            <div class="t-label">Авто</div>
+        </div>
+        <div class="type-btn" data-type="table">
+            <div class="t-icon">📋</div>
+            <div class="t-label">Таблица</div>
+        </div>
+        <div class="type-btn" data-type="gantt">
+            <div class="t-icon">📅</div>
+            <div class="t-label">Ганта</div>
+        </div>
+        <div class="type-btn" data-type="chart">
+            <div class="t-icon">📊</div>
+            <div class="t-label">График</div>
+        </div>
+        <div class="type-btn" data-type="diagram">
+            <div class="t-icon">🥧</div>
+            <div class="t-label">Диаграмма</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Step 3: Convert ─────────────────────────────────────────── -->
+<div class="data-card mb-3 p-4">
+    <div class="fw-bold mb-3 fs-6">
+        <span class="badge rounded-pill me-2" style="background:var(--lenta-green,#3CB34A)">3</span>
+        Конвертировать
     </div>
     <button id="convertBtn" class="btn btn-success w-100 btn-lg fw-bold" disabled>
-      <i class="bi bi-magic me-2"></i>Создать Excel файл
+        <i class="bi bi-magic me-2"></i><span id="convertBtnLabel">Создать Excel</span>
     </button>
-    <div class="text-muted small text-center mt-2">AI анализирует фото и создаёт Excel (Gemini / Claude)</div>
-  </div>
+    <div class="text-muted small text-center mt-2">AI (Gemini / Claude / Groq) анализирует и создаёт Excel</div>
+</div>
 
-  <!-- Progress -->
-  <div class="p2e-progress" id="progressArea">
-    <div class="p2e-spinner"></div>
-    <div class="fw-semibold" id="progressText">Анализирую фото...</div>
-    <div class="text-muted small mt-1">AI обрабатывает изображение...</div>
-  </div>
+<!-- ── Progress ────────────────────────────────────────────────── -->
+<div class="progress-area" id="progressArea">
+    <div class="spinner"></div>
+    <div class="fw-semibold" id="progressText">Анализирую...</div>
+    <div class="text-muted small mt-1">Пожалуйста, подождите</div>
+</div>
 
-  <!-- Error -->
-  <div class="p2e-error" id="errorArea">
-    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-    <span id="errorText"></span>
-  </div>
+<!-- ── Error ────────────────────────────────────────────────────── -->
+<div class="error-area" id="errorArea">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i><span id="errorText"></span>
+</div>
 
-  <!-- Result -->
-  <div class="p2e-result" id="resultArea">
+<!-- ── Preview ─────────────────────────────────────────────────── -->
+<div class="preview-area data-card p-4 mb-3" id="previewArea">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="fw-semibold">
+            <i class="bi bi-eye me-2 text-success"></i>Предпросмотр
+            <span class="badge bg-secondary ms-2 fs-6" id="previewTypeBadge"></span>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary" id="editPreviewBtn">
+            <i class="bi bi-pencil me-1"></i>Редактировать
+        </button>
+    </div>
+    <div class="preview-table-wrap" id="previewTableWrap"></div>
+    <div class="d-flex gap-2 mt-3">
+        <button id="downloadFromPreview" class="dl-btn flex-fill justify-content-center">
+            <i class="bi bi-file-earmark-excel-fill"></i>Скачать Excel
+        </button>
+        <button class="btn btn-outline-secondary" id="cancelPreview">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Заново
+        </button>
+    </div>
+</div>
+
+<!-- ── Result ──────────────────────────────────────────────────── -->
+<div class="result-area" id="resultArea">
     <i class="bi bi-check-circle-fill text-success" style="font-size:2rem"></i>
     <div class="fw-bold mt-2 mb-1" style="font-size:1.05rem">Excel готов!</div>
-    <div class="text-muted small mb-3" id="resultDesc"></div>
-    <a id="downloadLink" href="#" class="p2e-dl-btn">
-      <i class="bi bi-file-earmark-excel-fill"></i>
-      Скачать Excel
+    <div class="text-muted small mb-2" id="resultDesc"></div>
+    <a id="downloadLink" href="#" class="dl-btn">
+        <i class="bi bi-file-earmark-excel-fill"></i>Скачать Excel
     </a>
     <div class="mt-3">
-      <button class="btn btn-outline-secondary btn-sm" id="resetBtn">
-        <i class="bi bi-arrow-counterclockwise me-1"></i>Новая конвертация
-      </button>
+        <button class="btn btn-outline-secondary btn-sm" id="resetBtn">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Новая конвертация
+        </button>
     </div>
-  </div>
+</div>
+
+<!-- ── History ─────────────────────────────────────────────────── -->
+<div class="data-card p-4 mt-3" id="historyCard" style="display:none">
+    <div class="fw-semibold mb-3">
+        <i class="bi bi-clock-history me-2"></i>Последние конвертации
+        <button class="btn btn-sm btn-link p-0 ms-2 text-muted" id="historyRefresh">
+            <i class="bi bi-arrow-clockwise"></i>
+        </button>
+    </div>
+    <div id="historyList"><div class="text-muted small">Загружаю...</div></div>
+</div>
 
 </div>
 </div>
@@ -221,194 +343,461 @@
 
 {% block scripts %}
 <script>
-(function() {
-    var photoInput   = document.getElementById('photoInput');
-    var dropzone     = document.getElementById('dropzone');
-    var preview      = document.getElementById('photoPreview');
-    var photoName    = document.getElementById('photoName');
-    var convertBtn   = document.getElementById('convertBtn');
-    var progressArea = document.getElementById('progressArea');
-    var progressText = document.getElementById('progressText');
-    var errorArea    = document.getElementById('errorArea');
-    var errorText    = document.getElementById('errorText');
-    var resultArea   = document.getElementById('resultArea');
-    var resultDesc   = document.getElementById('resultDesc');
-    var downloadLink = document.getElementById('downloadLink');
-    var resetBtn     = document.getElementById('resetBtn');
+(function () {
+'use strict';
 
-    var selectedType = 'table';
-    var selectedFile = null;
+// ── State ──────────────────────────────────────────────────────────────────
+var mode        = 'photo';
+var outputType  = 'auto';
+var photoFile   = null;
+var multiFiles  = [];
+var cmpFile1    = null;
+var cmpFile2    = null;
+var mergeFiles  = [];
+var previewData = null;
+var previewType = null;
+var recognition = null;
 
-    // ── Type selector ───────────────────────────────────────────────────────
-    document.querySelectorAll('.p2e-type-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.p2e-type-btn').forEach(function(b) { b.classList.remove('active'); });
-            btn.classList.add('active');
-            selectedType = btn.dataset.type;
+// ── Elements ───────────────────────────────────────────────────────────────
+var $ = function(id) { return document.getElementById(id); };
+
+var convertBtn      = $('convertBtn');
+var convertBtnLabel = $('convertBtnLabel');
+var progressArea    = $('progressArea');
+var progressText    = $('progressText');
+var errorArea       = $('errorArea');
+var errorText       = $('errorText');
+var previewArea     = $('previewArea');
+var resultArea      = $('resultArea');
+var downloadLink    = $('downloadLink');
+var resultDesc      = $('resultDesc');
+
+// ── Mode tabs ──────────────────────────────────────────────────────────────
+document.querySelectorAll('.mode-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.mode-tab').forEach(function(t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        mode = tab.dataset.mode;
+        ['modePhoto','modeText','modeMulti','modeCompare','modeMerge'].forEach(function(id) {
+            $(id).style.display = 'none';
         });
+        $('mode' + mode.charAt(0).toUpperCase() + mode.slice(1)).style.display = '';
+
+        var labels = {
+            photo:'Загрузите фото', text:'Введите или продиктуйте текст',
+            multi:'Выберите несколько фото', compare:'Загрузите 2 фото для сравнения',
+            merge:'Выберите фото для объединения'
+        };
+        $('sourceLabel').textContent = labels[mode] || 'Источник данных';
+
+        var hideType = (mode === 'compare' || mode === 'merge');
+        $('typeCard').style.display = hideType ? 'none' : '';
+
+        var btnLabels = {
+            photo:'Создать Excel', text:'Создать Excel из текста',
+            multi:'Создать Excel (несколько листов)',
+            compare:'Сравнить и создать Excel', merge:'Объединить в Excel'
+        };
+        convertBtnLabel.textContent = btnLabels[mode] || 'Создать Excel';
+
+        updateConvertBtn();
+        hideAll();
     });
+});
 
-    // ── Image compression ───────────────────────────────────────────────────
-    var MAX_PX = 1920;
-    var JPEG_Q = 0.85;
+// ── Type selector ──────────────────────────────────────────────────────────
+document.querySelectorAll('.type-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.type-btn').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        outputType = btn.dataset.type;
+    });
+});
 
-    function compressImage(file, cb) {
+// ── Photo dropzone ─────────────────────────────────────────────────────────
+setupDropzone('dropzone1', 'photoInput', false, function(files) {
+    photoFile = files[0] || null;
+    if (photoFile) {
+        showThumb('photoPreview', photoFile);
+        $('photoName').textContent = photoFile.name + ' · ' + fmtSize(photoFile.size);
+        $('dz1Content').style.display = 'none';
+        $('dz1Preview').style.display = '';
+    }
+    updateConvertBtn();
+});
+
+// ── Multi-photo dropzone ───────────────────────────────────────────────────
+setupDropzone('dropzoneMulti', 'multiInput', true, function(files) {
+    multiFiles = Array.from(files).slice(0, 10);
+    if (multiFiles.length) {
+        $('dzMultiContent').style.display = 'none';
+        $('dzMultiPreview').style.display = '';
+        var thumbs = $('multiThumbs');
+        thumbs.innerHTML = '';
+        multiFiles.forEach(function(f) {
+            var img = document.createElement('img');
+            img.src = URL.createObjectURL(f);
+            thumbs.appendChild(img);
+        });
+        $('multiCount').textContent = multiFiles.length + ' файл(ов) выбрано';
+    }
+    updateConvertBtn();
+});
+
+// ── Compare dropzones ──────────────────────────────────────────────────────
+setupDropzone('dropzoneCmp1', 'cmpInput1', false, function(files) {
+    cmpFile1 = files[0] || null;
+    if (cmpFile1) {
+        showThumb('cmpPreview1', cmpFile1);
+        $('dzCmp1Content').style.display = 'none';
+        $('dzCmp1Preview').style.display = '';
+    }
+    updateConvertBtn();
+});
+setupDropzone('dropzoneCmp2', 'cmpInput2', false, function(files) {
+    cmpFile2 = files[0] || null;
+    if (cmpFile2) {
+        showThumb('cmpPreview2', cmpFile2);
+        $('dzCmp2Content').style.display = 'none';
+        $('dzCmp2Preview').style.display = '';
+    }
+    updateConvertBtn();
+});
+
+// ── Merge dropzone ─────────────────────────────────────────────────────────
+setupDropzone('dropzoneMerge', 'mergeInput', true, function(files) {
+    mergeFiles = Array.from(files).slice(0, 5);
+    if (mergeFiles.length) {
+        $('dzMergeContent').style.display = 'none';
+        $('dzMergePreview').style.display = '';
+        var thumbs = $('mergeThumbs');
+        thumbs.innerHTML = '';
+        mergeFiles.forEach(function(f) {
+            var img = document.createElement('img');
+            img.src = URL.createObjectURL(f);
+            thumbs.appendChild(img);
+        });
+        $('mergeCount').textContent = mergeFiles.length + ' файл(ов) выбрано';
+    }
+    updateConvertBtn();
+});
+
+// ── Text input ─────────────────────────────────────────────────────────────
+$('textInput').addEventListener('input', updateConvertBtn);
+
+// ── Voice input (Web Speech API) ───────────────────────────────────────────
+var micBtn = $('micBtn');
+var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (!SpeechRec) {
+    micBtn.title = 'Голосовой ввод не поддерживается в вашем браузере (используйте Chrome)';
+    micBtn.style.color = '#475569';
+}
+
+micBtn.addEventListener('click', function() {
+    if (!SpeechRec) {
+        $('micStatus').textContent = 'Голосовой ввод работает только в Chrome';
+        return;
+    }
+    if (recognition && recognition._active) {
+        recognition.stop();
+        return;
+    }
+    recognition = new SpeechRec();
+    recognition.lang = 'ru-RU';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition._active = true;
+
+    var finalText = $('textInput').value;
+
+    recognition.onstart = function() {
+        micBtn.classList.add('recording');
+        $('micStatus').textContent = '🔴 Говорите... (нажмите снова чтобы остановить)';
+    };
+    recognition.onresult = function(e) {
+        var interim = '';
+        for (var i = e.resultIndex; i < e.results.length; i++) {
+            if (e.results[i].isFinal) finalText += e.results[i][0].transcript + ' ';
+            else interim = e.results[i][0].transcript;
+        }
+        $('textInput').value = finalText + interim;
+        updateConvertBtn();
+    };
+    recognition.onerror = function(e) {
+        $('micStatus').textContent = 'Ошибка: ' + e.error;
+        micBtn.classList.remove('recording');
+        recognition._active = false;
+    };
+    recognition.onend = function() {
+        micBtn.classList.remove('recording');
+        recognition._active = false;
+        $('textInput').value = finalText.trim();
+        $('micStatus').textContent = '';
+        updateConvertBtn();
+    };
+    recognition.start();
+});
+
+// ── Convert ────────────────────────────────────────────────────────────────
+convertBtn.addEventListener('click', async function() {
+    hideAll();
+    convertBtn.disabled = true;
+    progressArea.style.display = 'block';
+
+    var steps = ['Загружаю...', 'AI анализирует данные...', 'Извлекаю структуру...', 'Генерирую Excel...'];
+    var si = 0;
+    var timer = setInterval(function() {
+        si = (si + 1) % steps.length;
+        progressText.textContent = steps[si];
+    }, 2000);
+
+    try {
+        var blob, filename;
+        if (mode === 'photo') {
+            var r = await doPhotoConvert();
+            blob = r.blob; filename = r.filename;
+        } else if (mode === 'text') {
+            var r = await doTextConvert();
+            blob = r.blob; filename = r.filename;
+        } else if (mode === 'multi') {
+            var r = await doMultiConvert();
+            blob = r.blob; filename = r.filename;
+        } else if (mode === 'compare') {
+            var r = await doCompareConvert();
+            blob = r.blob; filename = r.filename;
+        } else if (mode === 'merge') {
+            var r = await doMergeConvert();
+            blob = r.blob; filename = r.filename;
+        }
+
+        clearInterval(timer);
+        progressArea.style.display = 'none';
+
+        var url = URL.createObjectURL(blob);
+        downloadLink.href = url;
+        downloadLink.download = filename;
+        resultDesc.textContent = filename + ' · ' + fmtSize(blob.size);
+        resultArea.style.display = 'block';
+        if (window.innerWidth > 600) downloadLink.click();
+
+        loadHistory();
+
+    } catch(err) {
+        clearInterval(timer);
+        progressArea.style.display = 'none';
+        showError(err.message || 'Ошибка');
+    } finally {
+        convertBtn.disabled = false;
+    }
+});
+
+async function doPhotoConvert() {
+    var compressed = await compressImage(photoFile);
+    var fd = new FormData();
+    fd.append('photo', compressed);
+    fd.append('output_type', outputType);
+    var resp = await fetchExcel('/api/tools/photo-to-excel', fd);
+    return resp;
+}
+
+async function doTextConvert() {
+    var fd = new FormData();
+    fd.append('text', $('textInput').value.trim());
+    fd.append('output_type', outputType);
+    return await fetchExcel('/api/tools/text-to-excel', fd);
+}
+
+async function doMultiConvert() {
+    var fd = new FormData();
+    for (var f of multiFiles) fd.append('photos', f);
+    fd.append('output_type', outputType);
+    return await fetchExcel('/api/tools/multi-photo-excel', fd);
+}
+
+async function doCompareConvert() {
+    var fd = new FormData();
+    fd.append('photo1', cmpFile1);
+    fd.append('photo2', cmpFile2);
+    return await fetchExcel('/api/tools/compare-excel', fd);
+}
+
+async function doMergeConvert() {
+    var fd = new FormData();
+    for (var f of mergeFiles) fd.append('photos', f);
+    return await fetchExcel('/api/tools/merge-excel', fd);
+}
+
+async function fetchExcel(url, fd) {
+    var resp = await fetch(url, { method: 'POST', body: fd });
+    if (!resp.ok) {
+        var err = {};
+        try { err = await resp.json(); } catch(_) {}
+        throw new Error(err.error || 'Ошибка сервера ' + resp.status);
+    }
+    var blob = await resp.blob();
+    var cd   = resp.headers.get('Content-Disposition') || '';
+    var m    = cd.match(/filename\*?=(?:UTF-8'')?([^;]+)/i);
+    var fname = m ? decodeURIComponent(m[1].replace(/"/g,'').trim()) : 'result.xlsx';
+    return { blob, filename: fname };
+}
+
+// ── Preview (photo mode only) ──────────────────────────────────────────────
+$('editPreviewBtn').addEventListener('click', function() {
+    // future: allow inline editing of preview table
+    showToast && showToast('Редактирование таблицы — скоро', 'info', 3000);
+});
+$('cancelPreview').addEventListener('click', function() {
+    previewArea.style.display = 'none';
+    hideAll();
+});
+$('downloadFromPreview').addEventListener('click', async function() {
+    if (!previewData || !previewType) return;
+    $('downloadFromPreview').disabled = true;
+    try {
+        var fd = new FormData();
+        fd.append('photo', photoFile);
+        fd.append('output_type', previewType);
+        var r = await fetchExcel('/api/tools/photo-to-excel', fd);
+        var url = URL.createObjectURL(r.blob);
+        downloadLink.href = url;
+        downloadLink.download = r.filename;
+        resultDesc.textContent = r.filename + ' · ' + fmtSize(r.blob.size);
+        previewArea.style.display = 'none';
+        resultArea.style.display = 'block';
+        downloadLink.click();
+        loadHistory();
+    } catch(err) {
+        showError(err.message);
+    } finally {
+        $('downloadFromPreview').disabled = false;
+    }
+});
+
+// ── Reset ──────────────────────────────────────────────────────────────────
+$('resetBtn').addEventListener('click', resetAll);
+
+function resetAll() {
+    photoFile = null; multiFiles = []; cmpFile1 = null; cmpFile2 = null; mergeFiles = [];
+    ['photoInput','multiInput','cmpInput1','cmpInput2','mergeInput'].forEach(function(id) {
+        if ($(id)) $(id).value = '';
+    });
+    $('dz1Content').style.display = ''; $('dz1Preview').style.display = 'none';
+    $('dzMultiContent').style.display = ''; $('dzMultiPreview').style.display = 'none';
+    $('dzCmp1Content').style.display = ''; $('dzCmp1Preview').style.display = 'none';
+    $('dzCmp2Content').style.display = ''; $('dzCmp2Preview').style.display = 'none';
+    $('dzMergeContent').style.display = ''; $('dzMergePreview').style.display = 'none';
+    $('textInput').value = '';
+    hideAll();
+    updateConvertBtn();
+}
+
+// ── History ────────────────────────────────────────────────────────────────
+$('historyRefresh').addEventListener('click', loadHistory);
+
+async function loadHistory() {
+    try {
+        var resp = await fetch('/api/tools/history');
+        var data = await resp.json();
+        var items = data.items || [];
+        var card = $('historyCard');
+        var list = $('historyList');
+        if (!items.length) { card.style.display = 'none'; return; }
+        card.style.display = '';
+        list.innerHTML = items.map(function(it) {
+            var typeIcons = {table:'📋',chart:'📊',diagram:'🥧',gantt:'📅',
+                             compare:'⚖️',merge:'🔀',auto:'🤖'};
+            var icon = typeIcons[it.type] || '📄';
+            return '<div class="history-item">' +
+                '<span style="font-size:1.4rem">' + icon + '</span>' +
+                '<div class="history-meta">' +
+                '<div class="h-name">' + it.filename + '</div>' +
+                '<div class="h-age">' + fmtSize(it.size) + ' · ' + it.age_min + ' мин назад</div>' +
+                '</div>' +
+                '<a href="/api/tools/history/' + it.id + '" class="btn btn-sm btn-outline-success">' +
+                '<i class="bi bi-download"></i></a></div>';
+        }).join('');
+    } catch(_) {}
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function updateConvertBtn() {
+    var ready = false;
+    if (mode === 'photo')   ready = !!photoFile;
+    if (mode === 'text')    ready = $('textInput').value.trim().length > 3;
+    if (mode === 'multi')   ready = multiFiles.length > 0;
+    if (mode === 'compare') ready = !!(cmpFile1 && cmpFile2);
+    if (mode === 'merge')   ready = mergeFiles.length > 0;
+    convertBtn.disabled = !ready;
+}
+
+function hideAll() {
+    progressArea.style.display = 'none';
+    errorArea.style.display    = 'none';
+    previewArea.style.display  = 'none';
+    resultArea.style.display   = 'none';
+}
+
+function showError(msg) {
+    errorText.textContent    = msg;
+    errorArea.style.display  = 'block';
+}
+
+function fmtSize(bytes) {
+    if (bytes < 1024) return bytes + ' Б';
+    if (bytes < 1048576) return (bytes/1024).toFixed(0) + ' КБ';
+    return (bytes/1048576).toFixed(1) + ' МБ';
+}
+
+function showThumb(imgId, file) {
+    var reader = new FileReader();
+    reader.onload = function(e) { $(imgId).src = e.target.result; };
+    reader.readAsDataURL(file);
+}
+
+function setupDropzone(zoneId, inputId, multi, cb) {
+    var zone  = $(zoneId);
+    var input = $(inputId);
+    if (!zone || !input) return;
+    if (multi) input.setAttribute('multiple', '');
+    zone.addEventListener('dragover', function(e) {
+        e.preventDefault(); zone.classList.add('drag-over');
+    });
+    zone.addEventListener('dragleave', function() { zone.classList.remove('drag-over'); });
+    zone.addEventListener('drop', function(e) {
+        e.preventDefault(); zone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length) cb(e.dataTransfer.files);
+    });
+    input.addEventListener('change', function() {
+        if (this.files.length) cb(this.files);
+    });
+}
+
+async function compressImage(file) {
+    var MAX_PX = 1920, QUALITY = 0.85;
+    if (file.size <= 3*1024*1024) return file;
+    return new Promise(function(resolve) {
         var img = new Image();
         var url = URL.createObjectURL(file);
         img.onload = function() {
             URL.revokeObjectURL(url);
-            var w = img.naturalWidth, h = img.naturalHeight;
-            if (w <= MAX_PX && h <= MAX_PX && file.size <= 3 * 1024 * 1024) {
-                return cb(file); // already small enough
-            }
-            var scale = Math.min(MAX_PX / w, MAX_PX / h, 1);
-            var canvas = document.createElement('canvas');
-            canvas.width  = Math.round(w * scale);
-            canvas.height = Math.round(h * scale);
-            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-            canvas.toBlob(function(blob) {
-                cb(new File([blob], file.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' }));
-            }, 'image/jpeg', JPEG_Q);
+            var scale = Math.min(MAX_PX/img.width, MAX_PX/img.height, 1);
+            var c = document.createElement('canvas');
+            c.width  = Math.round(img.width  * scale);
+            c.height = Math.round(img.height * scale);
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            c.toBlob(function(b) {
+                resolve(new File([b], file.name.replace(/\.\w+$/, '.jpg'), {type:'image/jpeg'}));
+            }, 'image/jpeg', QUALITY);
         };
-        img.onerror = function() { URL.revokeObjectURL(url); cb(file); };
+        img.onerror = function() { resolve(file); };
         img.src = url;
-    }
-
-    // ── File input ──────────────────────────────────────────────────────────
-    function onFileSelected(file) {
-        if (!file) return;
-        if (file.size > 50 * 1024 * 1024) {
-            showError('Файл слишком большой. Максимум 50 МБ.');
-            return;
-        }
-        compressImage(file, function(compressed) {
-            selectedFile = compressed;
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                preview.src = e.target.result;
-                preview.style.display = 'block';
-                document.getElementById('dropzoneContent').style.display = 'none';
-            };
-            reader.readAsDataURL(compressed);
-            var sizeTxt = compressed.size < 1024 * 1024
-                ? (compressed.size / 1024).toFixed(0) + ' КБ'
-                : (compressed.size / 1024 / 1024).toFixed(1) + ' МБ';
-            photoName.textContent = file.name + ' → ' + sizeTxt;
-            photoName.style.display = 'block';
-            convertBtn.disabled = false;
-            hideAll();
-        });
-    }
-
-    photoInput.addEventListener('change', function() {
-        if (this.files[0]) onFileSelected(this.files[0]);
     });
+}
 
-    // Drag & drop
-    dropzone.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        this.classList.add('drag-over');
-    });
-    dropzone.addEventListener('dragleave', function() {
-        this.classList.remove('drag-over');
-    });
-    dropzone.addEventListener('drop', function(e) {
-        e.preventDefault();
-        this.classList.remove('drag-over');
-        var f = e.dataTransfer.files[0];
-        if (f && f.type.startsWith('image/')) onFileSelected(f);
-    });
+// ── Init ───────────────────────────────────────────────────────────────────
+loadHistory();
 
-    // ── Convert ─────────────────────────────────────────────────────────────
-    convertBtn.addEventListener('click', async function() {
-        if (!selectedFile) return;
-
-        hideAll();
-        convertBtn.disabled = true;
-        progressArea.style.display = 'block';
-
-        var steps = [
-            'Загружаю фото...',
-            'AI анализирует изображение...',
-            'Извлекаю данные...',
-            'Генерирую Excel файл...',
-        ];
-        var stepIdx = 0;
-        var stepTimer = setInterval(function() {
-            stepIdx = (stepIdx + 1) % steps.length;
-            progressText.textContent = steps[stepIdx];
-        }, 2200);
-
-        try {
-            var fd = new FormData();
-            fd.append('photo', selectedFile);
-            fd.append('output_type', selectedType);
-
-            var resp = await fetch('/api/tools/photo-to-excel', {
-                method: 'POST',
-                body: fd,
-            });
-
-            clearInterval(stepTimer);
-
-            if (!resp.ok) {
-                var errData = {};
-                try { errData = await resp.json(); } catch(_) {}
-                throw new Error(errData.error || 'Ошибка сервера: ' + resp.status);
-            }
-
-            var blob = await resp.blob();
-            var url  = URL.createObjectURL(blob);
-
-            // Extract filename from Content-Disposition
-            var cd   = resp.headers.get('Content-Disposition') || '';
-            var match = cd.match(/filename="([^"]+)"/);
-            var fname = match ? match[1] : 'data.xlsx';
-
-            downloadLink.href = url;
-            downloadLink.download = fname;
-
-            var typeLabels = { table: 'таблица', chart: 'график', diagram: 'диаграмма' };
-            resultDesc.textContent = fname + ' · ' + (blob.size / 1024).toFixed(0) + ' КБ';
-
-            progressArea.style.display = 'none';
-            resultArea.style.display = 'block';
-
-            // Auto-trigger download on desktop
-            if (window.innerWidth > 600) downloadLink.click();
-
-        } catch(err) {
-            clearInterval(stepTimer);
-            progressArea.style.display = 'none';
-            showError(err.message || 'Неизвестная ошибка');
-        } finally {
-            convertBtn.disabled = false;
-        }
-    });
-
-    // ── Reset ────────────────────────────────────────────────────────────────
-    resetBtn.addEventListener('click', function() {
-        selectedFile = null;
-        photoInput.value = '';
-        preview.style.display = 'none';
-        preview.src = '';
-        document.getElementById('dropzoneContent').style.display = '';
-        photoName.style.display = 'none';
-        convertBtn.disabled = true;
-        hideAll();
-    });
-
-    // ── Helpers ──────────────────────────────────────────────────────────────
-    function hideAll() {
-        progressArea.style.display = 'none';
-        errorArea.style.display = 'none';
-        resultArea.style.display = 'none';
-    }
-
-    function showError(msg) {
-        errorText.textContent = msg;
-        errorArea.style.display = 'block';
-    }
-})();
+}());
 </script>
 {% endblock %}
