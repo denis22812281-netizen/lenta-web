@@ -1112,6 +1112,190 @@ strong { color: var(--green-deep); }
   </div>
 </div>
 
+{% if user and user.get('is_admin') %}
+<!-- ═══════════════════════════════════════════════════════════
+     ТЕХНИЧЕСКАЯ ДОКУМЕНТАЦИЯ — только для администраторов
+     ═══════════════════════════════════════════════════════════ -->
+<div style="margin-top:48px;border-top:3px dashed #1A5C22;padding-top:32px">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+    <i class="bi bi-cpu-fill" style="font-size:28px;color:#FFD200"></i>
+    <div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#3CB34A;font-weight:600">Только для администраторов</div>
+      <div style="font-size:22px;font-weight:800;color:#1A5C22">Техническая документация</div>
+    </div>
+  </div>
+
+<!-- ── T1. Стек технологий ─────────────────────────────────── -->
+<div class="section" id="t1">
+  <div class="section-head" style="background:linear-gradient(135deg,#1a3a1c,#2A8436)">
+    <i class="bi bi-stack"></i><h2>T1. Стек технологий</h2>
+  </div>
+  <div class="section-body">
+    <table class="tbl">
+      <tr><th>Слой</th><th>Технология</th><th>Версия</th></tr>
+      <tr><td>Backend</td><td>Python + FastAPI + SQLAlchemy</td><td>3.11+ / 0.115 / 2.0</td></tr>
+      <tr><td>Frontend</td><td>Jinja2 + Bootstrap 5 + Vanilla JS</td><td>3.12 / 5.3 / ES2020</td></tr>
+      <tr><td>БД production</td><td>PostgreSQL (Railway)</td><td>16+</td></tr>
+      <tr><td>БД dev/test</td><td>SQLite</td><td>встроен в Python</td></tr>
+      <tr><td>Хранилище фото</td><td>Cloudinary</td><td>CDN + auto-optimize</td></tr>
+      <tr><td>Email</td><td>Brevo (SMTP + API)</td><td>300 писем/день бесплатно</td></tr>
+      <tr><td>Push-уведомления</td><td>Web Push API / VAPID / pywebpush</td><td>RFC 8030</td></tr>
+      <tr><td>AI (фото→Excel)</td><td>Gemini Flash (primary)</td><td>gemini-1.5-flash</td></tr>
+      <tr><td>AI (чат-ассистент)</td><td>Claude / Groq / DeepSeek</td><td>claude-sonnet-4-6</td></tr>
+      <tr><td>Хостинг</td><td>Railway.app</td><td>автодеплой при push</td></tr>
+      <tr><td>Тесты</td><td>pytest + pytest-asyncio</td><td>152 unit-теста</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ── T2. Переменные окружения ───────────────────────────── -->
+<div class="section" id="t2">
+  <div class="section-head" style="background:linear-gradient(135deg,#1a3a1c,#2A8436)">
+    <i class="bi bi-key-fill"></i><h2>T2. Переменные окружения</h2>
+  </div>
+  <div class="section-body">
+    <h3>Обязательные</h3>
+    <table class="tbl">
+      <tr><th>Переменная</th><th>Описание</th></tr>
+      <tr><td><code>SECRET_KEY</code></td><td>Секрет сессий, минимум 32 символа. Сгенерировать: <code>python -c "import secrets; print(secrets.token_hex(32))"</code></td></tr>
+      <tr><td><code>DATABASE_URL</code></td><td>postgresql://user:pass@host:5432/db — Railway даёт автоматически</td></tr>
+      <tr><td><code>ADMIN_PHONE</code></td><td>Телефон первого администратора (+7XXXXXXXXXX)</td></tr>
+    </table>
+    <h3>Email (Brevo)</h3>
+    <table class="tbl">
+      <tr><th>Переменная</th><th>Описание</th></tr>
+      <tr><td><code>SMTP_HOST / PORT / USER / PASS</code></td><td>smtp-relay.brevo.com / 587 / логин / ключ</td></tr>
+      <tr><td><code>NOTIFY_PRECHECK_EMAIL</code></td><td>Адрес для уведомлений о предосмотрах ВПК</td></tr>
+      <tr><td><code>NOTIFY_ERROR_EMAIL</code></td><td>Адрес для алертов об ошибках сервера</td></tr>
+      <tr><td><code>NOTIFY_OVERRIDE_EMAIL</code></td><td>Режим тестирования: все письма → только этот адрес</td></tr>
+    </table>
+    <h3>Push-уведомления (VAPID)</h3>
+    <table class="tbl">
+      <tr><th>Переменная</th><th>Описание</th></tr>
+      <tr><td><code>VAPID_PRIVATE_KEY</code></td><td>Приватный ключ. Сгенерировать один раз через py_vapid</td></tr>
+      <tr><td><code>VAPID_PUBLIC_KEY</code></td><td>Публичный ключ (отдаётся клиенту через /api/vapid-key)</td></tr>
+      <tr><td><code>APP_URL</code></td><td>https://ваш-домен.up.railway.app</td></tr>
+    </table>
+    <h3>AI-сервисы</h3>
+    <table class="tbl">
+      <tr><th>Переменная</th><th>Сервис</th><th>Получить</th></tr>
+      <tr><td><code>GEMINI_API_KEY</code></td><td>Фото→Excel (primary)</td><td>aistudio.google.com</td></tr>
+      <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Claude-ассистент + fallback</td><td>anthropic.com</td></tr>
+      <tr><td><code>GROQ_API_KEY</code></td><td>Быстрый текстовый AI</td><td>console.groq.com</td></tr>
+      <tr><td><code>SENTRY_DSN</code></td><td>Трекинг ошибок (опционально)</td><td>sentry.io</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ── T3. Структура проекта ──────────────────────────────── -->
+<div class="section" id="t3">
+  <div class="section-head" style="background:linear-gradient(135deg,#1a3a1c,#2A8436)">
+    <i class="bi bi-folder-fill"></i><h2>T3. Структура проекта</h2>
+  </div>
+  <div class="section-body">
+    <table class="tbl">
+      <tr><th>Файл / Папка</th><th>Назначение</th></tr>
+      <tr><td><code>main.py</code></td><td>Точка входа: middleware, роутеры, startup event</td></tr>
+      <tr><td><code>deps.py</code></td><td>Зависимости: require_login, require_admin, require_api_user</td></tr>
+      <tr><td><code>database.py</code></td><td>SQLAlchemy engine, get_db, Base</td></tr>
+      <tr><td><code>migrations.py</code></td><td>Идемпотентные SQL-миграции — запускаются при каждом старте</td></tr>
+      <tr><td><code>middleware.py</code></td><td>CSRF-защита, security headers</td></tr>
+      <tr><td><code>models/</code></td><td>SQLAlchemy модели (auth, project, task, vpk, smr, recon, adaptation, misc)</td></tr>
+      <tr><td><code>routes/</code></td><td>FastAPI роутеры — по одному файлу на модуль</td></tr>
+      <tr><td><code>services/</code></td><td>Бизнес-логика: tools_service.py, push_service.py, email_service.py, …</td></tr>
+      <tr><td><code>templates/</code></td><td>Jinja2 HTML-шаблоны</td></tr>
+      <tr><td><code>static/</code></td><td>CSS, JS, Service Worker (sw.js)</td></tr>
+      <tr><td><code>tests/</code></td><td>152 pytest-теста (E2E отдельно: pytest -m e2e)</td></tr>
+      <tr><td><code>docs/</code></td><td>USER_GUIDE.md — руководство пользователя (Markdown)</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ── T4. Деплой и обновление ────────────────────────────── -->
+<div class="section" id="t4">
+  <div class="section-head" style="background:linear-gradient(135deg,#1a3a1c,#2A8436)">
+    <i class="bi bi-cloud-upload-fill"></i><h2>T4. Деплой и обновление</h2>
+  </div>
+  <div class="section-body">
+    <h3>Автодеплой (основной способ)</h3>
+    <ol class="steps">
+      <li>Внести изменения в код</li>
+      <li><code>git add . && git commit -m "описание"</code></li>
+      <li><code>git push</code> — Railway автоматически пересобирает и деплоит</li>
+      <li>Через 1–2 минуты изменения доступны на проде</li>
+    </ol>
+    <div class="tip"><strong>Миграции БД</strong> запускаются автоматически при каждом старте приложения через <code>migrations.py</code> — вручную ничего не нужно.</div>
+
+    <h3>Ручной деплой (если нужно)</h3>
+    <div style="background:#0D2010;border-radius:8px;padding:14px 18px;margin:10px 0;font-family:monospace;font-size:13px;color:#86efac">
+      railway login<br>
+      railway up --service lenta-web
+    </div>
+    <p>Railway CLI: <code>C:\Users\HUAWEI\railway-cli\railway.exe</code></p>
+
+    <h3>Откат к предыдущей версии</h3>
+    <p>Railway Dashboard → Deployments → выбрать нужный деплой → кнопка <strong>«Rollback»</strong>.</p>
+
+    <h3>Мониторинг ошибок</h3>
+    <ul>
+      <li><strong>Email-алерты:</strong> при 500-ошибке приходит письмо на <code>NOTIFY_ERROR_EMAIL</code> (не чаще 1 раза в минуту)</li>
+      <li><strong>Логи:</strong> Railway Dashboard → Logs (stdout приложения в реальном времени)</li>
+      <li><strong>Sentry:</strong> добавить <code>SENTRY_DSN</code> в env vars для полноценного трекинга ошибок</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ── T5. Тесты ──────────────────────────────────────────── -->
+<div class="section" id="t5">
+  <div class="section-head" style="background:linear-gradient(135deg,#1a3a1c,#2A8436)">
+    <i class="bi bi-check2-all"></i><h2>T5. Тесты</h2>
+  </div>
+  <div class="section-body">
+    <div style="background:#0D2010;border-radius:8px;padding:14px 18px;margin:10px 0;font-family:monospace;font-size:13px;color:#86efac">
+      pytest                   <span style="color:#4ade80"># 152 unit-теста (E2E исключены по умолчанию)</span><br>
+      pytest -m e2e            <span style="color:#4ade80"># E2E тесты (нужен запущенный сервер + Playwright)</span><br>
+      pytest tests/test_auth.py -v    <span style="color:#4ade80"># один модуль</span>
+    </div>
+    <table class="tbl">
+      <tr><th>Файл</th><th>Что тестирует</th><th>Тестов</th></tr>
+      <tr><td>test_auth.py</td><td>Вход, выход, неверный пароль</td><td>9</td></tr>
+      <tr><td>test_projects.py</td><td>CRUD проектов, история, вложения, этапы</td><td>15</td></tr>
+      <tr><td>test_vpk_audit.py</td><td>Страницы ВПК, экспорт, аудит</td><td>16</td></tr>
+      <tr><td>test_tasks.py</td><td>Задачи, дедлайны, экспорт</td><td>7</td></tr>
+      <tr><td>test_security.py</td><td>Magic bytes, CSRF middleware</td><td>13</td></tr>
+      <tr><td>test_smr_kso.py</td><td>Auth requirements (require_api_user)</td><td>18</td></tr>
+      <tr><td>test_tools.py</td><td>Excel builders, шаблоны конвертаций</td><td>13</td></tr>
+      <tr><td>test_e2e_mobile.py</td><td>Playwright E2E (нужен браузер+сервер)</td><td>15</td></tr>
+    </table>
+    <div class="info"><strong>БД для тестов:</strong> SQLite в памяти — PostgreSQL не нужен. Переменная <code>TESTING=1</code> отключает CSRF в тестах.</div>
+  </div>
+</div>
+
+<!-- ── T6. Безопасность ───────────────────────────────────── -->
+<div class="section" id="t6">
+  <div class="section-head" style="background:linear-gradient(135deg,#1a3a1c,#2A8436)">
+    <i class="bi bi-shield-fill-check"></i><h2>T6. Механизмы безопасности</h2>
+  </div>
+  <div class="section-body">
+    <table class="tbl">
+      <tr><th>Механизм</th><th>Реализация</th></tr>
+      <tr><td>Хеширование паролей</td><td>PBKDF2-SHA256 (<code>utils/passwords.py</code>)</td></tr>
+      <tr><td>CSRF-защита</td><td>Токен в форме + заголовок X-CSRFToken (<code>middleware.py</code>)</td></tr>
+      <tr><td>Rate limiting</td><td>5 попыток/мин на вход, 20/мин на проверку телефона (slowapi)</td></tr>
+      <tr><td>Phone whitelist</td><td>Только номера из /admin/users могут войти</td></tr>
+      <tr><td>Session fixation</td><td>Новый session ID при каждом входе</td></tr>
+      <tr><td>Magic bytes</td><td>Валидация MIME по содержимому файла, не расширению</td></tr>
+      <tr><td>Auth зависимости</td><td>require_login / require_api_user / require_admin — FastAPI Depends</td></tr>
+      <tr><td>Security headers</td><td>X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy</td></tr>
+      <tr><td>Admin IP whitelist</td><td><code>ADMIN_IP_WHITELIST</code> env var (опционально)</td></tr>
+      <tr><td>HTTPS</td><td>Автоматически через Railway</td></tr>
+    </table>
+  </div>
+</div>
+
+</div><!-- /tech-docs wrapper -->
+{% endif %}
+
 <div class="footer">
   <img src="/static/img/raccoon.png" style="height:24px;opacity:.4;vertical-align:middle;margin-right:8px"
        data-fallback="hide">
